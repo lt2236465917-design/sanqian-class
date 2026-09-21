@@ -151,7 +151,10 @@ class _SchoolAccountViewState extends State<SchoolAccountView> {
           '中国艺术研究院\n在学校网页完成登录、验证码，进入“研究生综合管理 → 我的课表”，再读取并用 AI 识别，核对后保存。',
         ),
         const SizedBox(height: 16),
-        Text(_localId == null ? '未保存账号' : '已保存账号（不代表当前网页登录成功）'),
+        Text(
+          _localId == null ? '未保存账号' : '已保存账号（不代表当前网页登录成功）',
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
         const SizedBox(height: 16),
         TextField(
           controller: _account,
@@ -180,7 +183,8 @@ class _SchoolAccountViewState extends State<SchoolAccountView> {
           onPressed: _busy || _localId == null ? null : _clear,
           child: const Text('清除已保存账号'),
         ),
-        Text(_message),
+        const SizedBox(height: 8),
+        Text(_message, style: const TextStyle(height: 1.5)),
       ],
     ),
   );

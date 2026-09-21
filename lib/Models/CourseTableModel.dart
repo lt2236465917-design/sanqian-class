@@ -137,4 +137,13 @@ class CourseTableProvider {
 //    await close();
     return rst;
   }
+  Future<void> rename(int id, String name) async {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) throw ArgumentError('课表名称不能为空');
+    await open();
+    final changed = await db!.update(tableName, {columnName: trimmed},
+        where: '$columnId = ?', whereArgs: [id]);
+    if (changed != 1) throw StateError('课表已不存在，请重新读取');
+  }
+
 }

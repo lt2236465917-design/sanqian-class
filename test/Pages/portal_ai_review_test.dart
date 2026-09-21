@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -9,9 +10,16 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
 import 'package:wheretosleepinnju/Pages/Import/PhotoScheduleImportView.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:scoped_model/scoped_model.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wheretosleepinnju/Models/Db/DbHelper.dart';
 import 'package:wheretosleepinnju/Pages/Import/ImportReviewView.dart';
 import 'package:wheretosleepinnju/Pages/Import/SchoolAccountView.dart';
+import 'package:wheretosleepinnju/Resources/PersonalTheme.dart';
+import 'package:wheretosleepinnju/Models/ScheduleImportDraft.dart';
+import 'package:wheretosleepinnju/Utils/ScheduleImportService.dart';
+import 'package:wheretosleepinnju/Utils/States/MainState.dart';
+import 'package:wheretosleepinnju/Pages/Import/Widgets/RecognitionProgress.dart';
 
 const sourceText =
     '[[[{"text":"科目"},{"text":"安排"}],'
@@ -38,6 +46,10 @@ class FixtureImagePicker extends ImagePickerPlatform {
   }) async => [XFile('/fixture/one.png'), XFile('/fixture/two.png')];
 }
 
+Finder field(String label) => find.byWidgetPredicate(
+  (w) => w is TextField && w.decoration?.labelText == label,
+);
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   const channel = MethodChannel('sanqian/schedule_import');
@@ -59,6 +71,7 @@ void main() {
     await databaseFactory.setDatabasesPath(folder.path);
     db = await DbHelper().open();
     calls = [];
+    SharedPreferences.setMockInitialValues({});
     hasKey = true;
     originalPicker = ImagePickerPlatform.instance;
     ImagePickerPlatform.instance = FixtureImagePicker();
@@ -119,11 +132,16 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  Future<void> send(WidgetTester tester) async {
+  Future<void> send(WidgetTester tester, {bool settle = true}) async {
     await tester.tap(find.widgetWithText(FilledButton, 'AI 识别网页课表'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('发送并整理'));
-    await tester.pumpAndSettle();
+    if (settle) {
+      await tester.pumpAndSettle();
+    } else {
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+    }
   }
 
   testWidgets(
@@ -260,7 +278,8 @@ void main() {
     final response = Completer<Object?>();
     recognize = (_) => response.future;
     await showReview(tester, courses: [course('手动核对课程')]);
-    await send(tester);
+    await send(tester, settle: false);
+    expect(find.byType(RecognitionProgress), findsOneWidget);
     await tester.tap(find.text('取消识别'));
     await tester.pumpAndSettle();
     response.complete({
@@ -271,8 +290,249 @@ void main() {
     expect(find.text('手动核对课程'), findsOneWidget);
     expect(find.text('迟到结果'), findsNothing);
     expect(find.text('核对 AI 识别结果'), findsNothing);
+    expect(find.byType(RecognitionProgress), findsNothing);
     expect(await db.query('Course'), isEmpty);
   });
+
+  testWidgets(
+    'AI field changes can be restored including the prior review gate',
+    (tester) async {
+      final original = {
+        ...course('同一课程'),
+        'courseCode': 'C1',
+        'teacher': '原教师',
+      };
+      final updated = {
+        ...course('同一课程'),
+        'courseCode': 'C1',
+        'teacher': 'AI 教师',
+        'meetings': [
+          {
+            ...(course('同一课程')['meetings'] as List).single as Map,
+            'weekday': 2,
+            'location': 'AI 教室',
+          },
+        ],
+      };
+      recognize = (_) async => {
+        'courses': [updated],
+      };
+      await showReview(tester, courses: [original]);
+      await send(tester);
+      expect(find.text('教师\n原：原教师\nAI：AI 教师'), findsOneWidget);
+      expect(find.text('星期\n原：1\nAI：2'), findsOneWidget);
+      expect(find.text('教室\n原：6406\nAI：AI 教室'), findsOneWidget);
+      await tester.tap(find.text('采用并继续核对'));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<FilledButton>(find.widgetWithText(FilledButton, '查看变化并保存'))
+            .onPressed,
+        isNotNull,
+      );
+      await tester.tap(find.text('恢复本次 AI 处理前的内容'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('AI 教室'), findsNothing);
+      expect(
+        tester
+            .widget<FilledButton>(find.widgetWithText(FilledButton, '查看变化并保存'))
+            .onPressed,
+        isNull,
+      );
+      expect(original['teacher'], '原教师');
+      expect(await db.query('Course'), isEmpty);
+    },
+  );
+
+  testWidgets(
+    'recognition honors reduced motion and cancel still rejects late output',
+    (tester) async {
+      final response = Completer<Object?>();
+      recognize = (_) => response.future;
+      await tester.binding.setSurfaceSize(const Size(430, 1200));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(disableAnimations: true),
+            child: child!,
+          ),
+          home: const ImportReviewView(
+            courses: [],
+            source: 'school-portal',
+            timetableText: sourceText,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await send(tester);
+      expect(find.byType(RecognitionProgress), findsOneWidget);
+      expect(tester.binding.hasScheduledFrame, isFalse);
+      await tester.tap(find.text('取消识别'));
+      await tester.pumpAndSettle();
+      response.complete({
+        'courses': [course('迟到结果')],
+      });
+      await tester.pumpAndSettle();
+      expect(find.text('迟到结果'), findsNothing);
+      expect(await db.query('Course'), isEmpty);
+    },
+  );
+
+  Future<int> savedContext({
+    String term = '2026 秋季',
+    String? account,
+    String source = 'school-portal',
+  }) => db.insert('CourseTable', {
+    'name': term,
+    'data': jsonEncode({
+      'import_source_key': jsonEncode([
+        source,
+        'school-timetable',
+        account,
+        '中国艺术研究院',
+        term,
+      ]),
+      'semester_start_monday': '2026-09-07',
+    }),
+  });
+
+  testWidgets(
+    'saved semester fills only unique matching context and keeps manual input',
+    (tester) async {
+      await savedContext();
+      final foreign = await savedContext(
+        term: '其他账号学期',
+        account: 'different-account',
+      );
+      await showReview(tester);
+      expect(
+        tester.widget<TextField>(field('学期，例如 2026 秋季')).controller!.text,
+        '2026 秋季',
+      );
+      expect(find.text('2026-9-7'), findsOneWidget);
+      await tester.enterText(field('学期，例如 2026 秋季'), '手动学期');
+      await tester.pumpAndSettle();
+      expect(find.text('请选择，不能以导入日期代替'), findsOneWidget);
+      await tester.tap(find.byType(DropdownButtonFormField<int>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('合并到 其他账号学期').last);
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<TextField>(field('学期，例如 2026 秋季')).controller!.text,
+        '手动学期',
+      );
+      expect(find.textContaining('所选课表的来源、账号或学期不同'), findsOneWidget);
+      expect(find.text('2026-9-7'), findsNothing);
+      expect(
+        (await db.query(
+          'CourseTable',
+          where: 'id = ?',
+          whereArgs: [foreign],
+        )).single['name'],
+        '其他账号学期',
+      );
+    },
+  );
+
+  testWidgets(
+    'multiple semesters are not guessed and date picker only allows Mondays',
+    (tester) async {
+      await savedContext();
+      await savedContext(term: '2027 春季');
+      await showReview(tester);
+      expect(
+        tester.widget<TextField>(field('学期，例如 2026 秋季')).controller!.text,
+        '',
+      );
+      expect(find.textContaining('存在多个已保存学期'), findsOneWidget);
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('first-week-monday')),
+      );
+      await tester.tap(find.byKey(const ValueKey('first-week-monday')));
+      await tester.pumpAndSettle();
+      final picker = tester.widget<DatePickerDialog>(
+        find.byType(DatePickerDialog),
+      );
+      expect(picker.initialDate, isNull);
+      expect(picker.selectableDayPredicate!(DateTime(2026, 9, 21)), isTrue);
+      expect(picker.selectableDayPredicate!(DateTime(2026, 9, 22)), isFalse);
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(find.text('请选择，不能以导入日期代替'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'save shows a compact summary and stale confirmation cannot overwrite changes',
+    (tester) async {
+      final original = {
+        ...course('有本地修改的课程'),
+        'courseCode': 'C1',
+        'teacher': '原教师',
+      };
+      await ScheduleImportService.commit(
+        ScheduleImportDraft(
+          source: 'photos',
+          sourceId: 'school-timetable',
+          school: '中国艺术研究院',
+          term: '2026 秋季',
+          firstWeekMonday: DateTime(2026, 9, 7),
+          courses: [ScheduleImportCourseDraft.fromJson(original)],
+        ),
+        database: db,
+        periods: [
+          {'start': '13:30', 'end': '16:30', 'label': '下午'},
+        ],
+      );
+      await db.update('Course', {'teacher': '本地教师'});
+      await tester.binding.setSurfaceSize(const Size(430, 1200));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        ScopedModel<MainStateModel>(
+          model: MainStateModel(),
+          child: MaterialApp(
+            home: ImportReviewView(
+              source: 'photos',
+              courses: [
+                {...original, 'teacher': '来源教师'},
+                {...course('新增课程'), 'courseCode': 'C2'},
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('查看变化并保存'));
+      await tester.tap(find.text('查看变化并保存'));
+      await tester.pumpAndSettle();
+      expect(find.text('确认导入变化'), findsOneWidget);
+      expect(find.text('新增 1'), findsOneWidget);
+      expect(find.textContaining('处来源或本地编辑冲突'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.byType(ExpansionTile),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.text('新增课程'),
+        ),
+        findsNothing,
+      );
+      await db.update('Course', {'classroom': '核对期间改动'});
+      await tester.tap(find.text('确认保存'));
+      await tester.pumpAndSettle();
+      expect(find.text('课表在核对期间发生了变化，请重新查看变化后保存。'), findsOneWidget);
+      final rows = await db.query('Course');
+      expect(rows, hasLength(1));
+      expect(rows.single['teacher'], '本地教师');
+      expect(rows.single['classroom'], '核对期间改动');
+    },
+  );
 
   testWidgets('empty page without timetable material remains an error', (
     tester,
@@ -380,6 +640,140 @@ void main() {
     expect(find.text('已取消识别，已选图片保留'), findsOneWidget);
     expect(await db.query('Course'), isEmpty);
   });
+
+  testWidgets(
+    'photo removal updates only the consented batch in the same flow',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(430, 1200));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: personalTheme(Brightness.light),
+          home: const PhotoScheduleImportView(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('选择课表图片'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byWidgetPredicate(
+          (w) => w is Semantics && w.properties.label == '查看第 1 张课表原图',
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('第 1 张课表图片'), findsOneWidget);
+      expect(calls.where((c) => c.method == 'recognizePhotos'), isEmpty);
+      await tester.tap(find.byTooltip('关闭原图'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('移除第 1 张'));
+      await tester.pumpAndSettle();
+      expect(find.text('已选择 1 张'), findsOneWidget);
+      await tester.tap(find.text('AI 识别课表'));
+      await tester.pumpAndSettle();
+      expect(calls.where((c) => c.method == 'recognizePhotos'), isEmpty);
+      await tester.tap(find.text('发送并识别'));
+      await tester.pumpAndSettle();
+      expect(
+        calls.singleWhere((c) => c.method == 'recognizePhotos').arguments,
+        {
+          'paths': ['/fixture/two.png'],
+          'ai': true,
+        },
+      );
+      expect(find.byType(ImportReviewView), findsOneWidget);
+      expect(await db.query('Course'), isEmpty);
+    },
+  );
+
+  Future<void> editCourse(
+    WidgetTester tester,
+    Map<String, dynamic> draft,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(430, 1200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: personalTheme(Brightness.light),
+        home: ImportReviewView(courses: [draft], source: 'photos'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text(draft['name']));
+    await tester.tap(find.text(draft['name']));
+    await tester.pumpAndSettle();
+    expect(find.text('编辑课程'), findsOneWidget);
+  }
+
+  testWidgets(
+    'canceling an unknown time leaves it pending in the original editor',
+    (tester) async {
+      await editCourse(tester, {
+        'name': '待定课程',
+        'meetings': [<String, dynamic>{}],
+      });
+      await tester.ensureVisible(field('开始 HH:mm'));
+      await tester.tap(field('开始 HH:mm'));
+      await tester.pumpAndSettle();
+      expect(find.byType(TimePickerDialog), findsOneWidget);
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<TextField>(field('开始 HH:mm')).controller!.text,
+        isEmpty,
+      );
+      expect(
+        tester.widget<TextField>(field('结束 HH:mm')).controller!.text,
+        isEmpty,
+      );
+      await tester.ensureVisible(find.text('完成核对'));
+      await tester.tap(find.text('完成核对'));
+      await tester.pumpAndSettle();
+      expect(find.byType(ImportReviewView), findsOneWidget);
+      expect(find.textContaining('待定–待定'), findsOneWidget);
+      expect(find.textContaining('09:00'), findsNothing);
+      expect(await db.query('Course'), isEmpty);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'week choices remain a draft and cancel preserves the existing selection',
+    (tester) async {
+      await editCourse(tester, course('周次核对课程'));
+      await tester.binding.setSurfaceSize(const Size(320, 740));
+      tester.platformDispatcher.textScaleFactorTestValue = 1.4;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(field('上课周次'));
+      await tester.tap(field('上课周次'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('单周'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('关闭周次选择'));
+      await tester.pumpAndSettle();
+      expect(tester.widget<TextField>(field('上课周次')).controller!.text, '3,4,6');
+      await tester.tap(field('上课周次'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('双周'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('确认周次'));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<TextField>(field('上课周次')).controller!.text,
+        '2,4,6,8,10,12,14,16,18,20',
+      );
+      await tester.ensureVisible(find.text('完成核对'));
+      await tester.tap(find.text('完成核对'));
+      await tester.pumpAndSettle();
+      expect(find.byType(ImportReviewView), findsOneWidget);
+      expect(
+        find.textContaining('[2, 4, 6, 8, 10, 12, 14, 16, 18, 20]'),
+        findsOneWidget,
+      );
+      expect(await db.query('Course'), isEmpty);
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('credentials save failure is visible and preserves typed input', (
     tester,

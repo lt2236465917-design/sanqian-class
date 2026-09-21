@@ -7,10 +7,6 @@
          FlutterApplication and put your custom class here. -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
-    <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
     <uses-permission android:name="android.permission.READ_CALENDAR" />
     <uses-permission android:name="android.permission.WRITE_CALENDAR" />
     <queries>
@@ -27,9 +23,10 @@
     </queries>
     <application
         android:name=".MainApplication"
-        android:label="南哪课表"
+        android:label="三千上课"
         android:icon="@mipmap/ic_launcher"
-        android:usesCleartextTraffic="true"
+        android:usesCleartextTraffic="false"
+        android:allowBackup="false"
         android:extractNativeLibs="true">
         <!-- CNM 这也太吓人了 升级个gradle 6.5 包体积直接从25M翻倍到50+M 就nm离谱... -->
         <activity

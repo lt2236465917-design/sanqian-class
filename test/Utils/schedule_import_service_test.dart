@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:wheretosleepinnju/Models/CourseTableModel.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:wheretosleepinnju/Models/Db/DbHelper.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -283,6 +284,31 @@ void sqliteTests() {
       });
       return tableId;
     }
+
+    test(
+      'renaming preserves courses and import metadata and rejects empty names',
+      () async {
+        final tableId = await createLegacyTable();
+        final before = (await db.query(
+          'CourseTable',
+          where: 'id = ?',
+          whereArgs: [tableId],
+        )).single;
+        final courses = await rows();
+        final provider = CourseTableProvider()..dbHelper = _MemoryTableDb(db);
+        await provider.rename(tableId, '  我的秋季课表  ');
+        final after = (await db.query(
+          'CourseTable',
+          where: 'id = ?',
+          whereArgs: [tableId],
+        )).single;
+        expect(after, {...before, 'name': '我的秋季课表'});
+        expect(await rows(), courses);
+        await expectLater(provider.rename(tableId, '  '), throwsArgumentError);
+        await expectLater(provider.rename(-1, '不存在'), throwsStateError);
+        expect((await db.query('CourseTable')).single, after);
+      },
+    );
 
     test(
       'explicit reviewed legacy binding preserves business fields and protects later imports',
@@ -950,4 +976,11 @@ void sqliteTests() {
       },
     );
   });
+}
+
+class _MemoryTableDb extends DbHelper {
+  final Database database;
+  _MemoryTableDb(this.database);
+  @override
+  Future<Database> open() async => database;
 }

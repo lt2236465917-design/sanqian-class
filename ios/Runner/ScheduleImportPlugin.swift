@@ -73,13 +73,8 @@ final class ScheduleImportPlugin: NSObject, FlutterPlugin {
                         result(object)
                     } catch { result(FlutterError(code: "recognition", message: error.localizedDescription, details: nil)) }
                 }
-            case "requestReminderPermission":
-                ScheduleReminderScheduler.shared.requestAuthorization { granted, error in
-                    DispatchQueue.main.async {
-                        if let error { result(FlutterError(code: "notification_permission", message: error.localizedDescription, details: nil)) }
-                        else { result(granted) }
-                    }
-                }
+            case "clearLegacyReminders":
+                ScheduleReminderScheduler.shared.clearLegacy { result(true) }
             case "syncDerivedData":
                 var widgetError: String?
                 if let group = Bundle.main.object(forInfoDictionaryKey: "ScheduleAppGroup") as? String,
@@ -93,12 +88,7 @@ final class ScheduleImportPlugin: NSObject, FlutterPlugin {
                         if #available(iOS 14.0, *) { WidgetCenter.shared.reloadTimelines(ofKind: "SanqianPersonalSchedule") }
                     } catch { widgetError = "共享课表写入失败" }
                 } else { widgetError = "App Group 尚不可用" }
-                ScheduleReminderScheduler.shared.replace(occurrences: args["occurrences"] as? [[String:Any]] ?? [],
-                    leadMinutes: args["leadMinutes"] as? [Int] ?? []) { status in
-                    var response = status
-                    response["widgetError"] = widgetError
-                    DispatchQueue.main.async { result(response) }
-                }
+                result(["widgetError": widgetError as Any? ?? NSNull()])
             default: result(FlutterMethodNotImplemented)
             }
         } catch { result(FlutterError(code: "schedule_import", message: error.localizedDescription, details: nil)) }

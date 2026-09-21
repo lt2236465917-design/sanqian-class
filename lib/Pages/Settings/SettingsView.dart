@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../Utils/States/MainState.dart';
+import '../../Utils/ScheduleFeedback.dart';
 import '../About/AboutView.dart';
 import '../AddCourse/AddCourseView.dart';
 import '../Import/ScreenshotImportView.dart';
@@ -23,9 +24,7 @@ class SettingsView extends StatelessWidget {
         context,
       ).push(MaterialPageRoute(builder: (_) => page));
       if (saved == true && successMessage != null && context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(successMessage)));
+        ScheduleFeedback.success(context, successMessage);
       }
     }
 
@@ -35,7 +34,7 @@ class SettingsView extends StatelessWidget {
       String subtitle,
       VoidCallback action,
     ) => ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 5),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
       leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
       title: Text(
         title,
@@ -43,7 +42,7 @@ class SettingsView extends StatelessWidget {
       ),
       subtitle: Text(
         subtitle,
-        style: const TextStyle(fontSize: 12, height: 1.6),
+        style: const TextStyle(fontSize: 14, height: 1.5),
       ),
       trailing: const Icon(Icons.chevron_right_rounded, size: 20),
       onTap: action,
@@ -66,9 +65,25 @@ class SettingsView extends StatelessWidget {
               clipBehavior: Clip.antiAlias,
               child: Column(
                 children: [
-                  tile(Icons.school_outlined, '学校账号与导入', '中国艺术研究院 · 登录后 AI 识别课表', () => open(const SchoolAccountView(), successMessage: '课表已保存，返回首页即可查看。')),
+                  tile(
+                    Icons.school_outlined,
+                    '学校账号与导入',
+                    '中国艺术研究院 · 登录后 AI 识别课表',
+                    () => open(
+                      const SchoolAccountView(),
+                      successMessage: '课表已保存，返回首页即可查看。',
+                    ),
+                  ),
                   const Divider(height: 1, indent: 18, endIndent: 18),
-                  tile(Icons.document_scanner_outlined, '多图课表导入', 'AI 联合识别多张截图，核对后保存', () => open(const PhotoScheduleImportView(), successMessage: '课表已保存，返回首页即可查看。')),
+                  tile(
+                    Icons.document_scanner_outlined,
+                    '多图课表导入',
+                    'AI 联合识别多张截图，核对后保存',
+                    () => open(
+                      const PhotoScheduleImportView(),
+                      successMessage: '课表已保存，返回首页即可查看。',
+                    ),
+                  ),
                   const Divider(height: 1, indent: 18, endIndent: 18),
                   if (kDebugMode) ...[
                     tile(
@@ -123,9 +138,19 @@ class SettingsView extends StatelessWidget {
               clipBehavior: Clip.antiAlias,
               child: Column(
                 children: [
-                  tile(Icons.key_outlined, 'DeepSeek 设置', '保存或删除本机 API key', () => open(const DeepSeekSettingsView())),
+                  tile(
+                    Icons.key_outlined,
+                    'DeepSeek 设置',
+                    '保存或删除本机 API key',
+                    () => open(const DeepSeekSettingsView()),
+                  ),
                   const Divider(height: 1, indent: 18, endIndent: 18),
-                  tile(Icons.notifications_outlined, '上课提醒', '提前 15 分钟、3 小时或 1 天', () => open(const ReminderSettingsView())),
+                  tile(
+                    Icons.notifications_outlined,
+                    '上课提醒',
+                    '提前 15 分钟、3 小时或 24 小时',
+                    () => open(const ReminderSettingsView()),
+                  ),
                   const Divider(height: 1, indent: 18, endIndent: 18),
                   tile(
                     Icons.brightness_6_outlined,

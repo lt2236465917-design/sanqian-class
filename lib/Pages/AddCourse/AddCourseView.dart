@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../Models/CourseTableModel.dart';
 import '../../Utils/ClassTimeUtil.dart';
+import '../../Utils/CourseWeekSelection.dart';
 
 import '../../generated/l10n.dart';
 import 'package:flutter/material.dart';
@@ -72,6 +73,11 @@ class _AddViewState extends State<AddView> {
   }
 
   String _periodSummary() =>
+      ClassTimeUtil.clockRange(
+        _periods ?? [],
+        _node['startTime'] + 1,
+        _node['endTime'] - _node['startTime'],
+      ) ??
       ClassTimeUtil.rangeLabel(
         _periods ?? [],
         _node['startTime'] + 1,
@@ -172,25 +178,26 @@ class _AddViewState extends State<AddView> {
                             const Padding(padding: EdgeInsets.all(8)),
                             Expanded(
                               child: InkWell(
-                                child: Text(
-                                  S
-                                          .of(context)
-                                          .week_duration(
-                                            _node['startWeek'] + 1,
-                                            _node['endWeek'] + 1,
-                                          ) +
-                                      ' ' +
-                                      Constant.WEEK_TYPES[_node['weekType']],
-                                  style: const TextStyle(fontSize: 16),
+                                borderRadius: BorderRadius.circular(16),
+                                child: InputDecorator(
+                                  decoration: const InputDecoration(
+                                    labelText: '上课周',
+                                    suffixIcon: Icon(Icons.expand_more_rounded),
+                                  ),
+                                  child: Text(
+                                    CourseWeekSelection.summary(_node),
+                                    style: const TextStyle(fontSize: 16),
+                                  ),
                                 ),
                                 onTap: () async {
-                                  Map newNode = (await showDialog<Map>(
+                                  final newNode = await showDialog<Map>(
                                     context: context,
                                     barrierDismissible: false,
                                     builder: (BuildContext context) {
                                       return WeekNodeDialog(node: _node);
                                     },
-                                  ))!;
+                                  );
+                                  if (newNode == null || !mounted) return;
                                   setState(() {
                                     _node = newNode;
                                   });
@@ -206,16 +213,23 @@ class _AddViewState extends State<AddView> {
                             const Padding(padding: EdgeInsets.all(8)),
                             Expanded(
                               child: InkWell(
-                                child: Text(
-                                  Constant.WEEK_WITHOUT_BIAS[_node['weekTime']] +
-                                      ' ' +
-                                      _periodSummary() +
-                                      ' ' +
-                                      (_node['classroom']),
-                                  style: const TextStyle(fontSize: 16),
+                                borderRadius: BorderRadius.circular(16),
+                                child: InputDecorator(
+                                  decoration: const InputDecoration(
+                                    labelText: '上课时间',
+                                    suffixIcon: Icon(Icons.expand_more_rounded),
+                                  ),
+                                  child: Text(
+                                    Constant.WEEK_WITHOUT_BIAS[_node['weekTime']] +
+                                        ' ' +
+                                        _periodSummary() +
+                                        ' ' +
+                                        (_node['classroom']),
+                                    style: const TextStyle(fontSize: 16),
+                                  ),
                                 ),
                                 onTap: () async {
-                                  Map newNode = (await showDialog<Map>(
+                                  final newNode = await showDialog<Map>(
                                     context: context,
                                     barrierDismissible: false,
                                     builder: (BuildContext context) {
@@ -224,7 +238,8 @@ class _AddViewState extends State<AddView> {
                                         periods: _periods!,
                                       );
                                     },
-                                  ))!;
+                                  );
+                                  if (newNode == null || !mounted) return;
                                   setState(() {
                                     _node = newNode;
                                   });
@@ -253,7 +268,7 @@ class _AddViewState extends State<AddView> {
                         const Padding(padding: EdgeInsets.all(10)),
                         SizedBox(
                           width: double.infinity,
-                          child: TextButton(
+                          child: FilledButton(
                             child: Text(
                               _saving ? '正在保存…' : S.of(context).add_class,
                             ),
@@ -331,7 +346,7 @@ class _AddViewState extends State<AddView> {
                                         );
                                       }
                                     } catch (_) {
-                                      if (context.mounted)
+                                      if (context.mounted) {
                                         ScaffoldMessenger.of(
                                           context,
                                         ).showSnackBar(
@@ -339,9 +354,11 @@ class _AddViewState extends State<AddView> {
                                             content: Text('保存失败，请重试。'),
                                           ),
                                         );
+                                      }
                                     } finally {
-                                      if (mounted)
+                                      if (mounted) {
                                         setState(() => _saving = false);
+                                      }
                                     }
                                   },
                           ),

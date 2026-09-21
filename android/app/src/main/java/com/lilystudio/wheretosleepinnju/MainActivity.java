@@ -4,9 +4,24 @@ import android.os.Bundle;
 import io.flutter.embedding.android.FlutterActivity;
 import io.flutter.embedding.engine.FlutterEngine;
 import io.flutter.plugins.GeneratedPluginRegistrant;
-import com.umeng.analytics.MobclickAgent;
+
 
 public class MainActivity extends FlutterActivity {
+    @Override
+    public void configureFlutterEngine(FlutterEngine flutterEngine) {
+        super.configureFlutterEngine(flutterEngine);
+        new io.flutter.plugin.common.MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), "sanqian/settings")
+            .setMethodCallHandler((call, result) -> {
+                if (call.method.equals("openAppSettings")) {
+                    try {
+                        startActivity(new android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                            android.net.Uri.parse("package:" + getPackageName())));
+                        result.success(true);
+                    } catch (Exception error) { result.success(false); }
+                } else { result.notImplemented(); }
+            });
+    }
+
 //    @Override
 //    public void configureFlutterEngine(FlutterEngine flutterEngine) {
 //        GeneratedPluginRegistrant.registerWith(flutterEngine);

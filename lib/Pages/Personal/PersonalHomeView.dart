@@ -10,9 +10,12 @@ import '../../Models/PersonalSchedule.dart';
 import '../../Models/ScreenshotSchedule.dart';
 import '../../Utils/ClassTimeUtil.dart';
 import '../../Utils/ScheduleDerivedDataService.dart';
-import '../Import/PhotoScheduleImportView.dart';
+import '../../Utils/ScheduleImportService.dart';
 import '../Settings/SettingsView.dart';
+import '../Import/SchoolAccountView.dart';
+import '../Import/PhotoScheduleImportView.dart';
 import 'Widgets/FloatingScheduleNavigation.dart';
+import 'Widgets/ScheduleStatusBadge.dart';
 
 enum _ScheduleTab { today, week, month }
 
@@ -89,7 +92,11 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
         _error = null;
       });
       if (widget.loader == null) {
-        unawaited(ScheduleDerivedDataService.sync(data).catchError((Object error) => <String,dynamic>{'error': '$error'}));
+        unawaited(
+          ScheduleDerivedDataService.sync(
+            data,
+          ).catchError((Object error) => <String, dynamic>{'error': '$error'}),
+        );
       }
     } catch (error) {
       if (mounted && request == _request) setState(() => _error = error);
@@ -117,6 +124,46 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
   Future<void> _open(Widget page) async {
     await Navigator.of(context).push(MaterialPageRoute(builder: (_) => page));
     if (mounted) await _load();
+  }
+
+  Future<void> _chooseImport() async {
+    final page = await showModalBottomSheet<Widget>(
+      context: context,
+      useSafeArea: true,
+      builder: (sheetContext) => SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: Text(
+                '选择导入方式',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.school_outlined),
+              title: const Text('账号导入'),
+              subtitle: const Text('登录学校账号，读取并核对课表'),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () =>
+                  Navigator.pop(sheetContext, const SchoolAccountView()),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('图片导入'),
+              subtitle: const Text('选择课表截图，识别并核对课程'),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () =>
+                  Navigator.pop(sheetContext, const PhotoScheduleImportView()),
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+    if (page != null && mounted) await _open(page);
   }
 
   @override
@@ -174,7 +221,7 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
                       ? '${_date(_now)} · 星期${_weekdays[_now.weekday - 1]}'
                       : schedule?.name ?? '三千上课',
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 14,
                     color: _colors.onSurfaceVariant,
                   ),
                 ),
@@ -206,10 +253,7 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
       return _page(_tab, [
         _empty('从这一学期开始', '导入课表后，就能看到每天的安排。', Icons.auto_stories_outlined),
         const SizedBox(height: 20),
-        FilledButton(
-          onPressed: () => _open(const PhotoScheduleImportView()),
-          child: const Text('导入我的课表'),
-        ),
+        FilledButton(onPressed: _chooseImport, child: const Text('导入我的课表')),
       ]);
     }
     return IndexedStack(
@@ -261,8 +305,24 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
 
   List<Widget> _todayContent(PersonalSchedule schedule) {
     final courses = schedule.onDay(_now);
-    final next = schedule.next(_now);
+    final confirmed =
+        schedule.occurrences
+            .where(
+              (c) =>
+                  c.start != null &&
+                  c.end != null &&
+                  c.end!.isAfter(c.start!) &&
+                  c.start!.isAfter(_now),
+            )
+            .toList()
+          ..sort((a, b) => a.start!.compareTo(b.start!));
+    final next = confirmed.isEmpty ? null : confirmed.first;
+    final dayFinished =
+        courses.isNotEmpty &&
+        courses.every((c) => c.end != null && !c.end!.isAfter(_now));
     return [
+      if (dayFinished)
+        _empty('今日课程已完成', '去干自己喜欢的事情吧', Icons.local_florist_outlined),
       ..._agenda(
         schedule,
         courses,
@@ -270,7 +330,7 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
         emptySubtitle: '留一点时间，给阅读和生活。',
         highlightNext: true,
       ),
-      if (courses.isEmpty && next != null) ...[
+      if ((courses.isEmpty || dayFinished) && next != null) ...[
         const SizedBox(height: 20),
         _nextCard(next, schedule),
       ],
@@ -283,6 +343,7 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
         ? '明天'
         : _date(next.date);
     return Card(
+      key: const ValueKey('next-confirmed-course'),
       color: _colors.primaryContainer.withValues(alpha: .45),
       child: InkWell(
         borderRadius: BorderRadius.circular(22),
@@ -302,7 +363,7 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
                   const SizedBox(width: 8),
                   Text(
                     '下一节课',
-                    style: TextStyle(fontSize: 12, color: _colors.primary),
+                    style: TextStyle(fontSize: 14, color: _colors.primary),
                   ),
                   const Spacer(),
                   Icon(
@@ -325,7 +386,7 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
               Text(
                 '$date 周${_weekdays[next.date.weekday - 1]} · ${_timeDescription(next.period, next.clockRange)}',
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: 14,
                   height: 1.6,
                   color: _colors.onSurfaceVariant,
                 ),
@@ -333,7 +394,7 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
               const SizedBox(height: 4),
               Text(
                 _room(next.course),
-                style: TextStyle(fontSize: 12, color: _colors.onSurfaceVariant),
+                style: TextStyle(fontSize: 14, color: _colors.onSurfaceVariant),
               ),
             ],
           ),
@@ -351,9 +412,16 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
       subtitle: '${_shortDate(monday)} — ${_shortDate(sunday)}',
       previousLabel: '上一周',
       nextLabel: '下一周',
-      previous: () => setState(() => _weekDay = schedule.dateFor(week - 1, 1)),
-      next: () => setState(() => _weekDay = schedule.dateFor(week + 1, 1)),
+      animateTitle: true,
+      previous: () => _changeWeek(schedule, week - 1),
+      next: () => _changeWeek(schedule, week + 1),
     );
+  }
+
+  void _changeWeek(PersonalSchedule schedule, int week) {
+    if (schedule.weekAt(_weekDay) == week) return;
+    setState(() => _weekDay = schedule.dateFor(week, 1));
+    unawaited(HapticFeedback.selectionClick().catchError((Object _) {}));
   }
 
   Widget _rangeNavigation({
@@ -363,6 +431,7 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
     required String nextLabel,
     required VoidCallback previous,
     required VoidCallback next,
+    bool animateTitle = false,
   }) => Row(
     children: [
       IconButton(
@@ -373,10 +442,22 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
       Expanded(
         child: Column(
           children: [
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
+            AnimatedSwitcher(
+              duration:
+                  !animateTitle ||
+                      MediaQuery.disableAnimationsOf(context) ||
+                      MediaQuery.accessibleNavigationOf(context)
+                  ? Duration.zero
+                  : const Duration(milliseconds: 180),
+              child: Text(
+                title,
+                key: ValueKey(title),
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 17,
+                ),
+              ),
             ),
             const SizedBox(height: 4),
             Text(
@@ -447,7 +528,7 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
     return [
       _rangeNavigation(
         title: '${first.year}年${first.month}月',
-        subtitle: '$count 节课',
+        subtitle: '上课次数 · $count 次',
         previousLabel: '上个月',
         nextLabel: '下个月',
         previous: () => _changeMonth(-1),
@@ -523,7 +604,7 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
         selected: selected,
         onTap: () => setState(() => _monthDay = date),
         label:
-            '${date.year}年${_date(date)} 星期${_weekdays[date.weekday - 1]}${today ? ' 今天' : ''}，$count 节课',
+            '${date.year}年${_date(date)} 星期${_weekdays[date.weekday - 1]}${today ? ' 今天' : ''}，上课次数 $count 次',
         child: ExcludeSemantics(
           child: Material(
             color: selected
@@ -667,24 +748,18 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
                     child: Text(
                       _timeDescription(item.period, item.clockRange),
                       style: TextStyle(
-                        fontSize: 12,
+                        fontSize: 16,
                         fontWeight: FontWeight.w600,
                         color: _colors.primary,
                       ),
                     ),
                   ),
                   if (item.isOngoing(_now))
-                    const Text('正在上课', style: TextStyle(fontSize: 11))
+                    const ScheduleStatusBadge('正在上课', emphasized: true)
                   else if (isNext)
-                    const Text('下一节课', style: TextStyle(fontSize: 11))
+                    const ScheduleStatusBadge('下一节课', emphasized: true)
                   else if (completed)
-                    Text(
-                      '已结束',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: _colors.onSurfaceVariant,
-                      ),
-                    ),
+                    const ScheduleStatusBadge('已结束'),
                 ],
               ),
               const SizedBox(height: 12),
@@ -700,7 +775,7 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
               Text(
                 _room(item.course),
                 style: TextStyle(
-                  fontSize: 13,
+                  fontSize: 16,
                   height: 1.5,
                   color: _colors.onSurfaceVariant,
                 ),
@@ -710,7 +785,7 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
                 Text(
                   item.course.teacher!,
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 14,
                     color: _colors.onSurfaceVariant,
                   ),
                 ),
@@ -737,7 +812,7 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
           subtitle,
           textAlign: TextAlign.center,
           style: TextStyle(
-            fontSize: 12,
+            fontSize: 14,
             color: _colors.onSurfaceVariant,
             height: 1.6,
           ),
@@ -746,7 +821,11 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
     ),
   );
 
-  String _timeDescription(String? period, String? clock, {String separator = '  '}) {
+  String _timeDescription(
+    String? period,
+    String? clock, {
+    String separator = '  ',
+  }) {
     if (period != null && period == clock) return period;
     return "${period ?? '时段待定'}$separator${clock ?? '具体时间待定'}";
   }
@@ -754,7 +833,36 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
   String _room(Course course) =>
       (course.classroom ?? '').trim().isEmpty ? '地点待定' : course.classroom!;
 
+  String _courseInfo(Course course) {
+    final info = (course.info ?? '').trim();
+    final code = (course.classNumber ?? '').trim();
+    String? source;
+    try {
+      final data = jsonDecode(course.data ?? '{}');
+      final metadata = data is Map
+          ? data[ScheduleImportService.rowMetadataKey]
+          : null;
+      final key = metadata is Map ? metadata['source_key'] : null;
+      final parts = key is String ? jsonDecode(key) : null;
+      if (parts is List && parts.isNotEmpty) {
+        source = switch (parts.first) {
+          'school-portal' => '学校课表',
+          'photos' => '课表截图',
+          _ => null,
+        };
+      }
+    } on FormatException {
+      // Older courses can have unstructured data; keep their original notes.
+    }
+    return [
+      if (code.isNotEmpty && !info.contains('课程代码：')) '课程代码：$code',
+      if (source != null && !info.contains('来源：')) '来源：$source',
+      if (info.isNotEmpty) info,
+    ].join('\n');
+  }
+
   void _details(Course course, PersonalSchedule schedule) {
+    final info = _courseInfo(course);
     final period = ClassTimeUtil.rangeLabel(
       schedule.periods,
       course.startTime ?? 0,
@@ -776,59 +884,64 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      builder: (context) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: .62,
-        minChildSize: .35,
-        maxChildSize: .94,
-        builder: (_, controller) => ListView(
-          controller: controller,
-          padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
-          children: [
-            Align(
-              alignment: Alignment.centerRight,
-              child: IconButton(
-                tooltip: '关闭详情',
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close_rounded),
+      builder: (context) => LayoutBuilder(
+        builder: (context, constraints) => ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: constraints.maxHeight * .94),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+            child: SafeArea(
+              top: false,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: IconButton(
+                      tooltip: '关闭详情',
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close_rounded),
+                    ),
+                  ),
+                  Text(
+                    course.name ?? '未命名课程',
+                    style: const TextStyle(
+                      fontSize: 25,
+                      fontWeight: FontWeight.w700,
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 22),
+                  _detailLine(
+                    Icons.schedule_rounded,
+                    scheduled
+                        ? '周${_weekdays[course.weekTime! - 1]} · ${_timeDescription(period, clock, separator: '\n')}'
+                        : '时间待定',
+                  ),
+                  _detailLine(Icons.place_outlined, _room(course)),
+                  _detailLine(
+                    Icons.person_outline_rounded,
+                    (course.teacher ?? '').isEmpty ? '教师待定' : course.teacher!,
+                  ),
+                  _detailLine(
+                    Icons.date_range_outlined,
+                    ScreenshotSchedule.formatWeeks(weeks),
+                  ),
+                  if (info.isNotEmpty) ...[
+                    const Divider(height: 16),
+                    Text(
+                      info,
+                      style: TextStyle(
+                        height: 1.7,
+                        fontSize: 13,
+                        color: _colors.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
-            Text(
-              course.name ?? '未命名课程',
-              style: const TextStyle(
-                fontSize: 25,
-                fontWeight: FontWeight.w700,
-                height: 1.4,
-              ),
-            ),
-            const SizedBox(height: 22),
-            _detailLine(
-              Icons.schedule_rounded,
-              scheduled
-                  ? '周${_weekdays[course.weekTime! - 1]} · ${_timeDescription(period, clock, separator: '\n')}'
-                  : '时间待定',
-            ),
-            _detailLine(Icons.place_outlined, _room(course)),
-            _detailLine(
-              Icons.person_outline_rounded,
-              (course.teacher ?? '').isEmpty ? '教师待定' : course.teacher!,
-            ),
-            _detailLine(
-              Icons.date_range_outlined,
-              ScreenshotSchedule.formatWeeks(weeks),
-            ),
-            if ((course.info ?? '').isNotEmpty) ...[
-              const Divider(height: 32),
-              Text(
-                course.info!,
-                style: TextStyle(
-                  height: 1.7,
-                  fontSize: 13,
-                  color: _colors.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ],
+          ),
         ),
       ),
     );

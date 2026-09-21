@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../Models/PersonalSchedule.dart';
+import 'ScheduleCalendarReminders.dart';
 
 class ScheduleDerivedDataService {
   static const channel = MethodChannel('sanqian/schedule_import');
@@ -70,18 +71,33 @@ class ScheduleDerivedDataService {
         1440,
       ].where((n) => preferences.getBool('reminder_$n') ?? false).toList();
       final data = snapshot(schedule)..['leadMinutes'] = leads;
+      Map<String, dynamic> widget = {};
       try {
-        final result =
+        widget =
             await channel.invokeMapMethod<String, dynamic>(
               'syncDerivedData',
               data,
             ) ??
             {};
-        await preferences.setString('reminder_status', jsonEncode(result));
-        return result;
       } on MissingPluginException {
-        return <String, dynamic>{};
+        // Android does not use the iOS widget bridge. Calendar sync still runs.
       }
+      final result = await ScheduleCalendarReminders().sync(
+        List<Map<String, dynamic>>.from(data['occurrences'] as List),
+        leads,
+      );
+      if (result['synced'] == true) {
+        try {
+          await channel.invokeMethod('clearLegacyReminders');
+        } on MissingPluginException {
+          // The legacy local reminder queue existed only on iOS.
+        }
+      }
+      if (widget['widgetError'] != null) {
+        result['widgetError'] = widget['widgetError'];
+      }
+      await preferences.setString('reminder_status', jsonEncode(result));
+      return result;
     }();
     _tail = operation.then<void>((_) {}, onError: (Object _) {});
     return operation;
