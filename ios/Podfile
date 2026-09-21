@@ -1,0 +1,80 @@
+# Define global platform for iOS 13.0 to match deployment target
+platform :ios, '13.0'
+
+# CocoaPods analytics sends network stats synchronously affecting flutter build latency.
+ENV['COCOAPODS_DISABLE_STATS'] = 'true'
+
+project 'Runner', {
+  'Debug' => :debug,
+  'Profile' => :release,
+  'Release' => :release,
+}
+
+def flutter_root
+  generated_xcode_build_settings_path = File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __FILE__)
+  unless File.exist?(generated_xcode_build_settings_path)
+    raise "#{generated_xcode_build_settings_path} must exist. If you're running pod install manually, make sure flutter pub get is executed first"
+  end
+
+  File.foreach(generated_xcode_build_settings_path) do |line|
+    matches = line.match(/FLUTTER_ROOT\=(.*)/)
+    return matches[1].strip if matches
+  end
+  raise "FLUTTER_ROOT not found in #{generated_xcode_build_settings_path}. Try deleting Generated.xcconfig, then run flutter pub get"
+end
+
+require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
+
+flutter_ios_podfile_setup
+
+target 'Runner' do
+  use_frameworks!
+  use_modular_headers!
+
+  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+end
+
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    flutter_additional_ios_build_settings(target)
+    target.build_configurations.each do |config|
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
+      # Disable explicit module builds to fix Xcode 26.0 compatibility issues
+      config.build_settings['SWIFT_ENABLE_EXPLICIT_MODULES'] = 'NO'
+      config.build_settings['SWIFT_ENABLE_INCREMENTAL_COMPILATION'] = 'NO'
+      config.build_settings['SWIFT_COMPILATION_MODE'] = 'wholemodule'
+    end
+  end
+  # Project-level fallback for explicit modules
+  installer.pods_project.build_configurations.each do |config|
+    config.build_settings['SWIFT_ENABLE_EXPLICIT_MODULES'] = 'NO'
+  end
+
+  # Workaround for Apple ITMS-91061 on old transitive SDK versions:
+  # inject a PrivacyInfo.xcprivacy into the affected pod frameworks.
+  privacy_manifests = {
+    'GTMSessionFetcher' => 'GTMSessionFetcher',
+    'GoogleToolboxForMac' => 'GoogleToolboxForMac'
+  }
+
+  privacy_manifests.each do |target_name, manifest_dir_name|
+    target = installer.pods_project.targets.find { |t| t.name == target_name }
+    next if target.nil?
+
+    source_manifest_path = File.expand_path("PrivacyManifests/#{manifest_dir_name}/PrivacyInfo.xcprivacy", __dir__)
+    next unless File.exist?(source_manifest_path)
+
+    pods_manifest_dir = File.join(__dir__, 'Pods', 'PrivacyManifests', manifest_dir_name)
+    FileUtils.mkdir_p(pods_manifest_dir)
+    pods_manifest_path = File.join(pods_manifest_dir, 'PrivacyInfo.xcprivacy')
+    FileUtils.cp(source_manifest_path, pods_manifest_path)
+
+    group_path = "PrivacyManifests/#{manifest_dir_name}/PrivacyInfo.xcprivacy"
+    file_ref = installer.pods_project.main_group.find_file_by_path(group_path)
+    file_ref = installer.pods_project.main_group.new_file(group_path) if file_ref.nil?
+
+    resources_phase = target.resources_build_phase
+    exists = resources_phase.files_references.any? { |ref| ref.path == file_ref.path }
+    resources_phase.add_file_reference(file_ref, true) unless exists
+  end
+end

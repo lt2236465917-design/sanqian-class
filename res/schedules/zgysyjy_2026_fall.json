@@ -1,0 +1,483 @@
+{
+  "schema_version": 1,
+  "id": "zgysyjy-2026-fall-screenshot-20260920",
+  "name": "中国艺术研究院 · 2026 秋",
+  "school": "中国艺术研究院",
+  "source": "用户提供的 1 张选课列表和 3 张课程网格截图，2026-09-20 人工核对转录；不自动同步校务网站",
+  "semester_start_date": "2026-09-09",
+  "semester_start_monday": "2026-09-07",
+  "reference_date": "2026-09-20",
+  "reference_week": 2,
+  "periods": [
+    {
+      "id": "morning",
+      "label": "上午",
+      "start": "09:00",
+      "end": "12:00"
+    },
+    {
+      "id": "afternoon",
+      "label": "下午",
+      "start": "13:30",
+      "end": "16:30"
+    },
+    {
+      "id": "evening",
+      "label": "晚上",
+      "start": "19:00",
+      "end": "21:30"
+    }
+  ],
+  "courses": [
+    {
+      "code": "49106104",
+      "name": "黑白摄影暗房工艺基础",
+      "class": "1",
+      "credits": 1.0,
+      "meetings": [
+        {
+          "weeks": [
+            5
+          ],
+          "weekday": 7,
+          "period": "morning",
+          "location": "虚拟教室1（主校区）",
+          "source_text": "5周日-上午课-虚拟教室1(主校区)"
+        },
+        {
+          "weeks": [
+            5
+          ],
+          "weekday": 6,
+          "period": "morning",
+          "location": "虚拟教室1（主校区）",
+          "source_text": "5周六-上午课-虚拟教室1(主校区)"
+        },
+        {
+          "weeks": [
+            5
+          ],
+          "weekday": 7,
+          "period": "afternoon",
+          "location": "虚拟教室1（主校区）",
+          "source_text": "5周日-下午课-虚拟教室1(主校区)"
+        },
+        {
+          "weeks": [
+            5
+          ],
+          "weekday": 6,
+          "period": "afternoon",
+          "location": "虚拟教室1（主校区）",
+          "source_text": "5周六-下午课-虚拟教室1(主校区)"
+        }
+      ],
+      "note": "",
+      "teacher": "张涛"
+    },
+    {
+      "code": "90001003",
+      "name": "中国艺术史",
+      "class": "1",
+      "credits": 2.0,
+      "meetings": [
+        {
+          "weeks": [
+            6,
+            7,
+            8,
+            9,
+            10,
+            11
+          ],
+          "weekday": 1,
+          "period": "afternoon",
+          "location": "6406（主校区）",
+          "source_text": "6-11周一-下午课-6406(主校区)"
+        },
+        {
+          "weeks": [
+            3,
+            4
+          ],
+          "weekday": 1,
+          "period": "afternoon",
+          "location": "6406（主校区）",
+          "source_text": "3,4周一-下午课-6406(主校区)"
+        }
+      ],
+      "note": "",
+      "teacher": "杨明刚"
+    },
+    {
+      "code": "90001005",
+      "name": "艺术美学",
+      "class": "1",
+      "credits": 2.0,
+      "meetings": [
+        {
+          "weeks": [
+            6,
+            7,
+            8,
+            9,
+            10,
+            11
+          ],
+          "weekday": 2,
+          "period": "afternoon",
+          "location": "6406（主校区）",
+          "source_text": "6-11周二-下午课-6406(主校区)"
+        },
+        {
+          "weeks": [
+            3,
+            4
+          ],
+          "weekday": 2,
+          "period": "afternoon",
+          "location": "6406（主校区）",
+          "source_text": "3,4周二-下午课-6406(主校区)"
+        }
+      ],
+      "note": "",
+      "teacher": "孙伟科"
+    },
+    {
+      "code": "90001020",
+      "name": "思政大讲堂：形势与政策",
+      "class": "1",
+      "credits": 1.0,
+      "meetings": [],
+      "note": "请与任课教师联系上课时间和地点。",
+      "source_text": "2label.teachtask.courseclass.week.null-自排教室，请与任课教师联系上课时间和地点",
+      "teacher": ""
+    },
+    {
+      "code": "10121S102",
+      "name": "艺术意识形态分析",
+      "class": "1",
+      "credits": 1.0,
+      "meetings": [
+        {
+          "weeks": [
+            5,
+            6,
+            7,
+            8
+          ],
+          "weekday": 5,
+          "period": "afternoon",
+          "location": "6408（主校区）",
+          "source_text": "5-8周五-下午课-6408(主校区)"
+        }
+      ],
+      "note": "",
+      "teacher": "韩子勇"
+    },
+    {
+      "code": "10118B103",
+      "name": "艺术人类学理论与沿革专题研究",
+      "class": "1",
+      "credits": 1.0,
+      "meetings": [
+        {
+          "weeks": [
+            6,
+            7
+          ],
+          "weekday": 3,
+          "period": "afternoon",
+          "location": "6408（主校区）",
+          "source_text": "6,7周三-下午课-6408(主校区)"
+        },
+        {
+          "weeks": [
+            3,
+            4
+          ],
+          "weekday": 3,
+          "period": "afternoon",
+          "location": "6408（主校区）",
+          "source_text": "3,4周三-下午课-6408(主校区)"
+        }
+      ],
+      "note": "",
+      "teacher": "方李莉"
+    },
+    {
+      "code": "10121S104",
+      "name": "保护非物质文化遗产政策法规解读专题",
+      "class": "1",
+      "credits": 2.0,
+      "meetings": [
+        {
+          "weeks": [
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13
+          ],
+          "weekday": 3,
+          "period": "morning",
+          "location": "6607（主校区）",
+          "source_text": "6-13周三-上午课-6607(主校区)"
+        }
+      ],
+      "note": "",
+      "teacher": "葛玉清"
+    },
+    {
+      "code": "90001011",
+      "name": "导师课",
+      "class": "1",
+      "credits": 2.0,
+      "meetings": [],
+      "note": "截图未提供上课周次、时间和地点。",
+      "teacher": ""
+    },
+    {
+      "code": "S90001014",
+      "name": "硕士英语(全日制学术型)",
+      "class": "1",
+      "credits": 2.0,
+      "meetings": [
+        {
+          "weeks": [
+            12
+          ],
+          "weekday": 2,
+          "period": "morning",
+          "location": "6310（主校区）",
+          "source_text": "12周二-上午课-6310(主校区)"
+        },
+        {
+          "weeks": [
+            6,
+            7,
+            8,
+            9,
+            10
+          ],
+          "weekday": 2,
+          "period": "morning",
+          "location": "6310（主校区）",
+          "source_text": "6-10周二-上午课-6310(主校区)"
+        },
+        {
+          "weeks": [
+            3,
+            4
+          ],
+          "weekday": 2,
+          "period": "morning",
+          "location": "第五会议室（主校区）",
+          "source_text": "3,4周二-上午课-第五会议室(主校区)"
+        }
+      ],
+      "note": "",
+      "teacher": "林敬和、刘先福"
+    },
+    {
+      "code": "10118s300",
+      "name": "艺术跨学科理论前沿",
+      "class": "1",
+      "credits": 1.0,
+      "meetings": [
+        {
+          "weeks": [
+            14,
+            15,
+            16,
+            17
+          ],
+          "weekday": 5,
+          "period": "afternoon",
+          "location": "虚拟教室3（主校区）",
+          "source_text": "14-17周五-下午课-虚拟教室3(主校区)"
+        }
+      ],
+      "note": "",
+      "teacher": ""
+    },
+    {
+      "code": "10118s105",
+      "name": "非物质文化遗产概论",
+      "class": "1",
+      "credits": 2.0,
+      "meetings": [
+        {
+          "weeks": [
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13
+          ],
+          "weekday": 1,
+          "period": "morning",
+          "location": "6607（主校区）",
+          "source_text": "6-13周一-上午课-6607(主校区)"
+        }
+      ],
+      "note": "",
+      "teacher": "罗微"
+    },
+    {
+      "code": "10118s106",
+      "name": "非物质文化遗产保护理论与实践专题",
+      "class": "1",
+      "credits": 1.0,
+      "meetings": [
+        {
+          "weeks": [
+            9,
+            10,
+            11,
+            12
+          ],
+          "weekday": 3,
+          "period": "afternoon",
+          "location": "6408（主校区）",
+          "source_text": "9-12周三-下午课-6408(主校区)"
+        }
+      ],
+      "note": "",
+      "teacher": "郑长铃"
+    },
+    {
+      "code": "90001001",
+      "name": "中国特色社会主义理论与实践研究",
+      "class": "1",
+      "credits": 2.0,
+      "meetings": [
+        {
+          "weeks": [
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11
+          ],
+          "weekday": 4,
+          "period": "morning",
+          "location": "三楼学术报告厅（主校区）",
+          "source_text": "3-11周四-上午课-三楼学术报告厅(主校区)"
+        }
+      ],
+      "note": "",
+      "teacher": "申坤"
+    },
+    {
+      "code": "30101009",
+      "name": "曲艺学导论",
+      "class": "1",
+      "credits": 1.0,
+      "meetings": [
+        {
+          "weeks": [
+            6
+          ],
+          "weekday": 1,
+          "period": "evening",
+          "location": "6401教室（自排教室）",
+          "source_text": "6周一-晚上课-自排教室:6401教室"
+        },
+        {
+          "weeks": [
+            4
+          ],
+          "weekday": 3,
+          "period": "evening",
+          "location": "6401教室（自排教室）",
+          "source_text": "4周三-晚上课-自排教室:6401教室"
+        },
+        {
+          "weeks": [
+            4
+          ],
+          "weekday": 2,
+          "period": "evening",
+          "location": "6401教室（自排教室）",
+          "source_text": "4周二-晚上课-自排教室:6401教室"
+        },
+        {
+          "weeks": [
+            4
+          ],
+          "weekday": 1,
+          "period": "evening",
+          "location": "6401教室（自排教室）",
+          "source_text": "4周一-晚上课-自排教室:6401教室"
+        }
+      ],
+      "note": "",
+      "teacher": "吴文科"
+    }
+  ],
+  "revision": 2,
+  "source_sections": [
+    {
+      "number": 1,
+      "start": "09:00",
+      "end": "09:45"
+    },
+    {
+      "number": 2,
+      "start": "09:45",
+      "end": "10:30"
+    },
+    {
+      "number": 3,
+      "start": "10:30",
+      "end": "11:15"
+    },
+    {
+      "number": 4,
+      "start": "11:15",
+      "end": "12:00"
+    },
+    {
+      "number": 5,
+      "start": "13:30",
+      "end": "14:15"
+    },
+    {
+      "number": 6,
+      "start": "14:15",
+      "end": "15:00"
+    },
+    {
+      "number": 7,
+      "start": "15:00",
+      "end": "15:45"
+    },
+    {
+      "number": 8,
+      "start": "15:45",
+      "end": "16:30"
+    },
+    {
+      "number": 9,
+      "start": "19:00",
+      "end": "19:40"
+    },
+    {
+      "number": 10,
+      "start": "20:30",
+      "end": "21:30"
+    }
+  ],
+  "source_note": "课程网格中的总时段与小节是重复展示，按上午/下午/晚上各记一次课。晚上课总时段 19:00–21:30；第九节至第十节间的 19:40–20:30 未标为课时，保留原图，不补写小节。艺术跨学科理论前沿的教师为 --，保持未知。"
+}

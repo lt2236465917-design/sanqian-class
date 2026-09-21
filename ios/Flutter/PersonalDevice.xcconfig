@@ -1,0 +1,5 @@
+// Main app only: no App Groups or widget provisioning is required.
+// Replace the local bundle ID with one available to your own Apple account.
+SCHEDULE_DEVICE_BUNDLE_ID = local.chaoxi.schedule
+SCHEDULE_DEVELOPMENT_TEAM =
+#include? "PersonalDevice.local.xcconfig"

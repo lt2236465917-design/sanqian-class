@@ -1,0 +1,517 @@
+import 'dart:io';
+import 'dart:math';
+import 'package:wheretosleepinnju/Pages/Settings/Widgets/ThemeChanger.dart';
+
+import '../../generated/l10n.dart';
+import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:scoped_model/scoped_model.dart';
+import '../../Utils/States/MainState.dart';
+import '../../Utils/ColorUtil.dart';
+import '../../Components/Toast.dart';
+import './Widgets/NumChanger.dart';
+
+class MoreSettingsView extends StatefulWidget {
+  const MoreSettingsView({Key? key}) : super(key: key);
+
+  @override
+  _MoreSettingsViewState createState() => _MoreSettingsViewState();
+}
+
+class _MoreSettingsViewState extends State<MoreSettingsView> {
+  bool showCustomClassHeight = false;
+  bool showWhiteTitleMode = false;
+
+  @override
+  void initState() {
+    super.initState();
+    init();
+  }
+
+  init() async {
+    bool forceZoom = await _getForceZoom();
+    bool hasPic = await _getHasImgPath();
+    setState(() {
+      showCustomClassHeight = !forceZoom;
+      showWhiteTitleMode = hasPic;
+    });
+
+    final model =
+        ScopedModel.of<MainStateModel>(context, rebuildOnChange: false);
+    model.getMaterial3ColorForLight().then((_) => model.notifyListeners());
+    model.getMaterial3ColorForDark().then((_) => model.notifyListeners());
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+        appBar: AppBar(
+          title: Text(S.of(context).more_settings_title),
+        ),
+        body: SafeArea(
+            child: SingleChildScrollView(
+                child: Column(children: <Widget>[
+          SingleChildScrollView(
+              child: Column(
+                  children: ListTile.divideTiles(context: context, tiles: [
+            ListTile(
+                title: Text(S.of(context).change_theme_mode_title),
+                subtitle: Text(S.of(context).change_theme_mode_subtitle),
+                trailing: FutureBuilder<int>(
+                    future: _getThemeIndex(),
+                    builder:
+                        (BuildContext context, AsyncSnapshot<int> snapshot) {
+                      if (!snapshot.hasData) {
+                        return Container(width: 0);
+                      } else {
+                        // return DropdownButton(items: items, onChanged: onChanged)
+                        return DropdownButton<int>(
+                            value: snapshot.data,
+                            items: const [
+                              DropdownMenuItem(
+                                  child: Row(children: [
+                                    Icon(Icons.settings),
+                                    Text('跟随系统')
+                                  ]),
+                                  value: 0),
+                              DropdownMenuItem(
+                                  child: Row(children: [
+                                    Icon(Icons.wb_sunny),
+                                    Text('浅色模式')
+                                  ]),
+                                  value: 1),
+                              DropdownMenuItem(
+                                  child: Row(children: [
+                                    Icon(Icons.shield_moon),
+                                    Text('深色模式')
+                                  ]),
+                                  value: 2)
+                            ],
+                            onChanged: (value) {
+                              ScopedModel.of<MainStateModel>(context)
+                                  .changeThemeMode(value ?? 0);
+                              setState(() {});
+                            });
+                      }
+                    })),
+            ListTile(
+              title: Text(S.of(context).shuffle_color_pool_title),
+              subtitle: Text(S.of(context).shuffle_color_pool_subtitle),
+              onTap: () {
+                ColorPool.shuffleColorPool();
+                Toast.showToast(
+                    S.of(context).shuffle_color_pool_success_toast, context);
+                Navigator.of(context).pop();
+                Navigator.of(context).pop();
+              },
+            ),
+            // TODO: Refresh multi times when changing themes.
+            const ThemeChanger(),
+            ListTile(
+              title: Text(S.of(context).use_material3_scheme_light_title),
+              subtitle: Text(S.of(context).use_material3_scheme_light_subtitle),
+              trailing: Switch(
+                activeColor: Theme.of(context).appBarTheme.backgroundColor,
+                value: ScopedModel.of<MainStateModel>(context)
+                    .material3ColorForLight,
+                onChanged: (v) {
+                  ScopedModel.of<MainStateModel>(context)
+                      .changeMaterial3Color(light: v);
+                  setState(() {});
+                },
+              ),
+            ),
+            ListTile(
+              title: Text(S.of(context).use_material3_scheme_dark_title),
+              subtitle: Text(S.of(context).use_material3_scheme_dark_subtitle),
+              trailing: Switch(
+                activeColor: Theme.of(context).appBarTheme.backgroundColor,
+                value: ScopedModel.of<MainStateModel>(context)
+                    .material3ColorForDark,
+                onChanged: (v) {
+                  ScopedModel.of<MainStateModel>(context)
+                      .changeMaterial3Color(dark: v);
+                  setState(() {});
+                },
+              ),
+            ),
+            ListTile(
+              title: Text(S.of(context).add_backgound_picture_title),
+              subtitle: Text(S.of(context).add_backgound_picture_subtitle),
+              onTap: () async {
+                // using your method of getting an image
+                final XFile? image =
+                    await ImagePicker().pickImage(source: ImageSource.gallery);
+
+                if (image == null) return;
+
+                // delete old picture
+                String oldPath = await ScopedModel.of<MainStateModel>(context)
+                    .getBgImgPath();
+                File oldImg = File(oldPath);
+                if (oldImg.existsSync()) {
+                  oldImg.deleteSync(recursive: true);
+                  // print('Old image deleted.');
+                }
+
+                // add new picture
+                int num = Random().nextInt(1000);
+                Directory directory = await getApplicationDocumentsDirectory();
+                final String path = directory.path;
+                String fileName = '$path/background_$num.jpg';
+                await image.saveTo(fileName);
+
+                bool isWhiteMode =
+                    await ColorUtil.shouldApplyWhiteMode(fileName);
+
+                await ScopedModel.of<MainStateModel>(context)
+                    .setBgImgPath(fileName);
+                ScopedModel.of<MainStateModel>(context)
+                    .setWhiteMode(isWhiteMode);
+                // print('New image added.');
+                Toast.showToast(
+                    S.of(context).add_backgound_picture_success_toast, context);
+                Navigator.of(context).pop();
+                Navigator.of(context).pop();
+              },
+            ),
+            ListTile(
+              title: Text(S.of(context).delete_backgound_picture_title),
+              subtitle: Text(S.of(context).delete_backgound_picture_subtitle),
+              onTap: () async {
+                // delete old picture
+                String oldPath = await ScopedModel.of<MainStateModel>(context)
+                    .getBgImgPath();
+                File oldImg = File(oldPath);
+                if (await oldImg.exists()) {
+                  await oldImg.delete(recursive: true);
+                  // print('Old image deleted.');
+                }
+                await ScopedModel.of<MainStateModel>(context).removeBgImgPath();
+                Toast.showToast(
+                    S.of(context).delete_backgound_picture_success_toast,
+                    context);
+                // String thePath = await ScopedModel.of<MainStateModel>(context)
+                //     .getBgImgPath();
+                Navigator.of(context).pop();
+                Navigator.of(context).pop();
+              },
+            ),
+            showWhiteTitleMode
+                ? ListTile(
+                    title: Text(S.of(context).white_title_mode_title),
+                    subtitle: Text(S.of(context).white_title_mode_subtitle),
+                    trailing: FutureBuilder<bool>(
+                        future: _getWhiteMode(),
+                        builder: (BuildContext context,
+                            AsyncSnapshot<bool> snapshot) {
+                          if (!snapshot.hasData) {
+                            return Container(width: 0);
+                          } else {
+                            return Switch(
+                                activeColor: Theme.of(context)
+                                    .appBarTheme
+                                    .backgroundColor,
+                                value: snapshot.data!,
+                                onChanged: (bool value) {
+                                  ScopedModel.of<MainStateModel>(context)
+                                      .setWhiteMode(value);
+                                  setState(() {});
+                                });
+                          }
+                        }))
+                : Container(width: 0),
+            ListTile(
+                title: Text(S.of(context).hide_add_button_title),
+                subtitle: Text(S.of(context).hide_add_button_subtitle),
+                trailing: FutureBuilder<bool>(
+                    future: _getAddButton(),
+                    builder:
+                        (BuildContext context, AsyncSnapshot<bool> snapshot) {
+                      if (!snapshot.hasData) {
+                        return Container(width: 0);
+                      } else {
+                        return Switch(
+                            activeColor:
+                                Theme.of(context).appBarTheme.backgroundColor,
+                            value: !snapshot.data!,
+                            onChanged: (bool value) {
+                              ScopedModel.of<MainStateModel>(context)
+                                  .setAddButton(!value);
+                              setState(() {});
+                            });
+                      }
+                    })),
+            ListTile(
+              title: Text(S.of(context).if_show_weekend_title),
+              subtitle: Text(S.of(context).if_show_weekend_subtitle),
+              trailing: FutureBuilder<bool>(
+                  future: _getShowWeekend(),
+                  builder:
+                      (BuildContext context, AsyncSnapshot<bool> snapshot) {
+                    if (!snapshot.hasData) {
+                      return Container(width: 0);
+                    } else {
+                      return Switch(
+                          activeColor:
+                              Theme.of(context).appBarTheme.backgroundColor,
+                          value: snapshot.data!,
+                          onChanged: (bool value) {
+                            ScopedModel.of<MainStateModel>(context)
+                                .setShowWeekend(value);
+                            setState(() {});
+                          });
+                    }
+                  }),
+            ),
+            ListTile(
+              title: Text(S.of(context).if_show_classtime_title),
+              subtitle: Text(S.of(context).if_show_classtime_subtitle),
+              trailing: FutureBuilder<bool>(
+                  future: _getShowClassTime(),
+                  builder:
+                      (BuildContext context, AsyncSnapshot<bool> snapshot) {
+                    if (!snapshot.hasData) {
+                      return Container(width: 0);
+                    } else {
+                      return Switch(
+                          activeColor:
+                              Theme.of(context).appBarTheme.backgroundColor,
+                          value: snapshot.data!,
+                          onChanged: (bool value) {
+                            ScopedModel.of<MainStateModel>(context)
+                                .setShowClassTime(value);
+                            setState(() {});
+                          });
+                    }
+                  }),
+            ),
+            ListTile(
+              title: Text(S.of(context).if_show_freeclass_title),
+              subtitle: Text(S.of(context).if_show_freeclass_subtitle),
+              trailing: FutureBuilder<bool>(
+                  future: _getShowFreeClass(),
+                  builder:
+                      (BuildContext context, AsyncSnapshot<bool> snapshot) {
+                    if (!snapshot.hasData) {
+                      return Container(width: 0);
+                    } else {
+                      return Switch(
+                          activeColor:
+                              Theme.of(context).appBarTheme.backgroundColor,
+                          value: snapshot.data!,
+                          onChanged: (bool value) {
+                            ScopedModel.of<MainStateModel>(context)
+                                .setShowFreeClass(value);
+                            setState(() {});
+                          });
+                    }
+                  }),
+            ),
+            ListTile(
+              title: Text(S.of(context).if_show_non_current_week_courses_title),
+              subtitle:
+                  Text(S.of(context).if_show_non_current_week_courses_subtitle),
+              trailing: FutureBuilder<bool>(
+                  future: _getShowNonCurrentWeekCourses(),
+                  builder:
+                      (BuildContext context, AsyncSnapshot<bool> snapshot) {
+                    if (!snapshot.hasData) {
+                      return Container(width: 0);
+                    } else {
+                      return Switch(
+                          activeColor:
+                              Theme.of(context).appBarTheme.backgroundColor,
+                          value: snapshot.data!,
+                          onChanged: (bool value) {
+                            ScopedModel.of<MainStateModel>(context)
+                                .setShowNonCurrentWeekCourses(value);
+                            setState(() {});
+                          });
+                    }
+                  }),
+            ),
+            ListTile(
+              title: Text(S.of(context).show_month_title),
+              subtitle: Text(S.of(context).show_month_subtitle),
+              trailing: FutureBuilder<bool>(
+                  future: _getShowMonth(),
+                  builder:
+                      (BuildContext context, AsyncSnapshot<bool> snapshot) {
+                    if (!snapshot.hasData) {
+                      return Container(width: 0);
+                    } else {
+                      return Switch(
+                          activeColor:
+                              Theme.of(context).appBarTheme.backgroundColor,
+                          value: snapshot.data!,
+                          onChanged: (bool value) {
+                            ScopedModel.of<MainStateModel>(context)
+                                .setShowMonth(value);
+                            setState(() {});
+                          });
+                    }
+                  }),
+            ),
+            ListTile(
+              title: Text(S.of(context).show_date_title),
+              subtitle: Text(S.of(context).show_date_subtitle),
+              trailing: FutureBuilder<bool>(
+                  future: _getShowDate(),
+                  builder:
+                      (BuildContext context, AsyncSnapshot<bool> snapshot) {
+                    if (!snapshot.hasData) {
+                      return Container(width: 0);
+                    } else {
+                      return Switch(
+                          activeColor:
+                              Theme.of(context).appBarTheme.backgroundColor,
+                          value: snapshot.data!,
+                          onChanged: (bool value) {
+                            ScopedModel.of<MainStateModel>(context)
+                                .setShowDate(value);
+                            setState(() {});
+                          });
+                    }
+                  }),
+            ),
+            // ListTile(
+            //     // title: Text(S.of(context).font_mode_title),
+            //     title: Text("字体模式"),
+            //     // subtitle: Text(S.of(context).font_mode_subtitle),
+            //     subtitle: Text("设置字体粗细"),
+            //     trailing: FutureBuilder<bool>(
+            //         future: _getFontMode(),
+            //         builder:
+            //             (BuildContext context, AsyncSnapshot<bool> snapshot) {
+            //           if (!snapshot.hasData) {
+            //             return Container(width: 0);
+            //           } else {
+            //             return Switch(
+            //                 activeColor:
+            //                     Theme.of(context).appBarTheme.backgroundColor,
+            //                 value: snapshot.data!,
+            //                 onChanged: (bool value) {
+            //                   // ScopedModel.of<MainStateModel>(context)
+            //                   //     .setFontMode(value);
+            //                   setState(() {});
+            //                 });
+            //           }
+            //         })),
+            ListTile(
+              title: Text(S.of(context).force_zoom_title),
+              subtitle: Text(S.of(context).force_zoom_subtitle),
+              trailing: FutureBuilder<bool>(
+                  future: _getForceZoom(),
+                  builder:
+                      (BuildContext context, AsyncSnapshot<bool> snapshot) {
+                    if (!snapshot.hasData) {
+                      return Container(width: 0);
+                    } else {
+                      return Switch(
+                          activeColor:
+                              Theme.of(context).appBarTheme.backgroundColor,
+                          value: snapshot.data!,
+                          onChanged: (bool value) {
+                            ScopedModel.of<MainStateModel>(context)
+                                .setForceZoom(value);
+                            setState(() {
+                              showCustomClassHeight = !value;
+                            });
+                          });
+                    }
+                  }),
+            ),
+            showCustomClassHeight
+                ? ListTile(
+                    title: Text(S.of(context).class_height_title),
+                    subtitle: Text(S.of(context).class_height_subtitle),
+                    trailing: FutureBuilder<int>(
+                        future: _getClassHeight(),
+                        builder: (BuildContext context,
+                            AsyncSnapshot<int> snapshot) {
+                          if (!snapshot.hasData) {
+                            return Container(width: 0);
+                          } else {
+                            return SizedBox(
+                                width: 102,
+                                child: NumberChangerWidget(
+                                  width: 40,
+                                  iconWidth: 30,
+                                  numText: snapshot.data.toString(),
+                                  addValueChanged: (num) {
+                                    _setClassHeight(num);
+                                  },
+                                  removeValueChanged: (num) {
+                                    _setClassHeight(num);
+                                  },
+                                  updateValueChanged: (num) {
+                                    _setClassHeight(num);
+                                  },
+                                ));
+                          }
+                        }),
+                  )
+                : Container(width: 0),
+          ]).toList()))
+        ]))));
+  }
+
+  Future<int> _getThemeIndex() async {
+    return await ScopedModel.of<MainStateModel>(context).getThemeMode();
+  }
+
+  Future<bool> _getShowWeekend() async {
+    return await ScopedModel.of<MainStateModel>(context).getShowWeekend();
+  }
+
+  Future<bool> _getShowClassTime() async {
+    return await ScopedModel.of<MainStateModel>(context).getShowClassTime();
+  }
+
+  Future<bool> _getShowFreeClass() async {
+    return await ScopedModel.of<MainStateModel>(context).getShowFreeClass();
+  }
+
+  Future<bool> _getShowNonCurrentWeekCourses() async {
+    return await ScopedModel.of<MainStateModel>(context)
+        .getShowNonCurrentWeekCourses();
+  }
+
+  Future<bool> _getShowMonth() async {
+    return await ScopedModel.of<MainStateModel>(context).getShowMonth();
+  }
+
+  Future<bool> _getShowDate() async {
+    return await ScopedModel.of<MainStateModel>(context).getShowDate();
+  }
+
+  Future<int> _getClassHeight() async {
+    return await ScopedModel.of<MainStateModel>(context).getClassHeight();
+  }
+
+  _setClassHeight(int classHeight) async {
+    ScopedModel.of<MainStateModel>(context).setClassHeight(classHeight);
+  }
+
+  Future<bool> _getForceZoom() async {
+    return await ScopedModel.of<MainStateModel>(context).getForceZoom();
+  }
+
+  Future<bool> _getAddButton() async {
+    return await ScopedModel.of<MainStateModel>(context).getAddButton();
+  }
+
+  Future<bool> _getHasImgPath() async {
+    String imgPath =
+        await ScopedModel.of<MainStateModel>(context).getBgImgPath();
+    return imgPath != "";
+  }
+
+  Future<bool> _getWhiteMode() async {
+    bool whiteMode =
+        await ScopedModel.of<MainStateModel>(context).getWhiteMode();
+    return whiteMode;
+  }
+}

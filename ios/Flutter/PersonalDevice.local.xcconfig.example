@@ -1,0 +1,3 @@
+// Copy to PersonalDevice.local.xcconfig (ignored by Git), then set your values.
+SCHEDULE_DEVICE_BUNDLE_ID = com.yourname.chaoxi
+SCHEDULE_DEVELOPMENT_TEAM = YOUR_TEAM_ID

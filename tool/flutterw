@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+project_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+task_flutter_sdk="${SCHEDULE_FLUTTER_SDK:-$project_dir/../.tools/flutter}"
+
+if [[ ! -x "$task_flutter_sdk/bin/flutter" ]]; then
+  echo "Flutter SDK missing: $task_flutter_sdk" >&2
+  echo "Use Flutter 3.35.7 and set SCHEDULE_FLUTTER_SDK to its directory." >&2
+  exit 1
+fi
+
+export PUB_CACHE="${PUB_CACHE:-$project_dir/../.tools/pub-cache}"
+export FLUTTER_SUPPRESS_ANALYTICS=true
+export DART_SUPPRESS_ANALYTICS=true
+export PATH="$task_flutter_sdk/bin:$PATH"
+# The Flutter test runner and VM service communicate over loopback.
+export no_proxy="${no_proxy:+$no_proxy,}localhost,127.0.0.1,::1"
+export NO_PROXY="${NO_PROXY:+$NO_PROXY,}localhost,127.0.0.1,::1"
+
+exec "$task_flutter_sdk/bin/flutter" "$@"

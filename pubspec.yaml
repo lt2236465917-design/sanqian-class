@@ -1,0 +1,81 @@
+name: wheretosleepinnju
+description: 三千上课 — 个人离线课表
+
+# The following line prevents the package from being accidentally published to
+# pub.dev using `pub publish`. This is preferred for private packages.
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+version: 4.0.2+67
+
+environment:
+  sdk: ">=3.9.0 <4.0.0"
+  flutter: ">=3.35.7"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+
+  # Use the public packages for the iOS build; no author-local OHOS checkout.
+  shared_preferences: ^2.2.0
+  webview_flutter: ^4.6.0
+  webview_flutter_android: ^3.16.0
+  path_provider: ^2.1.0
+  url_launcher: ^6.1.12
+  image_picker: ^1.0.2
+  palette_generator: ^0.3.3+3
+  # Uses Apple's Vision framework on iOS, including arm64 simulators.
+  mobile_scanner: 7.1.3
+
+  sqflite: ^2.0.0+4
+  flutter_swiper_null_safety_flutter3: ^2.0.0
+  scoped_model: ^2.0.0-nullsafety.0
+  azlistview: ^2.0.0-nullsafety.0
+  flutter_native_splash: ^2.0.5
+  flutter_linkify: ^6.0.0
+  flutter_html: ^3.0.0-beta.2
+  qr_flutter: ^4.0.0
+  zxing2: ^0.2.3
+  archive: ^3.4.10
+  # flutter_html 3.0.0 uses querySelector.matches, removed in html 0.15.7.
+  html: 0.15.6
+  dio: ^5.9.0
+
+  package_info_plus: ^8.3.0
+
+  device_calendar: 4.3.3
+  fluttertoast: ^8.2.2
+
+
+  image: any
+dependency_overrides:
+  collection: ^1.19.0
+  scrollable_positioned_list: 0.3.2
+
+dev_dependencies:
+  sqflite_common_ffi: ^2.3.6
+  flutter_lints: ^1.0.4
+  flutter_test:
+    sdk: flutter
+  intl_utils: ^2.8.7
+
+flutter:
+  uses-material-design: true
+  assets:
+    - res/icon.png
+    - res/personal-icon.png
+    - LICENSE
+    - res/schedules/zgysyjy_2026_fall.json
+
+flutter_intl:
+  enabled: true
+
+analyzer:
+  strong-mode: true
+  language:
+    enableSuperMixins: true
+
+flutter_native_splash:
+  color: "#F7F4F0"
+  color_dark: "#17151B"
