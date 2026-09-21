@@ -75,7 +75,6 @@ class _SchoolAccountViewState extends State<SchoolAccountView> {
         _password.clear();
       }
       if (!mounted) return;
-      if (_localId == null) throw const FormatException('请先填写学校账号和密码，保存在本机');
       final result = await ScheduleDerivedDataService.channel
           .invokeMapMethod<String, dynamic>('openPortal');
       if (result == null || !mounted) return;
@@ -148,16 +147,27 @@ class _SchoolAccountViewState extends State<SchoolAccountView> {
       padding: const EdgeInsets.all(20),
       children: [
         const Text(
-          '中国艺术研究院\n在学校网页完成登录、验证码，进入“研究生综合管理 → 我的课表”，再读取并用 AI 识别，核对后保存。',
+          '用中国艺术研究院研究生系统的账号。\n\n账号一般是学号，也可以是学校发给你的统一身份认证用户名。\n密码就是学校网页上用的那个密码。\n验证码不要写在这一页，打开网页后会显示。',
+          style: TextStyle(fontSize: 16, height: 1.45),
         ),
         const SizedBox(height: 16),
-        Text(_localId == null ? '未保存账号' : '已保存账号（不代表当前网页登录成功）'),
+        const Text(
+          '打开网页后请按顺序做：\n1. 已保存的账号和密码会自动填进网页；请填写验证码，再点网页里的「登录」\n2. 进入「研究生综合管理 → 我的课表」\n3. 看到自己的课表后，点右上角「读取并识别」',
+          style: TextStyle(fontSize: 16, height: 1.5),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          _localId == null
+              ? '建议在这里填好学号和密码。打开网页后会自动填入，不会自动点登录。也可以留空，到网页里自己填。'
+              : '已在本机记住账号 $_savedAccount。打开网页后会自动填入账号和密码；验证码仍要自己填，也不会自动点登录。',
+          style: const TextStyle(fontSize: 16, height: 1.45),
+        ),
         const SizedBox(height: 16),
         TextField(
           controller: _account,
           enabled: !_busy,
           textInputAction: TextInputAction.next,
-          decoration: const InputDecoration(labelText: '学校账号'),
+          decoration: const InputDecoration(labelText: '学号或学校登录名（可留空）'),
           autocorrect: false,
         ),
         const SizedBox(height: 16),
@@ -168,13 +178,13 @@ class _SchoolAccountViewState extends State<SchoolAccountView> {
           enableSuggestions: false,
           autocorrect: false,
           decoration: InputDecoration(
-            labelText: _localId == null ? '密码' : '新密码（留空使用已保存密码）',
+            labelText: _localId == null ? '学校网页密码（可留空）' : '新密码（留空则不改本机保存）',
           ),
         ),
         const SizedBox(height: 16),
         FilledButton(
           onPressed: _busy ? null : _open,
-          child: Text(_busy ? '正在打开学校网页…' : '登录并导入'),
+          child: Text(_busy ? '正在打开学校网页…' : '打开学校网页'),
         ),
         TextButton(
           onPressed: _busy || _localId == null ? null : _clear,

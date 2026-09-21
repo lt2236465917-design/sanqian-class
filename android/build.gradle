@@ -1,22 +1,46 @@
 allprojects {
     repositories {
+        maven { url "https://maven.aliyun.com/repository/google" }
+        maven { url "https://maven.aliyun.com/repository/central" }
+        maven { url "https://maven.aliyun.com/repository/public" }
         google()
         mavenCentral()
-//        jcenter()
-//        maven { url 'https://dl.bintray.com/umsdk/release' }
-//        maven { url 'https://repo1.maven.org/maven2/' }
+    }
+    buildscript {
+        repositories {
+            maven { url "https://maven.aliyun.com/repository/google" }
+            maven { url "https://maven.aliyun.com/repository/central" }
+            maven { url "https://maven.aliyun.com/repository/public" }
+            maven { url "https://maven.aliyun.com/repository/gradle-plugin" }
+            google()
+            mavenCentral()
+            gradlePluginPortal()
+        }
     }
 }
 
 rootProject.buildDir = '../build'
+subprojects {
+    buildscript {
+        repositories {
+            maven { url "https://maven.aliyun.com/repository/google" }
+            maven { url "https://maven.aliyun.com/repository/central" }
+            maven { url "https://maven.aliyun.com/repository/public" }
+            maven { url "https://maven.aliyun.com/repository/gradle-plugin" }
+            google()
+            mavenCentral()
+            gradlePluginPortal()
+        }
+    }
+}
 subprojects {
     // https://github.com/livekit/client-sdk-flutter/issues/569
     afterEvaluate { project ->
         if (project.plugins.hasPlugin("com.android.application") ||
                 project.plugins.hasPlugin("com.android.library")) {
             project.android {
-                compileSdkVersion 35
-                buildToolsVersion "34.0.0"
+                compileSdkVersion 36
+                buildToolsVersion "35.0.0"
             }
         }
     }

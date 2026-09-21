@@ -133,7 +133,7 @@ void main() {
       addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(const MaterialApp(home: SchoolAccountView()));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('登录并导入'));
+      await tester.tap(find.widgetWithText(FilledButton, '打开学校网页'));
       await tester.pumpAndSettle();
       expect(find.byType(ImportReviewView), findsOneWidget);
       expect(find.text('请核对网页课程是否完整'), findsOneWidget);
@@ -278,9 +278,11 @@ void main() {
     tester,
   ) async {
     portal = {'courses': []};
+    await tester.binding.setSurfaceSize(const Size(430, 1400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(const MaterialApp(home: SchoolAccountView()));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('登录并导入'));
+    await tester.tap(find.widgetWithText(FilledButton, '打开学校网页'));
     await tester.pumpAndSettle();
     expect(find.byType(ImportReviewView), findsNothing);
     expect(find.textContaining('未读取到可供 AI 识别的课表原文'), findsOneWidget);
@@ -293,9 +295,11 @@ void main() {
     portal = {
       'courses': [course('本地解析课程')],
     };
+    await tester.binding.setSurfaceSize(const Size(430, 1400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(const MaterialApp(home: SchoolAccountView()));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('登录并导入'));
+    await tester.tap(find.widgetWithText(FilledButton, '打开学校网页'));
     await tester.pumpAndSettle();
     expect(find.byType(ImportReviewView), findsNothing);
     expect(calls.where((c) => c.method == 'recognizeText'), isEmpty);
@@ -396,12 +400,14 @@ void main() {
           }
           throw StateError('Unexpected method ${call.method}');
         });
+    await tester.binding.setSurfaceSize(const Size(430, 1400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(const MaterialApp(home: SchoolAccountView()));
     await tester.pumpAndSettle();
     final fields = find.byType(TextField);
     await tester.enterText(fields.at(0), 'fixture-account');
     await tester.enterText(fields.at(1), 'fixture-only-password');
-    await tester.tap(find.text('登录并导入'));
+    await tester.tap(find.widgetWithText(FilledButton, '打开学校网页'));
     await tester.pumpAndSettle();
     expect(find.textContaining('当前安装版本缺少安全存储权限'), findsOneWidget);
     expect(find.textContaining('PlatformException'), findsNothing);
@@ -412,7 +418,7 @@ void main() {
     expect(calls.where((c) => c.method == 'openPortal'), isEmpty);
     expect(
       tester
-          .widget<FilledButton>(find.widgetWithText(FilledButton, '登录并导入'))
+          .widget<FilledButton>(find.widgetWithText(FilledButton, '打开学校网页'))
           .onPressed,
       isNotNull,
     );
@@ -430,12 +436,14 @@ void main() {
             if (call.method == 'openPortal') return null;
             throw StateError('Unexpected method ${call.method}');
           });
+      await tester.binding.setSurfaceSize(const Size(430, 1400));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(const MaterialApp(home: SchoolAccountView()));
       await tester.pumpAndSettle();
       final fields = find.byType(TextField);
       await tester.enterText(fields.at(0), 'fixture-account');
       await tester.enterText(fields.at(1), 'fixture-only-password');
-      await tester.tap(find.text('登录并导入'));
+      await tester.tap(find.widgetWithText(FilledButton, '打开学校网页'));
       await tester.pumpAndSettle();
       expect(find.text('正在打开学校网页…'), findsOneWidget);
       expect(
@@ -453,7 +461,7 @@ void main() {
         'openPortal',
       ]);
       expect(tester.widget<TextField>(fields.at(1)).controller!.text, isEmpty);
-      expect(find.text('已保存账号（不代表当前网页登录成功）'), findsOneWidget);
+      expect(find.textContaining('已在本机记住账号'), findsOneWidget);
     },
   );
 }

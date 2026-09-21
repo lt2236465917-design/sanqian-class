@@ -13,6 +13,9 @@
     <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
     <uses-permission android:name="android.permission.READ_CALENDAR" />
     <uses-permission android:name="android.permission.WRITE_CALENDAR" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.VIBRATE" />
     <queries>
         <!-- If your app opens https URLs -->
         <intent>
@@ -27,7 +30,7 @@
     </queries>
     <application
         android:name=".MainApplication"
-        android:label="南哪课表"
+        android:label="三千上课"
         android:icon="@mipmap/ic_launcher"
         android:usesCleartextTraffic="true"
         android:extractNativeLibs="true">
@@ -65,6 +68,16 @@
 <!--                <data android:scheme="um.5f8ef217fac90f1c19a7b0f3" />-->
 <!--            </intent-filter>-->
         </activity>
+        <activity
+            android:name=".SchoolPortalActivity"
+            android:exported="false"
+            android:theme="@style/PortalTheme"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize" />
+        <receiver
+            android:name=".ScheduleReminderReceiver"
+            android:exported="false" />
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

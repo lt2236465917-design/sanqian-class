@@ -35,7 +35,25 @@ def main():
                 icon.resize((size, size), Image.Resampling.LANCZOS).save(destination)
 
         shutil.copyfile(SOURCE, assets / 'PersonalBranding.imageset/mark.png')
-        print(f'Updated {len(contents["images"])} app icons and the launch mark.')
+
+        android_res = ROOT / 'android/app/src/main/res'
+        android_icons = {
+            'mipmap-ldpi': 36,
+            'mipmap-mdpi': 48,
+            'mipmap-hdpi': 72,
+            'mipmap-xhdpi': 96,
+            'mipmap-xxhdpi': 144,
+            'mipmap-xxxhdpi': 192,
+        }
+        for folder, size in android_icons.items():
+            icon.resize((size, size), Image.Resampling.LANCZOS).save(
+                android_res / folder / 'ic_launcher.png'
+            )
+        icon.resize((512, 512), Image.Resampling.LANCZOS).save(android_res / 'ic_launcher.png')
+        print(
+            f'Updated {len(contents["images"])} iOS app icons, the launch mark, '
+            f'and {len(android_icons)} Android launcher densities.'
+        )
 
 
 if __name__ == '__main__':
