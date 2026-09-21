@@ -17,6 +17,7 @@ class _ReminderSettingsViewState extends State<ReminderSettingsView>
     with WidgetsBindingObserver {
   final _enabled = <int, bool>{15: false, 180: false, 1440: false};
   String _status = '';
+  String? _widgetError;
   bool _busy = true;
   bool _permissionDenied = false, _isError = false, _awaitingSettings = false;
   VoidCallback? _retry;
@@ -89,7 +90,11 @@ class _ReminderSettingsViewState extends State<ReminderSettingsView>
 
   void _showResult(Map<String, dynamic> result) {
     if (!mounted) return;
+    final widgetError = result['widgetError'];
     setState(() {
+      _widgetError = widgetError is String && widgetError.isNotEmpty
+          ? widgetError
+          : null;
       _permissionDenied = result['permission'] == 'denied';
       _isError =
           _permissionDenied ||
@@ -200,7 +205,9 @@ class _ReminderSettingsViewState extends State<ReminderSettingsView>
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('上课提醒')),
-    body: ListView(
+    body: SafeArea(
+      child: ListView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.all(20),
       children: [
         for (final item in const {
@@ -231,6 +238,14 @@ class _ReminderSettingsViewState extends State<ReminderSettingsView>
               ),
             ),
           ),
+        if (_widgetError != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              _widgetError!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
         if (_permissionDenied)
           TextButton.icon(
             onPressed: _busy ? null : _openSettings,
@@ -245,6 +260,7 @@ class _ReminderSettingsViewState extends State<ReminderSettingsView>
         const SizedBox(height: 12),
         const Text('课程会同步到系统日历，按你选择的时间提醒，无需打开 App。'),
       ],
+      ),
     ),
   );
 }

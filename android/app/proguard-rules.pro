@@ -14,3 +14,10 @@
 -keep class com.heytap.** {*;}
 -keep class a.** {*;}
 -keep class com.vivo.** {*;}
+
+-keep class com.lilystudio.wheretosleepinnju.ScheduleWidgetProvider { *; }
+-keep class com.lilystudio.wheretosleepinnju.ScheduleWidgetRefreshReceiver { *; }
+-keep class com.lilystudio.wheretosleepinnju.ScheduleWidgetBootReceiver { *; }
+-keep class com.lilystudio.wheretosleepinnju.ScheduleReminderReceiver { *; }
+-keep class com.lilystudio.wheretosleepinnju.ScheduleReminderScheduler { *; }
+-keep class com.lilystudio.wheretosleepinnju.ScheduleImportPlugin { *; }

@@ -50,8 +50,8 @@ class _WeekTimeNodeDialogState extends State<WeekTimeNodeDialog> {
     return AlertDialog(
       title: const Text('选择上课时间'),
       scrollable: true,
-      content: SizedBox(
-        width: 360,
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 360),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,

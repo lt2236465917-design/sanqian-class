@@ -44,11 +44,13 @@ class SchoolPortalActivity : Activity() {
     private var deadlineRunnable: Runnable? = null
     private var bootstrapping = false
     private var started = false
+    private var backHandle: Any? = null
 
     private val activeWebView: WebView get() = childWebViews.lastOrNull() ?: mainWebView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        backHandle = PredictiveBack.register(this) { goBack() }
         setContentView(R.layout.activity_school_portal)
         status = findViewById(R.id.portal_status)
         container = findViewById(R.id.portal_web_container)
@@ -77,6 +79,8 @@ class SchoolPortalActivity : Activity() {
     }
 
     override fun onDestroy() {
+        PredictiveBack.unregister(this, backHandle)
+        backHandle = null
         cancelExtraction()
         (childWebViews + if (this::mainWebView.isInitialized) listOf(mainWebView) else emptyList()).forEach {
             it.stopLoading()
@@ -214,6 +218,10 @@ class SchoolPortalActivity : Activity() {
     }
 
     private fun goBack() {
+        if (!this::mainWebView.isInitialized) {
+            cancel()
+            return
+        }
         if (activeWebView.canGoBack()) {
             activeWebView.goBack()
         } else if (childWebViews.isNotEmpty()) {

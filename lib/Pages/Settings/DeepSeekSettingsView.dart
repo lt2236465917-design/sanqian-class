@@ -101,7 +101,9 @@ class _DeepSeekSettingsViewState extends State<DeepSeekSettingsView> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('DeepSeek 设置')),
-    body: ListView(
+    body: SafeArea(
+      child: ListView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.all(20),
       children: [
         Text(
@@ -163,6 +165,7 @@ class _DeepSeekSettingsViewState extends State<DeepSeekSettingsView> {
           '多图课表与学校网页课表均使用 DeepSeek 识别。确认发送后，所选图片或课表文字会发送到 DeepSeek，并可能消耗账户余额。',
         ),
       ],
+      ),
     ),
   );
 }

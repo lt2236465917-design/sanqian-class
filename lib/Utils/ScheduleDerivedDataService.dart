@@ -80,7 +80,7 @@ class ScheduleDerivedDataService {
             ) ??
             {};
       } on MissingPluginException {
-        // Android does not use the iOS widget bridge. Calendar sync still runs.
+        // Tests and platforms without the native import plugin.
       }
       final result = await ScheduleCalendarReminders().sync(
         List<Map<String, dynamic>>.from(data['occurrences'] as List),
@@ -90,7 +90,7 @@ class ScheduleDerivedDataService {
         try {
           await channel.invokeMethod('clearLegacyReminders');
         } on MissingPluginException {
-          // The legacy local reminder queue existed only on iOS.
+          // This platform has no legacy reminder queue.
         }
       }
       if (widget['widgetError'] != null) {

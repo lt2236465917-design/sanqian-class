@@ -81,6 +81,43 @@ class ScheduleReminderScheduler(private val context: Context) {
         }
     }
 
+    fun clear() {
+        synchronized(lock) {
+            generation += 1
+            val raw = prefs.getString(KEYS, null)
+            val array = try {
+                if (raw.isNullOrEmpty()) JSONArray() else JSONArray(raw)
+            } catch (_: Exception) {
+                JSONArray()
+            }
+            for (index in 0 until array.length()) {
+                val key = array.optString(index)
+                if (key.isEmpty()) continue
+                val intent = Intent(app, ScheduleReminderReceiver::class.java).setAction(key)
+                val pending = PendingIntent.getBroadcast(
+                    app,
+                    key.hashCode(),
+                    intent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+                alarmManager.cancel(pending)
+                pending.cancel()
+                NotificationManagerCompat.from(app).cancel(key.hashCode())
+            }
+            if (Build.VERSION.SDK_INT >= 26) {
+                val manager = app.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                for (status in manager.activeNotifications) {
+                    if (status.notification.channelId == CHANNEL) {
+                        manager.cancel(status.tag, status.id)
+                    }
+                }
+            }
+            if (!prefs.edit().remove(KEYS).commit()) {
+                throw IllegalStateException("暂时无法清理旧提醒，请重试。")
+            }
+        }
+    }
+
     private fun schedule(item: Reminder) {
         val intent = Intent(app, ScheduleReminderReceiver::class.java)
             .setAction(item.key)
