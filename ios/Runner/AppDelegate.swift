@@ -41,7 +41,7 @@ import EventKit
           } else {
             self.calendarPermissionStore.requestAccess(to: .event, completion: completion)
           }
-        case "calendarHasAccess", "calendarList", "calendarCreate", "calendarEvents", "calendarSaveEvent":
+        case "calendarHasAccess", "calendarList", "calendarCreate", "calendarEvents", "calendarSaveEvent", "calendarDeleteEvent":
           self?.handleCalendarCall(call, result: result)
         case "openAppSettings":
           guard let url = URL(string: UIApplication.openSettingsURLString) else { result(false); return }
@@ -92,12 +92,12 @@ import EventKit
       case "calendarList":
         calendarPermissionStore.reset()
         result(calendarPermissionStore.calendars(for: .event).map {
-          ["id": $0.calendarIdentifier, "name": $0.title, "isReadOnly": !$0.allowsContentModifications] as [String: Any]
+          ["id": $0.calendarIdentifier, "name": $0.title, "isReadOnly": !$0.allowsContentModifications, "accountType": $0.source.sourceType == .local ? "LOCAL" : "OTHER"] as [String: Any]
         })
       case "calendarCreate":
         guard let name = args["name"] as? String,
               let source = calendarPermissionStore.sources.first(where: { $0.sourceType == .local })
-                ?? calendarPermissionStore.defaultCalendarForNewEvents?.source else {
+                ?? ((args["localOnly"] as? Bool == true) ? nil : calendarPermissionStore.defaultCalendarForNewEvents?.source) else {
           result(FlutterError(code: "calendar_source", message: "No writable calendar account", details: nil)); return
         }
         let calendar = EKCalendar(for: .event, eventStore: calendarPermissionStore)
@@ -106,14 +106,48 @@ import EventKit
         try calendarPermissionStore.saveCalendar(calendar, commit: true)
         result(calendar.calendarIdentifier)
       case "calendarEvents":
+        calendarPermissionStore.reset()
         guard let id = args["calendarId"] as? String,
-              let calendar = calendarPermissionStore.calendar(withIdentifier: id),
-              let from = args["from"] as? Double, let to = args["to"] as? Double else {
-          result(FlutterError(code: "calendar_arguments", message: "Invalid calendar or range", details: nil)); return
+              let calendar = calendarPermissionStore.calendar(withIdentifier: id) else {
+          result(FlutterError(code: "calendar_arguments", message: "Invalid calendar", details: nil)); return
         }
-        let predicate = calendarPermissionStore.predicateForEvents(
-          withStart: Date(timeIntervalSince1970: from / 1000), end: Date(timeIntervalSince1970: to / 1000), calendars: [calendar])
-        result(calendarPermissionStore.events(matching: predicate).compactMap { $0.eventIdentifier })
+        let events: [EKEvent]
+        if let ids = args["eventIds"] as? [String] {
+          events = ids.compactMap { calendarPermissionStore.event(withIdentifier: $0) }
+            .filter { $0.calendar.calendarIdentifier == id }
+        } else if let from = args["from"] as? Double, let to = args["to"] as? Double {
+          let predicate = calendarPermissionStore.predicateForEvents(
+            withStart: Date(timeIntervalSince1970: from / 1000), end: Date(timeIntervalSince1970: to / 1000), calendars: [calendar])
+          events = calendarPermissionStore.events(matching: predicate)
+        } else {
+          result(FlutterError(code: "calendar_arguments", message: "Invalid range", details: nil)); return
+        }
+        result(events.map { event -> [String: Any] in
+          ["eventId": event.eventIdentifier ?? "", "calendarId": id,
+           "eventTitle": event.title ?? "", "eventDescription": event.notes ?? "",
+           "eventLocation": event.location ?? "",
+           "eventStartDate": Int64(event.startDate.timeIntervalSince1970 * 1000),
+           "eventEndDate": Int64(event.endDate.timeIntervalSince1970 * 1000),
+           "eventStartTimeZone": "Asia/Shanghai", "eventEndTimeZone": "Asia/Shanghai",
+           "reminders": (event.alarms ?? []).compactMap { alarm -> [String: Int]? in
+             guard alarm.absoluteDate == nil, alarm.relativeOffset <= 0 else { return nil }
+             return ["minutes": Int(-alarm.relativeOffset / 60)]
+           }]
+        })
+      case "calendarDeleteEvent":
+        guard let id = args["calendarId"] as? String,
+              let eventId = args["eventId"] as? String,
+              let expected = args["description"] as? String else {
+          result(FlutterError(code: "calendar_arguments", message: "Invalid event", details: nil)); return
+        }
+        calendarPermissionStore.reset()
+        if let event = calendarPermissionStore.event(withIdentifier: eventId) {
+          guard event.calendar.calendarIdentifier == id, event.notes == expected else {
+            result(FlutterError(code: "calendar_ownership", message: "Event ownership changed", details: nil)); return
+          }
+          try calendarPermissionStore.remove(event, span: .thisEvent, commit: true)
+        }
+        result(true)
       case "calendarSaveEvent":
         guard let id = args["calendarId"] as? String,
               let calendar = calendarPermissionStore.calendar(withIdentifier: id), calendar.allowsContentModifications,
@@ -123,6 +157,14 @@ import EventKit
         let prior = (args["eventId"] as? String).flatMap { calendarPermissionStore.event(withIdentifier: $0) }
         // Never update an event moved by the user to an unrelated calendar.
         let event = prior?.calendar.calendarIdentifier == id ? prior! : EKEvent(eventStore: calendarPermissionStore)
+        if let notes = args["description"] as? String,
+           let marker = notes.components(separatedBy: "\n").last, marker.hasPrefix("[sanqian-reminder:"),
+           let prior = prior {
+          guard prior.calendar.calendarIdentifier == id,
+                prior.notes?.components(separatedBy: "\n").last == marker else {
+            result(FlutterError(code: "calendar_ownership", message: "Event ownership changed", details: nil)); return
+          }
+        }
         event.calendar = calendar
         event.title = args["title"] as? String
         event.location = args["location"] as? String
@@ -130,6 +172,9 @@ import EventKit
         event.timeZone = TimeZone(identifier: "Asia/Shanghai")
         event.startDate = Date(timeIntervalSince1970: start / 1000)
         event.endDate = Date(timeIntervalSince1970: end / 1000)
+        if let leads = args["reminders"] as? [Int] {
+          event.alarms = leads.map { EKAlarm(relativeOffset: -Double($0) * 60) }
+        }
         try calendarPermissionStore.save(event, span: .thisEvent, commit: true)
         result(event.eventIdentifier)
       default: result(FlutterMethodNotImplemented)

@@ -160,7 +160,11 @@ class _SchoolAccountViewState extends State<SchoolAccountView> {
           _localId == null
               ? '建议在这里填好学号和密码。打开网页后会自动填入，不会自动点登录。也可以留空，到网页里自己填。'
               : '已在本机记住账号 $_savedAccount。打开网页后会自动填入账号和密码；验证码仍要自己填，也不会自动点登录。',
-          style: const TextStyle(fontSize: 16, height: 1.45),
+          style: const TextStyle(
+            fontSize: 16,
+            height: 1.45,
+            fontWeight: FontWeight.w600,
+          ),
         ),
         const SizedBox(height: 16),
         TextField(
@@ -190,7 +194,8 @@ class _SchoolAccountViewState extends State<SchoolAccountView> {
           onPressed: _busy || _localId == null ? null : _clear,
           child: const Text('清除已保存账号'),
         ),
-        Text(_message),
+        const SizedBox(height: 8),
+        Text(_message, style: const TextStyle(height: 1.5)),
       ],
     ),
   );

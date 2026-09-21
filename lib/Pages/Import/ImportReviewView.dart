@@ -1,12 +1,25 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../../Utils/States/MainState.dart';
 import '../../Models/CourseTableModel.dart';
 import '../../Models/ScheduleImportDraft.dart';
 import '../../Utils/ScheduleImportService.dart';
 import '../../Utils/ScheduleDerivedDataService.dart';
+import '../../Utils/ScheduleFeedback.dart';
 import '../Settings/DeepSeekSettingsView.dart';
+import '../Personal/Widgets/ScheduleStatusBadge.dart';
+import 'Widgets/AIKeyStatus.dart';
+import 'Widgets/RecognitionProgress.dart';
+
+enum _ImportStage {
+  idle,
+  recognizing,
+  reviewingAI,
+  comparing,
+  confirming,
+  saving,
+}
 
 /// Input adapters produce draft fields; this is the only route that commits them.
 class ImportReviewView extends StatefulWidget {
@@ -34,9 +47,18 @@ class _ImportReviewViewState extends State<ImportReviewView> {
   List<Map<String, dynamic>> _courses = [];
   List<Map> _tables = [];
   int? _target;
-  bool _busy = false;
+  _ImportStage _stage = _ImportStage.idle;
+  bool get _busy => _stage != _ImportStage.idle;
   bool _recognizing = false;
   bool _portalAICompleted = false;
+  List<Map<String, dynamic>>? _beforeAI;
+  bool _beforeAICompleted = false;
+  int _keyRevision = 0;
+  bool _loadingTables = true;
+  bool _tablesFailed = false;
+  bool _schoolEdited = false, _termEdited = false, _mondayEdited = false;
+  String? _metadataNote;
+  bool _triedSave = false;
   bool get _needsPortalAI =>
       widget.source == 'school-portal' && !_portalAICompleted;
   int _recognitionTicket = 0;
@@ -45,13 +67,139 @@ class _ImportReviewViewState extends State<ImportReviewView> {
   @override
   void initState() {
     super.initState();
-    _courses = widget.courses;
+    _courses = _copyCourses(widget.courses);
     _loadTables();
   }
 
   Future<void> _loadTables() async {
-    final tables = await CourseTableProvider().getAllCourseTable();
-    if (mounted) setState(() => _tables = List<Map>.from(tables));
+    setState(() {
+      _loadingTables = true;
+      if (_tablesFailed) _error = null;
+      _tablesFailed = false;
+    });
+    try {
+      final provider = CourseTableProvider();
+      final tables = await provider.getAllCourseTable();
+      final loaded = await Future.wait(
+        tables.map((row) async {
+          final table = await provider.getCourseTable(row['id'] as int);
+          Map metadata = {};
+          try {
+            final decoded = jsonDecode(table?.data ?? '{}');
+            if (decoded is Map) metadata = decoded;
+          } catch (_) {
+            // A legacy table can have no import metadata. Do not invent it.
+          }
+          return <String, dynamic>{
+            ...Map<String, dynamic>.from(row),
+            'metadata': metadata,
+          };
+        }),
+      );
+      if (!mounted) return;
+      setState(() {
+        _tables = loaded;
+        _applySavedContext();
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _tablesFailed = true;
+          _error = '暂时无法读取已有课表，请重试；已填写的内容保留。';
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _loadingTables = false);
+    }
+  }
+
+  List<dynamic>? _sourceKey(Map table) {
+    try {
+      final value = jsonDecode(
+        table['metadata']['import_source_key'] as String,
+      );
+      return value is List && value.length == 5 ? value : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  void _applySavedContext() {
+    final matches = _tables.where((table) {
+      if (_target != null) return table['id'] == _target;
+      final key = _sourceKey(table);
+      return key != null &&
+          key[0] == widget.source &&
+          key[1] == 'school-timetable' &&
+          key[2] == widget.accountLocalId &&
+          (!_schoolEdited || key[3] == _school.text.trim()) &&
+          (!_termEdited || key[4] == _term.text.trim());
+    }).toList();
+    if (!_schoolEdited) _school.text = '中国艺术研究院';
+    if (!_termEdited) _term.clear();
+    if (!_mondayEdited) _monday = null;
+    _metadataNote = matches.length > 1 ? '存在多个已保存学期，请填写学期或选择已有课表。' : null;
+    if (matches.length != 1) return;
+    final table = matches.single;
+    final key = _sourceKey(table);
+    if (key != null &&
+        (key[0] != widget.source ||
+            key[1] != 'school-timetable' ||
+            key[2] != widget.accountLocalId ||
+            (_schoolEdited && key[3] != _school.text.trim()) ||
+            (_termEdited && key[4] != _term.text.trim()))) {
+      _metadataNote = '所选课表的来源、账号或学期不同，请检查填写内容或保存位置。';
+      return;
+    }
+    // Malformed source metadata must not be treated as an unowned legacy table.
+    if (key == null && table['metadata']['import_source_key'] != null) return;
+    var filled = false;
+    if (key != null) {
+      if (!_schoolEdited && key[3] is String) {
+        _school.text = key[3];
+        filled = true;
+      }
+      if (!_termEdited && key[4] is String) {
+        _term.text = key[4];
+        filled = true;
+      }
+    }
+    final raw = table['metadata']['semester_start_monday'];
+    final monday = raw is String ? DateTime.tryParse(raw) : null;
+    if (!_mondayEdited &&
+        monday != null &&
+        monday.weekday == DateTime.monday &&
+        monday.year >= 2020 &&
+        monday.year <= 2040 &&
+        raw == monday.toIso8601String().split('T').first) {
+      _monday = monday;
+      filled = true;
+    }
+    if (filled) _metadataNote = '已带入“${table['name']}”的已保存信息，请核对学期与开学日期。';
+  }
+
+  List<Map<String, dynamic>> _copyCourses(List<Map<String, dynamic>> courses) =>
+      (jsonDecode(jsonEncode(courses)) as List)
+          .map((course) => Map<String, dynamic>.from(course))
+          .toList();
+
+  Future<void> _openAISettings() async {
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(builder: (_) => const DeepSeekSettingsView()),
+    );
+    if (mounted) setState(() => _keyRevision++);
+  }
+
+  void _restoreBeforeAI() {
+    if (_beforeAI == null || _busy) return;
+    setState(() {
+      _courses = _copyCourses(_beforeAI!);
+      _portalAICompleted = _beforeAICompleted;
+      _beforeAI = null;
+      _error = null;
+    });
+    ScheduleFeedback.success(context, '已恢复本次 AI 处理前的内容');
   }
 
   @override
@@ -102,7 +250,7 @@ class _ImportReviewViewState extends State<ImportReviewView> {
     if (accepted != true || !mounted) return;
     final ticket = ++_recognitionTicket;
     setState(() {
-      _busy = true;
+      _stage = _ImportStage.recognizing;
       _recognizing = true;
       _error = null;
     });
@@ -118,7 +266,10 @@ class _ImportReviewViewState extends State<ImportReviewView> {
       final result = await ScheduleDerivedDataService.channel
           .invokeMapMethod<String, dynamic>('recognizeText', {'text': text});
       if (!mounted || ticket != _recognitionTicket) return;
-      _recognizing = false;
+      setState(() {
+        _recognizing = false;
+        _stage = _ImportStage.reviewingAI;
+      });
       final candidates = (result?['courses'] as List? ?? [])
           .map((c) => Map<String, dynamic>.from(c))
           .toList();
@@ -143,10 +294,24 @@ class _ImportReviewViewState extends State<ImportReviewView> {
           context: context,
           builder: (c) => AlertDialog(
             title: const Text('核对 AI 识别结果'),
-            content: SingleChildScrollView(
-              child: Text(
-                '当前有 ${_courses.length} 项，AI 返回 ${candidates.length} 项。采用后将替换当前核对内容，包括手动修改；正式课表尚不会改变。\n\n'
-                '${candidates.map((course) => '${course['name']}\n${_summary(course)}').join('\n\n')}',
+            content: SizedBox(
+              width: 420,
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '当前 ${_courses.length} 项 · AI 返回 ${candidates.length} 项',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text('采用后将替换当前核对内容，包括手动修改；保存前可恢复本次 AI 处理前的内容。'),
+                    const SizedBox(height: 12),
+                    ..._aiChanges(candidates),
+                    _draftSummaryGroup('当前核对内容', _courses),
+                    _draftSummaryGroup('AI 返回内容', candidates, expanded: true),
+                  ],
+                ),
               ),
             ),
             actions: [
@@ -166,28 +331,183 @@ class _ImportReviewViewState extends State<ImportReviewView> {
         }
       }
       setState(() {
+        _beforeAI = _copyCourses(_courses);
+        _beforeAICompleted = _portalAICompleted;
         _courses = candidates;
         _portalAICompleted = true;
       });
+      ScheduleFeedback.success(context, 'AI 结果已采用，请继续核对');
     } catch (e) {
       if (mounted && ticket == _recognitionTicket) {
         setState(
-          () => _error = e is PlatformException
-              ? e.message ?? 'AI 识别失败，当前核对内容已保留'
-              : e is FormatException
-              ? e.message
-              : 'AI 识别失败，当前核对内容已保留',
+          () => _error = ScheduleFeedback.message(
+            e,
+            fallback: 'AI 识别失败，当前核对内容已保留；请检查网络或 Key 后重试。',
+          ),
         );
       }
     } finally {
       if (mounted && ticket == _recognitionTicket) {
         setState(() {
-          _busy = false;
+          _stage = _ImportStage.idle;
           _recognizing = false;
         });
       }
     }
   }
+
+  List<Widget> _aiChanges(List<Map<String, dynamic>> candidates) {
+    String key(Map<String, dynamic> course) {
+      final stable = '${course['stableId'] ?? ''}'.trim();
+      if (stable.isNotEmpty) return 'stable:$stable';
+      final code = '${course['courseCode'] ?? ''}'.trim();
+      return jsonEncode([
+        code.isEmpty ? 'name' : 'code',
+        code.isEmpty ? '${course['name'] ?? ''}'.trim() : code,
+        course['section'],
+      ]);
+    }
+
+    final paired = <Map<String, dynamic>>{};
+    final changes = <Widget>[];
+    for (final candidate in candidates) {
+      final matches = _courses.where((c) => key(c) == key(candidate)).toList();
+      if (matches.length != 1 ||
+          candidates.where((c) => key(c) == key(candidate)).length != 1) {
+        changes.add(Text('新增或未匹配：${candidate['name']}'));
+        continue;
+      }
+      final before = matches.single;
+      paired.add(before);
+      final fields = _fieldChanges(before, candidate, const {
+        'name': '课程名称',
+        'teacher': '教师',
+        'courseCode': '课程编码',
+        'section': '教学班',
+        'pendingReason': '待定说明',
+      });
+      final oldMeetings = List<Map>.from(before['meetings'] ?? []);
+      final newMeetings = List<Map>.from(candidate['meetings'] ?? []);
+      if (oldMeetings.length == 1 && newMeetings.length == 1) {
+        fields.addAll(
+          _fieldChanges(oldMeetings.single, newMeetings.single, const {
+            'weekday': '星期',
+            'weeks': '周次',
+            'startMinute': '开始时间',
+            'endMinute': '结束时间',
+            'location': '教室',
+            'periodIndex': '开始节次',
+            'periodCount': '节次跨度',
+          }),
+        );
+      } else {
+        String meetingKey(Map meeting) => ScheduleImportMeetingDraft.fromJson(
+          Map<String, dynamic>.from(meeting),
+        ).meetingKey;
+        // Multiple arrangements have no safe positional pairing. Show additions
+        // and removals instead of implying that two unrelated rows are the same.
+        for (final meeting in oldMeetings) {
+          if (!newMeetings.any((m) => meetingKey(m) == meetingKey(meeting))) {
+            fields.add(
+              Text(
+                '原安排未包含：${_summary({
+                  'meetings': [meeting],
+                })}',
+              ),
+            );
+          }
+        }
+        for (final meeting in newMeetings) {
+          if (!oldMeetings.any((m) => meetingKey(m) == meetingKey(meeting))) {
+            fields.add(
+              Text(
+                'AI 新增安排：${_summary({
+                  'meetings': [meeting],
+                })}',
+              ),
+            );
+          }
+        }
+      }
+      if (fields.isNotEmpty) {
+        changes.add(
+          ExpansionTile(
+            tilePadding: EdgeInsets.zero,
+            title: Text('字段变化 · ${candidate['name']}'),
+            initiallyExpanded: true,
+            expandedCrossAxisAlignment: CrossAxisAlignment.start,
+            children: fields,
+          ),
+        );
+      }
+    }
+    for (final course in _courses.where((c) => !paired.contains(c))) {
+      changes.add(Text('AI 结果未匹配：${course['name']}'));
+    }
+    return [
+      const Text('字段对照', style: TextStyle(fontWeight: FontWeight.w600)),
+      const Text('按唯一课程编码或同名课程对照，未匹配项请结合完整内容核对。'),
+      if (changes.isEmpty) const Text('未发现课程字段变化。') else ...changes,
+      const SizedBox(height: 12),
+    ];
+  }
+
+  List<Widget> _fieldChanges(
+    Map before,
+    Map after,
+    Map<String, String> labels,
+  ) {
+    String value(String key, dynamic raw) {
+      if (raw == null || raw == '' || raw is List && raw.isEmpty) return '待定';
+      if (key == 'startMinute' || key == 'endMinute') return _clock(raw);
+      if (key == 'weeks' && raw is List) {
+        final weeks = List<int>.from(raw)..sort();
+        return weeks.join('、');
+      }
+      return '$raw';
+    }
+
+    return [
+      for (final label in labels.entries)
+        if (value(label.key, before[label.key]) !=
+            value(label.key, after[label.key]))
+          Padding(
+            padding: const EdgeInsets.only(bottom: 10),
+            child: Text(
+              '${label.value}\n原：${value(label.key, before[label.key])}\nAI：${value(label.key, after[label.key])}',
+            ),
+          ),
+    ];
+  }
+
+  Widget _draftSummaryGroup(
+    String title,
+    List<Map<String, dynamic>> courses, {
+    bool expanded = false,
+  }) => ExpansionTile(
+    title: Text(title),
+    tilePadding: EdgeInsets.zero,
+    initiallyExpanded: expanded,
+    expandedCrossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      for (final course in courses)
+        Padding(
+          padding: const EdgeInsets.only(bottom: 14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '${course['name']}',
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              if ('${course['teacher'] ?? ''}'.isNotEmpty)
+                Text('教师：${course['teacher']}'),
+              Text(_summary(course)),
+            ],
+          ),
+        ),
+    ],
+  );
 
   Future<void> _cancelRecognition() async {
     final ticket = ++_recognitionTicket;
@@ -200,7 +520,7 @@ class _ImportReviewViewState extends State<ImportReviewView> {
     } finally {
       if (mounted && ticket == _recognitionTicket) {
         setState(() {
-          _busy = false;
+          _stage = _ImportStage.idle;
           _recognizing = false;
           _error = '已取消识别，当前核对内容已保留';
         });
@@ -237,6 +557,7 @@ class _ImportReviewViewState extends State<ImportReviewView> {
                           ),
                           DropdownButtonFormField<int>(
                             isExpanded: true,
+                            itemHeight: null,
                             initialValue: 0,
                             items: [
                               const DropdownMenuItem(
@@ -298,13 +619,18 @@ class _ImportReviewViewState extends State<ImportReviewView> {
   }
 
   Future<void> _save() async {
-    if (_needsPortalAI || _busy || _courses.isEmpty) return;
+    if (_needsPortalAI || _busy || _loadingTables || _courses.isEmpty) return;
     final model = MainStateModel.of(context);
+    var committed = false;
     setState(() {
-      _busy = true;
+      _stage = _ImportStage.comparing;
+      _triedSave = true;
       _error = null;
     });
     try {
+      if (_school.text.trim().isEmpty || _term.text.trim().isEmpty) {
+        throw const FormatException('请填写学校和学期，再查看导入变化。');
+      }
       if (_monday == null) throw const FormatException('请选择学期第一周周一');
       final draft = ScheduleImportDraft(
         source: widget.source,
@@ -339,9 +665,11 @@ class _ImportReviewViewState extends State<ImportReviewView> {
       if (!mounted) return;
       var bindings = <String, int>{};
       if (diff.legacyCandidates.isNotEmpty) {
+        setState(() => _stage = _ImportStage.confirming);
         final choices = await _chooseBindings(diff);
         if (choices == null || !mounted) return;
         bindings = choices;
+        setState(() => _stage = _ImportStage.comparing);
         diff = await ScheduleImportService.preview(
           draft,
           mergeTableId: _target,
@@ -350,15 +678,42 @@ class _ImportReviewViewState extends State<ImportReviewView> {
         );
         if (!mounted) return;
       }
+      setState(() => _stage = _ImportStage.confirming);
       final accepted = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
           title: const Text('确认导入变化'),
-          content: SingleChildScrollView(
-            child: Text(
-              '首次新建会采用以下已核对钟点作为作息：\n${periods.map((p) => p['label']).join('、')}\n已有课表会保留原作息。\n\n新增 ${diff.added.length} 项，变更 ${diff.changed.length} 项，移除 ${diff.removed.length} 项，待定 ${diff.pending.length} 项。\n'
-              '${diff.conflicts.isEmpty ? '' : '${diff.conflicts.length} 处来源或本地编辑冲突将保留原内容，请核对后手动处理。\n'}'
-              '${diff.details.map((d) => '${d['name']}\n原安排：${_fieldsDescription(d['current'])}\n新安排：${_fieldsDescription(d['incoming'])}').join('\n\n')}\n确认后保存；已手动删除的课程不会恢复。时间未匹配作息的安排保留为待定。',
+          content: SizedBox(
+            width: 420,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      ScheduleStatusBadge('新增 ${diff.added.length}'),
+                      ScheduleStatusBadge('变更 ${diff.changed.length}'),
+                      ScheduleStatusBadge('移除 ${diff.removed.length}'),
+                      ScheduleStatusBadge('待定 ${diff.pending.length}'),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  const Text('数量按课程安排统计，待定项可能同时属于新增或变更。'),
+                  if (diff.conflicts.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      child: Text(
+                        '${diff.conflicts.length} 处来源或本地编辑冲突。冲突字段保留本地内容，其余无冲突字段仍可能更新；请核对后手动处理。',
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
           actions: [
@@ -373,7 +728,8 @@ class _ImportReviewViewState extends State<ImportReviewView> {
           ],
         ),
       );
-      if (accepted != true) return;
+      if (accepted != true || !mounted) return;
+      setState(() => _stage = _ImportStage.saving);
       final result = await ScheduleImportService.commit(
         draft,
         mergeTableId: _target,
@@ -382,121 +738,239 @@ class _ImportReviewViewState extends State<ImportReviewView> {
         legacyBindings: bindings,
         periods: periods,
       );
+      committed = true;
       await model.changeclassTable(result.tableId);
-      if (mounted) Navigator.pop(context, true);
+      if (mounted) {
+        Navigator.pop(context, true);
+      }
     } catch (e) {
-      if (mounted) setState(() => _error = '$e');
+      if (mounted) {
+        setState(
+          () => _error = committed
+              ? '课表已保存，但页面未能刷新。请返回设置重新选择该课表。'
+              : ScheduleFeedback.message(
+                  e,
+                  fallback: '保存未完成，请重新查看变化后重试。核对内容已保留。',
+                ),
+        );
+      }
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) setState(() => _stage = _ImportStage.idle);
     }
   }
 
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: Text(_needsPortalAI ? 'AI 识别网页课表' : '核对导入课表')),
-    body: ListView(
-      padding: const EdgeInsets.all(20),
+    body: Column(
       children: [
-        const Text('请核对课程、周次、钟点和教室。缺失信息保持待定，确认前不会保存。'),
-        for (final warning in widget.warnings) Text(warning),
-        if (_courses.isEmpty && _hasPortalText)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12),
-            child: Text(
-              '已读取网页课表原文。点击下方按钮，由 AI 识别课程、周次、时间和教室，再核对保存。未配置 Key 时，请先进入 DeepSeek 设置。',
-            ),
-          ),
-        if (widget.source == 'school-portal' &&
-            (_hasPortalText || _courses.isNotEmpty))
-          FilledButton(
-            onPressed: _busy ? null : _assist,
-            child: Text(_hasPortalText ? 'AI 识别网页课表' : 'AI 辅助核对课表文字'),
-          ),
-        if (widget.source == 'school-portal')
-          TextButton(
-            onPressed: _busy
-                ? null
-                : () => Navigator.push<void>(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const DeepSeekSettingsView(),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (_error != null)
+                Semantics(
+                  liveRegion: true,
+                  child: Text(
+                    _error!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
                     ),
                   ),
-            child: const Text('DeepSeek 设置'),
-          ),
-        if (_recognizing)
-          TextButton(onPressed: _cancelRecognition, child: const Text('取消识别')),
-        TextField(
-          controller: _school,
-          decoration: const InputDecoration(labelText: '学校'),
-        ),
-        TextField(
-          controller: _term,
-          decoration: const InputDecoration(labelText: '学期，例如 2026 秋季'),
-        ),
-        ListTile(
-          contentPadding: EdgeInsets.zero,
-          title: const Text('第一周周一'),
-          subtitle: Text(
-            _monday == null
-                ? '请选择，不能以导入日期代替'
-                : '${_monday!.year}-${_monday!.month}-${_monday!.day}',
-          ),
-          onTap: _busy
-              ? null
-              : () async {
-                  final day = await showDatePicker(
-                    context: context,
-                    initialDate: _monday ?? DateTime.now(),
-                    firstDate: DateTime(2020),
-                    lastDate: DateTime(2040),
-                  );
-                  if (day != null && mounted) {
-                    setState(() {
-                      if (day.weekday == DateTime.monday) {
-                        _monday = day;
-                        _error = null;
-                      } else {
-                        _error = '请选择第一周的周一';
-                      }
-                    });
-                  }
-                },
-        ),
-        DropdownButtonFormField<int>(
-          initialValue: _target ?? -1,
-          decoration: const InputDecoration(labelText: '保存到'),
-          items: [
-            const DropdownMenuItem(value: -1, child: Text('自动回到同来源课表／首次新建')),
-            for (final table in _tables)
-              DropdownMenuItem(
-                value: table['id'] as int,
-                child: Text('合并到 ${table['name']}'),
+                ),
+              FilledButton(
+                onPressed:
+                    _busy ||
+                        _loadingTables ||
+                        _courses.isEmpty ||
+                        _needsPortalAI
+                    ? null
+                    : _save,
+                child: Text(switch (_stage) {
+                  _ImportStage.idle => '查看变化并保存',
+                  _ImportStage.recognizing => 'AI 正在识别…',
+                  _ImportStage.reviewingAI => '等待核对 AI 结果',
+                  _ImportStage.comparing => '正在比较导入变化…',
+                  _ImportStage.confirming => '等待确认保存',
+                  _ImportStage.saving => '正在保存课表…',
+                }),
               ),
-          ],
-          onChanged: _busy
-              ? null
-              : (v) => setState(() => _target = v == -1 ? null : v),
+              if (_tablesFailed)
+                TextButton(
+                  onPressed: _loadingTables ? null : _loadTables,
+                  child: const Text('重新读取已有课表'),
+                ),
+            ],
+          ),
         ),
-        const SizedBox(height: 16),
-        for (var i = 0; i < _courses.length; i++)
-          Card(
-            child: ListTile(
-              title: Text('${_courses[i]['name'] ?? ''}'),
-              subtitle: Text(_summary(_courses[i])),
-              trailing: const Icon(Icons.edit_outlined),
-              onTap: _busy ? null : () => _edit(i),
-            ),
+        Expanded(
+          child: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              const Text('请核对课程、周次、钟点和教室。缺失信息保持待定，确认前不会保存。'),
+              for (final warning in widget.warnings) Text(warning),
+              if (_courses.isEmpty && _hasPortalText)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    '已读取网页课表原文。点击下方按钮，由 AI 识别课程、周次、时间和教室，再核对保存。未配置 Key 时，请先进入 DeepSeek 设置。',
+                  ),
+                ),
+              if (widget.source == 'school-portal' &&
+                  (_hasPortalText || _courses.isNotEmpty))
+                FilledButton(
+                  onPressed: _busy ? null : _assist,
+                  child: Text(_hasPortalText ? 'AI 识别网页课表' : 'AI 辅助核对课表文字'),
+                ),
+              if (widget.source == 'school-portal')
+                AIKeyStatus(revision: _keyRevision),
+              if (widget.source == 'school-portal')
+                TextButton(
+                  onPressed: _busy ? null : _openAISettings,
+                  child: const Text('DeepSeek 设置'),
+                ),
+              if (_recognizing) const RecognitionProgress(),
+              if (_recognizing)
+                TextButton(
+                  onPressed: _cancelRecognition,
+                  child: const Text('取消识别'),
+                ),
+              if (_beforeAI != null) ...[
+                const Text('保存前可恢复原稿，将撤销本次 AI 结果及采用后的编辑。'),
+                TextButton.icon(
+                  onPressed: _busy ? null : _restoreBeforeAI,
+                  icon: const Icon(Icons.undo),
+                  label: const Text('恢复本次 AI 处理前的内容'),
+                ),
+              ],
+              const SizedBox(height: 16),
+              TextField(
+                controller: _school,
+                enabled: !_busy,
+                onChanged: (_) => setState(() {
+                  _schoolEdited = true;
+                  _applySavedContext();
+                }),
+                decoration: InputDecoration(
+                  labelText: '学校',
+                  errorText: _triedSave && _school.text.trim().isEmpty
+                      ? '请填写学校'
+                      : null,
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _term,
+                enabled: !_busy,
+                onChanged: (_) => setState(() {
+                  _termEdited = true;
+                  _applySavedContext();
+                }),
+                decoration: InputDecoration(
+                  labelText: '学期，例如 2026 秋季',
+                  errorText: _triedSave && _term.text.trim().isEmpty
+                      ? '请填写学期'
+                      : null,
+                ),
+              ),
+              if (_metadataNote != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 12),
+                  child: Semantics(
+                    liveRegion: true,
+                    child: Text(_metadataNote!),
+                  ),
+                ),
+              const SizedBox(height: 16),
+              InkWell(
+                key: const ValueKey('first-week-monday'),
+                borderRadius: BorderRadius.circular(16),
+                onTap: _busy
+                    ? null
+                    : () async {
+                        final day = await showDatePicker(
+                          context: context,
+                          initialDate: _monday,
+                          selectableDayPredicate: (day) =>
+                              day.weekday == DateTime.monday,
+                          helpText: '选择学期第一周的周一',
+                          firstDate: DateTime(2020),
+                          lastDate: DateTime(2040, 12, 31),
+                        );
+                        if (day != null && mounted) {
+                          setState(() {
+                            _monday = day;
+                            _mondayEdited = true;
+                            _error = null;
+                          });
+                        }
+                      },
+                child: InputDecorator(
+                  decoration: InputDecoration(
+                    labelText: '第一周周一',
+                    enabled: !_busy,
+                    suffixIcon: const Icon(Icons.calendar_today_outlined),
+                    errorText: _triedSave && _monday == null
+                        ? '请选择学期第一周的周一'
+                        : null,
+                  ),
+                  child: Text(
+                    _monday == null
+                        ? '请选择，不能以导入日期代替'
+                        : '${_monday!.year}-${_monday!.month}-${_monday!.day}',
+                    style: TextStyle(
+                      color: _monday == null
+                          ? Theme.of(context).colorScheme.onSurfaceVariant
+                          : null,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              DropdownButtonFormField<int>(
+                isExpanded: true,
+                itemHeight: null,
+                initialValue: _target ?? -1,
+                decoration: const InputDecoration(labelText: '保存到'),
+                items: [
+                  const DropdownMenuItem(
+                    value: -1,
+                    child: Text('自动回到同来源课表／首次新建'),
+                  ),
+                  for (final table in _tables)
+                    DropdownMenuItem(
+                      value: table['id'] as int,
+                      child: Text('合并到 ${table['name']}'),
+                    ),
+                ],
+                onChanged: _busy
+                    ? null
+                    : (v) => setState(() {
+                        _target = v == -1 ? null : v;
+                        _applySavedContext();
+                      }),
+              ),
+              const SizedBox(height: 16),
+              for (var i = 0; i < _courses.length; i++)
+                Card(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                    title: Text(
+                      '${_courses[i]['name'] ?? ''}',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    subtitle: Text(_summary(_courses[i])),
+                    trailing: const Icon(Icons.edit_outlined),
+                    onTap: _busy ? null : () => _edit(i),
+                  ),
+                ),
+            ],
           ),
-        if (_error != null)
-          Text(
-            _error!,
-            style: TextStyle(color: Theme.of(context).colorScheme.error),
-          ),
-        const SizedBox(height: 16),
-        FilledButton(
-          onPressed: _busy || _courses.isEmpty || _needsPortalAI ? null : _save,
-          child: Text(_busy ? '处理中…' : '查看变化并保存'),
         ),
       ],
     ),
@@ -529,6 +1003,7 @@ class _CourseEditorState extends State<_CourseEditor> {
   late final Map<String, TextEditingController> _fields;
   late final List<Map<String, TextEditingController>> _meetings;
   String? _error;
+  bool _showFieldErrors = false;
   @override
   void initState() {
     super.initState();
@@ -580,6 +1055,7 @@ class _CourseEditorState extends State<_CourseEditor> {
   }
 
   void _done() {
+    setState(() => _showFieldErrors = true);
     try {
       final original = (widget.course['meetings'] as List? ?? []);
       final meetings = <Map<String, dynamic>>[];
@@ -613,8 +1089,223 @@ class _CourseEditorState extends State<_CourseEditor> {
       if (errors.isNotEmpty) throw FormatException(errors.join('\n'));
       Navigator.pop(context, data);
     } catch (e) {
-      setState(() => _error = '$e');
+      setState(() => _error = '请检查课程名称和起止时间。星期、周次与钟点可保留待定。');
     }
+  }
+
+  Future<void> _chooseWeeks(int index) async {
+    final current = _meetings[index]['weeks']!.text;
+    final selected = current
+        .split(RegExp('[,， ]+'))
+        .map(int.tryParse)
+        .whereType<int>()
+        .toSet();
+    var rangeEnd = selected.fold<int>(20, (a, b) => a > b ? a : b).clamp(1, 60);
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, update) => SafeArea(
+          child: SizedBox(
+            height: MediaQuery.sizeOf(context).height * .72,
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '选择周次',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: '关闭周次选择',
+                        onPressed: () => Navigator.pop(sheetContext),
+                        icon: const Icon(Icons.close),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.all(16),
+                    children: [
+                      const Text('按课表勾选。未选择任何周次时保留待定，快捷选择会替换当前选择。'),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<int>(
+                        initialValue: rangeEnd,
+                        decoration: const InputDecoration(labelText: '快捷选择范围'),
+                        items: [
+                          for (var week = 1; week <= 60; week++)
+                            DropdownMenuItem(
+                              value: week,
+                              child: Text('第 1–$week 周'),
+                            ),
+                        ],
+                        onChanged: (v) {
+                          if (v != null) update(() => rangeEnd = v);
+                        },
+                      ),
+                      Wrap(
+                        spacing: 8,
+                        children: [
+                          for (final mode in ['全选', '单周', '双周'])
+                            TextButton(
+                              onPressed: () => update(() {
+                                selected.clear();
+                                for (var week = 1; week <= rangeEnd; week++) {
+                                  if (mode == '全选' ||
+                                      (mode == '单周' && week.isOdd) ||
+                                      (mode == '双周' && week.isEven)) {
+                                    selected.add(week);
+                                  }
+                                }
+                              }),
+                              child: Text(mode),
+                            ),
+                          TextButton(
+                            onPressed: () => update(selected.clear),
+                            child: const Text('待定'),
+                          ),
+                        ],
+                      ),
+                      Wrap(
+                        spacing: 8,
+                        children: [
+                          for (
+                            var week = 1;
+                            week <=
+                                selected.fold<int>(
+                                  rangeEnd,
+                                  (a, b) => a > b ? a : b,
+                                );
+                            week++
+                          )
+                            FilterChip(
+                              label: Text('第 $week 周'),
+                              selected: selected.contains(week),
+                              onSelected: (v) => update(() {
+                                if (v) {
+                                  selected.add(week);
+                                } else {
+                                  selected.remove(week);
+                                }
+                              }),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: FilledButton(
+                    onPressed: () {
+                      final weeks = selected.toList()..sort();
+                      Navigator.pop(sheetContext, weeks.join(','));
+                    },
+                    child: const Text('确认周次'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    if (result != null && mounted) {
+      setState(() => _meetings[index]['weeks']!.text = result);
+    }
+  }
+
+  Future<void> _chooseClock(int index, String key) async {
+    final field = _meetings[index][key]!;
+    final minute = _minute(field.text);
+    final result = await showTimePicker(
+      context: context,
+      helpText: key == 'startMinute' ? '选择开始时间' : '选择结束时间',
+      initialTime: TimeOfDay(
+        hour: (minute ?? 540) ~/ 60,
+        minute: (minute ?? 0) % 60,
+      ),
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+        child: child!,
+      ),
+    );
+    // Opening or canceling the picker never fills an unknown time.
+    if (result != null && mounted) {
+      setState(() => field.text = _clock(result.hour * 60 + result.minute));
+    }
+  }
+
+  Widget _meetingField(int index, String key, String label) {
+    final fields = _meetings[index];
+    if (key == 'weekday') {
+      return Padding(
+        padding: const EdgeInsets.only(top: 12),
+        child: DropdownButtonFormField<int>(
+          initialValue: int.tryParse(fields[key]!.text) ?? 0,
+          decoration: const InputDecoration(labelText: '星期'),
+          items: [
+            const DropdownMenuItem(value: 0, child: Text('待定')),
+            for (var day = 1; day <= 7; day++)
+              DropdownMenuItem(
+                value: day,
+                child: Text(
+                  '星期${const ['一', '二', '三', '四', '五', '六', '日'][day - 1]}',
+                ),
+              ),
+          ],
+          onChanged: (v) => setState(
+            () => fields[key]!.text = v == null || v == 0 ? '' : '$v',
+          ),
+        ),
+      );
+    }
+    final isTime = key == 'startMinute' || key == 'endMinute';
+    String? error;
+    if (isTime) {
+      final start = _minute(fields['startMinute']!.text),
+          end = _minute(fields['endMinute']!.text);
+      if ((start == null) != (end == null)) {
+        error = '请选择完整的起止时间，或清除本组时间。';
+      } else if (start != null && end! <= start) {
+        error = '结束时间需要晚于开始时间。';
+      }
+    }
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: TextField(
+        controller: fields[key],
+        readOnly: isTime || key == 'weeks',
+        onTap: isTime
+            ? () => _chooseClock(index, key)
+            : key == 'weeks'
+            ? () => _chooseWeeks(index)
+            : null,
+        decoration: InputDecoration(
+          labelText: key == 'weeks' ? '上课周次' : label,
+          hintText: key == 'weeks' || isTime ? '待定，点击选择' : null,
+          errorText: error,
+          suffixIcon: isTime
+              ? IconButton(
+                  tooltip: '清除本组时间',
+                  icon: const Icon(Icons.clear),
+                  onPressed: () => setState(() {
+                    fields['startMinute']!.clear();
+                    fields['endMinute']!.clear();
+                  }),
+                )
+              : key == 'weeks'
+              ? const Icon(Icons.expand_more)
+              : null,
+        ),
+      ),
+    );
   }
 
   @override
@@ -630,17 +1321,36 @@ class _CourseEditorState extends State<_CourseEditor> {
           'teacher': '教师',
           'pendingReason': '待定原因',
         }.entries)
-          TextField(
-            controller: _fields[e.key],
-            decoration: InputDecoration(labelText: e.value),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: TextField(
+              controller: _fields[e.key],
+              onChanged: e.key == 'name' ? (_) => setState(() {}) : null,
+              decoration: InputDecoration(
+                labelText: e.value,
+                errorText:
+                    e.key == 'name' &&
+                        _showFieldErrors &&
+                        _fields['name']!.text.trim().isEmpty
+                    ? '请填写课程名称'
+                    : null,
+              ),
+            ),
           ),
         for (var i = 0; i < _meetings.length; i++)
           Card(
+            margin: const EdgeInsets.only(bottom: 16),
             child: Padding(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  Text('安排 ${i + 1}'),
+                  Text(
+                    '安排 ${i + 1}',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   for (final e in const {
                     'weekday': '星期（1–7）',
                     'weeks': '周次，用逗号分隔；空白为未知',
@@ -648,10 +1358,7 @@ class _CourseEditorState extends State<_CourseEditor> {
                     'endMinute': '结束 HH:mm',
                     'location': '教室',
                   }.entries)
-                    TextField(
-                      controller: _meetings[i][e.key],
-                      decoration: InputDecoration(labelText: e.value),
-                    ),
+                    _meetingField(i, e.key, e.value),
                 ],
               ),
             ),

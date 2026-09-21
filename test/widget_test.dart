@@ -4,6 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:wheretosleepinnju/Pages/Personal/PersonalHomeView.dart';
 import 'package:wheretosleepinnju/Pages/Personal/Widgets/FloatingScheduleNavigation.dart';
 import 'package:wheretosleepinnju/main.dart';
+import 'package:wheretosleepinnju/Models/CourseModel.dart';
+import 'package:wheretosleepinnju/Models/PersonalSchedule.dart';
 
 import 'Models/personal_schedule_test.dart' show reviewedSchedule;
 
@@ -129,7 +131,7 @@ void main() {
       expect(find.text('2026年9月'), findsOneWidget);
       expect(find.byTooltip('下一周'), findsNothing);
       expect(find.text('下一节课'), findsNothing);
-      expect(find.bySemanticsLabel('2026年9月22日 星期二，2 节课'), findsOneWidget);
+      expect(find.bySemanticsLabel('2026年9月22日 星期二，上课次数 2 次'), findsOneWidget);
       // September starts on Tuesday; its final day is Wednesday, without spillover.
       final first = tester.getCenter(
         find.byKey(const ValueKey('month-day-2026-9-1')),
@@ -179,8 +181,8 @@ void main() {
       await tester.tap(find.byTooltip('下个月'));
       await tester.pumpAndSettle();
       expect(find.text('2026年10月'), findsOneWidget);
-      expect(find.bySemanticsLabel('2026年10月10日 星期六，2 节课'), findsOneWidget);
-      expect(find.bySemanticsLabel('2026年10月11日 星期日，2 节课'), findsOneWidget);
+      expect(find.bySemanticsLabel('2026年10月10日 星期六，上课次数 2 次'), findsOneWidget);
+      expect(find.bySemanticsLabel('2026年10月11日 星期日，上课次数 2 次'), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('month-day-2026-10-10')));
       await tester.pumpAndSettle();
       final scroll = getPageScroll('month');
@@ -293,7 +295,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('正在上课'), findsNothing);
     expect(find.text('已结束'), findsOneWidget);
-    expect(find.text('硕士英语(全日制学术型)'), findsNothing);
+    expect(find.text('下一节课'), findsOneWidget);
+    expect(find.textContaining('明天 周二'), findsOneWidget);
     await tab(tester, 'week');
     expect(find.text('第 3 周'), findsOneWidget);
     expect(tester.takeException(), isNull);
@@ -340,6 +343,46 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets('next course skips unconfirmed times without inventing a date', (
+    tester,
+  ) async {
+    final source = reviewedSchedule();
+    final pending = Course.fromMap({
+      'id': 999,
+      'name': '未知钟点课程',
+      'week_time': 1,
+      'weeks': '[3]',
+      'start_time': 0,
+      'time_count': 0,
+    });
+    final schedule = PersonalSchedule(
+      tableId: source.tableId,
+      name: source.name,
+      firstMonday: source.firstMonday,
+      periods: source.periods,
+      courses: [pending, ...source.courses],
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PersonalHomeView(
+          loader: () async => schedule,
+          clock: () => DateTime(2026, 9, 20, 14),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final next = find.byKey(const ValueKey('next-confirmed-course'));
+    expect(
+      find.descendant(of: next, matching: find.text('中国艺术史')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: next, matching: find.text('未知钟点课程')),
+      findsNothing,
+    );
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('loading failure keeps navigation and has a working retry', (
     tester,
@@ -442,7 +485,7 @@ void main() {
       expect(find.text('第 2 周'), findsOneWidget);
       await tab(tester, 'month');
       final monthTitle = tester.getRect(find.text('2026年9月'));
-      final monthSubtitle = tester.getRect(find.text('12 节课'));
+      final monthSubtitle = tester.getRect(find.text('上课次数 · 12 次'));
       final monthAction = tester.getRect(
         find.widgetWithText(OutlinedButton, '本月'),
       );

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../Utils/States/MainState.dart';
 import '../../Models/CourseModel.dart';
 import '../../Resources/Constant.dart';
+import '../../Utils/CourseWeekSelection.dart';
 import '../../core/widget_data/utils/widget_refresh_helper.dart';
 
 class AddCoursePresenter {
@@ -20,23 +21,12 @@ class AddCoursePresenter {
       await MainStateModel.of(context).changeclassTable(1);
     }
     for (Map node in nodes) {
-      if (jsonDecode(
-        _generateWeekSeries(
-          node['startWeek'] + 1,
-          node['endWeek'] + 1,
-          node['weekType'],
-        ),
-      ).isEmpty) {
-        return false;
-      }
+      final weeks = CourseWeekSelection.weeks(node);
+      if (weeks.isEmpty) return false;
       Course course = Course(
         tableId,
         name,
-        _generateWeekSeries(
-          node['startWeek'] + 1,
-          node['endWeek'] + 1,
-          node['weekType'],
-        ),
+        jsonEncode(weeks),
         node['weekTime'] + 1,
         node['startTime'] + 1,
         node['endTime'] - node['startTime'],
@@ -54,37 +44,5 @@ class AddCoursePresenter {
     await WidgetRefreshHelper.refreshAfterCourseAdded();
 
     return true;
-  }
-
-  String _generateWeekSeries(int start, int end, int weekType) {
-    if (weekType == Constant.FULL_WEEKS) {
-      return _getWeekSeries(start, end);
-    } else if (weekType == Constant.SINGLE_WEEKS) {
-      return _getSingleWeekSeries(start, end);
-    } else if (weekType == Constant.DOUBLE_WEEKS) {
-      return _getDoubleWeekSeries(start, end);
-    } else {
-      return '';
-    }
-  }
-
-  String _getWeekSeries(int start, int end) {
-    List<int> list = [for (int i = start; i <= end; i += 1) i];
-    //    print (list.toString());
-    return list.toString();
-  }
-
-  String _getSingleWeekSeries(int start, int end) {
-    if (start % 2 == 0) start++;
-    List<int> list = [for (int i = start; i <= end; i += 2) i];
-    //    print (list.toString());
-    return list.toString();
-  }
-
-  String _getDoubleWeekSeries(int start, int end) {
-    if (start % 2 == 1) start++;
-    List<int> list = [for (int i = start; i <= end; i += 2) i];
-    //    print (list.toString());
-    return list.toString();
   }
 }

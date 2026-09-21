@@ -53,9 +53,9 @@
 		<string></string>
 	</array>
 	<key>NSCalendarsUsageDescription</key>
-	<string>三千上课需要日历权限，才能将课程导入系统日历。</string>
+	<string>三千上课需要日历权限，才能写入课程并由系统日历发送上课提醒。</string>
 	<key>NSCalendarsFullAccessUsageDescription</key>
-	<string>允许三千上课创建课程日历，并在再次导出时更新已导出的课程，避免重复日程。</string>
+	<string>允许三千上课创建课程日历、同步上课提醒，并在调课或关闭提醒时更新或移除本 App 创建的提醒日程。</string>
 	<key>NSCameraUsageDescription</key>
 	<string>三千上课需要相机权限，才能扫码导入课程。</string>
 	<key>NSLocalNetworkUsageDescription</key>

@@ -52,9 +52,10 @@ class WidgetRefreshHelper {
   /// 通用刷新方法
   static Future<void> _refreshWidget(String reason) async {
     try {
-      // 仅在 iOS 平台执行
-      if (!Platform.isIOS) return;
+      // Course reminders are shared; widget transport remains iOS-only.
+      if (!Platform.isIOS && !Platform.isAndroid) return;
       await ScheduleDerivedDataService.sync(await loadPersonalSchedule());
+      if (!Platform.isIOS) return;
       if ((await NativeDataBridge().getPlatformInfo())?['supportsWidgets'] != true) return;
       
       final service = await _getService();

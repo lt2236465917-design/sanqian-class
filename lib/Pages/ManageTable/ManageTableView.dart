@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../Models/CourseTableModel.dart';
 import '../../Models/PersonalSchedule.dart';
 import '../../Utils/States/MainState.dart';
@@ -14,8 +15,37 @@ class ManageTableView extends StatefulWidget {
 
 class _ManageTableViewState extends State<ManageTableView> {
   final _provider = CourseTableProvider();
-  late Future<List> _tables = _provider.getAllCourseTable();
+  late Future<List> _tables = _loadTables();
+  int? _selectedId, _selectingId;
   bool _busy = false;
+  bool get _locked => _busy || _selectingId != null;
+
+  Future<List> _loadTables() async {
+    final tables = await _provider.getAllCourseTable();
+    _selectedId =
+        (await SharedPreferences.getInstance()).getInt('tableId') ?? 0;
+    return tables;
+  }
+
+  Future<bool> _rename(int id, String name) async {
+    if (_locked) return false;
+    setState(() => _busy = true);
+    try {
+      await _provider.rename(id, name);
+      if (mounted) {
+        setState(() => _tables = _loadTables());
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('课表名称已保存')));
+      }
+      return true;
+    } catch (_) {
+      _error();
+      return false;
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
 
   void _error() {
     if (mounted) {
@@ -26,15 +56,15 @@ class _ManageTableViewState extends State<ManageTableView> {
   }
 
   Future<void> _select(int id) async {
-    if (_busy) return;
-    setState(() => _busy = true);
+    if (_locked || id == _selectedId) return;
+    setState(() => _selectingId = id);
     try {
       await MainStateModel.of(context).changeclassTable(id);
-      if (mounted) Navigator.pop(context, true);
+      if (mounted) setState(() => _selectedId = id);
     } catch (_) {
       _error();
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) setState(() => _selectingId = null);
     }
   }
 
@@ -92,7 +122,7 @@ class _ManageTableViewState extends State<ManageTableView> {
     setState(() => _busy = true);
     try {
       await _provider.delete(table['id'] as int);
-      if (mounted) setState(() => _tables = _provider.getAllCourseTable());
+      if (mounted) setState(() => _tables = _loadTables());
     } catch (_) {
       _error();
     } finally {
@@ -108,7 +138,7 @@ class _ManageTableViewState extends State<ManageTableView> {
         IconButton(
           tooltip: '新增课表',
           icon: const Icon(Icons.add),
-          onPressed: _busy ? null : _add,
+          onPressed: _locked ? null : _add,
         ),
       ],
     ),
@@ -119,8 +149,7 @@ class _ManageTableViewState extends State<ManageTableView> {
           if (snapshot.hasError) {
             return Center(
               child: TextButton(
-                onPressed: () =>
-                    setState(() => _tables = _provider.getAllCourseTable()),
+                onPressed: () => setState(() => _tables = _loadTables()),
                 child: const Text('读取失败，点击重试'),
               ),
             );
@@ -128,39 +157,126 @@ class _ManageTableViewState extends State<ManageTableView> {
           if (!snapshot.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
-          return FutureBuilder<int>(
-            future: MainStateModel.of(context).getClassTable(),
-            builder: (context, selected) => ListView(
-              children: [
-                if (_busy) const LinearProgressIndicator(),
-                const Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Text('点击课表即可切换。新增课表沿用当前学期和作息。'),
-                ),
-                for (final table in snapshot.data!)
-                  ListTile(
-                    title: Text(table['name']),
-                    selected: selected.data == table['id'],
-                    subtitle: selected.data == table['id']
-                        ? const Text('当前课表')
-                        : null,
-                    onTap: _busy ? null : () => _select(table['id'] as int),
-                    trailing: selected.data == table['id']
-                        ? const SizedBox.square(
-                            dimension: 48,
-                            child: Center(child: Icon(Icons.check_rounded)),
-                          )
-                        : IconButton(
-                            tooltip: '删除${table['name']}',
-                            icon: const Icon(Icons.delete_outline),
-                            onPressed: _busy ? null : () => _delete(table),
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              SizedBox(
+                height: 4,
+                child: _locked ? const LinearProgressIndicator() : null,
+              ),
+              const Padding(
+                padding: EdgeInsets.only(bottom: 20),
+                child: Text('点击名称框切换课表，也可直接修改名称。'),
+              ),
+              for (final table in snapshot.data!)
+                Padding(
+                  key: ValueKey(table['id']),
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: _TableNameField(
+                          key: ValueKey(table['id']),
+                          name: table['name'] as String,
+                          enabled:
+                              !_busy &&
+                              (_selectingId == null ||
+                                  _selectingId == table['id']),
+                          current: _selectedId == table['id'],
+                          onSelect: () => _select(table['id'] as int),
+                          onSave: (name) => _rename(table['id'] as int, name),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      if (_selectedId == table['id'])
+                        SizedBox(
+                          width: 48,
+                          height: 48,
+                          child: Semantics(
+                            label: '当前课表',
+                            child: Icon(
+                              Icons.check_circle_rounded,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
                           ),
+                        )
+                      else
+                        IconButton(
+                          tooltip: '删除${table['name']}',
+                          icon: const Icon(Icons.delete_outline),
+                          onPressed: _locked ? null : () => _delete(table),
+                        ),
+                    ],
                   ),
-              ],
-            ),
+                ),
+            ],
           );
         },
       ),
+    ),
+  );
+}
+
+class _TableNameField extends StatefulWidget {
+  final String name;
+  final bool enabled, current;
+  final Future<bool> Function(String) onSave;
+  final VoidCallback onSelect;
+  const _TableNameField({
+    super.key,
+    required this.name,
+    required this.enabled,
+    required this.current,
+    required this.onSave,
+    required this.onSelect,
+  });
+
+  @override
+  State<_TableNameField> createState() => _TableNameFieldState();
+}
+
+class _TableNameFieldState extends State<_TableNameField> {
+  late final _controller = TextEditingController(text: widget.name);
+  String? _error;
+  bool get _changed => _controller.text.trim() != widget.name;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (!widget.enabled || !_changed) return;
+    final name = _controller.text.trim();
+    if (name.isEmpty) {
+      setState(() => _error = '课表名称不能为空');
+      return;
+    }
+    FocusScope.of(context).unfocus();
+    if (await widget.onSave(name) && mounted) {
+      setState(() => _controller.text = name);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => TextField(
+    controller: _controller,
+    enabled: widget.enabled,
+    textInputAction: TextInputAction.done,
+    onTap: widget.onSelect,
+    onSubmitted: (_) => _save(),
+    onChanged: (_) => setState(() => _error = null),
+    decoration: InputDecoration(
+      labelText: widget.current ? '课表名称 · 当前课表' : '课表名称',
+      errorText: _error,
+      suffixIcon: _changed
+          ? TextButton(
+              onPressed: widget.enabled ? _save : null,
+              child: const Text('保存'),
+            )
+          : null,
     ),
   );
 }
