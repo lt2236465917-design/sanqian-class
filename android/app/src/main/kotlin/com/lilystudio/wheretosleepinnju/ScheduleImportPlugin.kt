@@ -43,6 +43,8 @@ class ScheduleImportPlugin :
     private var running: Future<*>? = null
     private var portalResult: MethodChannel.Result? = null
     private var permissionResult: MethodChannel.Result? = null
+    internal var timetableOcrFactory: () -> TimetableOcr = { MlKitChineseTimetableOcr() }
+    private var timetableOcr: TimetableOcr? = null
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         appContext = binding.applicationContext
@@ -115,13 +117,14 @@ class ScheduleImportPlugin :
                     client.recognizeText(call.argument<String>("text") ?: "")
                 }
                 "recognizePhotos" -> recognize(result) { client ->
-                    val paths = call.argument<List<String>>("paths") ?: emptyList()
-                    if (paths.isEmpty() || paths.size > 20) throw ImportBridgeError.images
-                    val images = paths.mapIndexed { index, path ->
-                        if (cancelled.get()) throw DeepSeekTimetableClientError.Cancelled
-                        DeepSeekTimetableClient.jpegFromPath(path, index)
-                    }
-                    client.recognizeImages(images)
+                    client.recognizeImages(loadImages(call))
+                }
+                "recognizePhotosWithOCR" -> recognize(result) { client ->
+                    val images = loadImages(call)
+                    if (cancelled.get()) throw DeepSeekTimetableClientError.Cancelled
+                    val pages = ocr().recognize(images, cancelled)
+                    if (cancelled.get()) throw DeepSeekTimetableClientError.Cancelled
+                    client.recognizeImages(images, pages)
                 }
                 "requestReminderPermission" -> requestReminderPermission(result)
                 "clearLegacyReminders" -> {
@@ -138,6 +141,19 @@ class ScheduleImportPlugin :
         } catch (error: Exception) {
             result.error(code(error), error.message, null)
         }
+    }
+
+    private fun loadImages(call: MethodCall): List<AIImportImage> {
+        val paths = call.argument<List<String>>("paths") ?: emptyList()
+        if (paths.isEmpty() || paths.size > 20) throw ImportBridgeError.images
+        return paths.mapIndexed { index, path ->
+            if (cancelled.get()) throw DeepSeekTimetableClientError.Cancelled
+            DeepSeekTimetableClient.jpegFromPath(path, index)
+        }
+    }
+
+    private fun ocr(): TimetableOcr {
+        return timetableOcr ?: timetableOcrFactory().also { timetableOcr = it }
     }
 
     private fun openPortal(result: MethodChannel.Result) {
@@ -162,9 +178,15 @@ class ScheduleImportPlugin :
                 val key = store.loadDeepSeekAPIKey() ?: throw DeepSeekTimetableClientError.MissingAPIKey
                 val client = DeepSeekTimetableClient(key, cancelled) { connection.set(it) }
                 val output = work(client)
-                if (cancelled.get() || generation.get() != ticket) throw DeepSeekTimetableClientError.Cancelled
+                if (!recognitionStillCurrent(ticket, generation.get(), cancelled.get())) {
+                    throw DeepSeekTimetableClientError.Cancelled
+                }
                 val parsed = DeepSeekTimetableClient.jsonToAny(JSONObject(output.jsonText))
-                if (generation.get() == ticket) complete(result, success = parsed, error = null)
+                if (recognitionStillCurrent(ticket, generation.get(), cancelled.get())) {
+                    complete(result, success = parsed, error = null)
+                } else if (generation.get() == ticket) {
+                    complete(result, success = null, error = DeepSeekTimetableClientError.Cancelled)
+                }
             } catch (error: Exception) {
                 if (generation.get() == ticket) complete(result, success = null, error = error)
             } finally {
@@ -268,6 +290,10 @@ class ScheduleImportPlugin :
         private const val REQUEST_PORTAL = 0x51A1
         private const val REQUEST_NOTIFY = 0x51A2
     }
+}
+
+internal fun recognitionStillCurrent(ticket: Int, generation: Int, cancelled: Boolean): Boolean {
+    return ticket == generation && !cancelled
 }
 
 private object NotificationReady {

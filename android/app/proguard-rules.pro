@@ -21,3 +21,4 @@
 -keep class com.lilystudio.wheretosleepinnju.ScheduleReminderReceiver { *; }
 -keep class com.lilystudio.wheretosleepinnju.ScheduleReminderScheduler { *; }
 -keep class com.lilystudio.wheretosleepinnju.ScheduleImportPlugin { *; }
+-keep class com.lilystudio.wheretosleepinnju.MlKitChineseTimetableOcr { *; }
