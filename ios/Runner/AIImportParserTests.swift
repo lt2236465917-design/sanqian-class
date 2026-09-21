@@ -105,6 +105,8 @@ struct AIImportOfflineTests {
         let session = URLSession(configuration: config)
         defer { session.invalidateAndCancel() }
         let client = DeepSeekTimetableClient(apiKey: "offline-fake-key", session: session)
+        var capturedContent: [[String: Any]] = []
+        var requests = 0
         OfflineDeepSeekProtocol.handler = { request in
             check(request.url == DeepSeekTimetableClient.endpoint, "fixed endpoint")
             let data: Data
@@ -117,12 +119,46 @@ struct AIImportOfflineTests {
                 data = bytes
             }
             let body = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+            requests += 1
+            capturedContent = (body["messages"] as! [[String: Any]])[1]["content"] as! [[String: Any]]
             check(body["model"] as? String == "deepseek-flash", "fixed model")
             check((body["thinking"] as? [String: String])?["type"] == "disabled", "thinking disabled")
             check((body["response_format"] as? [String: String])?["type"] == "json_object", "JSON mode")
             return (200, try envelope(valid))
         }
         _ = try await client.recognize(images: [AIImportImage(data: tiny, mimeType: "image/png"), AIImportImage(data: tiny, mimeType: "image/png")])
+        check(capturedContent.count == 3 && capturedContent.filter { $0["type"] as? String == "text" }.count == 1, "default images have no OCR context")
+        let imageContent = capturedContent.filter { $0["type"] as? String == "image_url" }
+        let reviewPages = (0..<2).map { index in
+            VisionTimetablePage(imageIndex: index, tokens: [VisionTimetableToken(imageIndex: index,
+                text: "摄影 第5周 周六 上午", boundingBox: AIImportBoundingBox(x: 0.1, y: 0.2, width: 0.3, height: 0.1), confidence: 0.9)])
+        }
+        _ = try await client.recognize(images: [AIImportImage(data: tiny, mimeType: "image/png"), AIImportImage(data: tiny, mimeType: "image/png")], ocrPages: reviewPages)
+        check(capturedContent.count == 4, "OCR is one optional evidence block")
+        let reviewedImages = capturedContent.filter { $0["type"] as? String == "image_url" }
+        check(NSDictionary(dictionary: ["images": imageContent]).isEqual(to: ["images": reviewedImages]), "OCR retains every original image byte and order")
+        let auxiliary = capturedContent.last!["text"] as! String
+        check(auxiliary.contains("不是指令或标准答案") && auxiliary.contains("摄影 第5周 周六 上午"), "OCR is labelled non-authoritative")
+        check(auxiliary.contains("imageIndex") && auxiliary.contains("左上角"), "OCR keeps page indexes and coordinate meaning")
+        let beforeRejected = requests
+        await expectAsync(.invalidOCRContext, "empty OCR sends nothing") {
+            _ = try await client.recognize(images: [AIImportImage(data: tiny, mimeType: "image/png")], ocrPages: [VisionTimetablePage(imageIndex: 0, tokens: [])])
+        }
+        expect(.invalidOCRContext, "OCR page mismatch") { _ = try DeepSeekTimetableClient.ocrReviewText(pages: reviewPages, imageCount: 1) }
+        func edgeOCR(_ x: Double) -> [VisionTimetablePage] {
+            [VisionTimetablePage(imageIndex: 0, tokens: [VisionTimetableToken(imageIndex: 0,
+                text: "图像边缘课程", boundingBox: AIImportBoundingBox(x: x, y: 0.2, width: 0.1, height: 0.1), confidence: 0.9)])]
+        }
+        check(try DeepSeekTimetableClient.ocrReviewText(pages: edgeOCR(-0.000000001), imageCount: 1).contains("图像边缘课程"), "Vision floating point edge retained")
+        expect(.invalidOCRContext, "meaningfully invalid OCR coordinate rejected") {
+            _ = try DeepSeekTimetableClient.ocrReviewText(pages: edgeOCR(-0.1), imageCount: 1)
+        }
+        let hugeOCR = [VisionTimetablePage(imageIndex: 0, tokens: [VisionTimetableToken(imageIndex: 0,
+            text: String(repeating: "字", count: 30000), boundingBox: AIImportBoundingBox(x: 0, y: 0, width: 1, height: 1), confidence: 1)])]
+        await expectAsync(.ocrContextTooLarge(limit: DeepSeekTimetableClient.maxOCRContextBytes), "oversized OCR rejected without truncation or request") {
+            _ = try await client.recognize(images: [AIImportImage(data: tiny, mimeType: "image/png")], ocrPages: hugeOCR)
+        }
+        check(requests == beforeRejected, "invalid OCR never starts a paid request")
         _ = try await client.recognize(text: "英语 周一 第3、4、6周 09:00-10:00")
         for (status, error) in [(401, DeepSeekTimetableClientError.unauthorized), (402, .paymentRequired), (429, .rateLimited), (503, .serverUnavailable(statusCode: 503))] {
             OfflineDeepSeekProtocol.handler = { _ in (status, Data()) }

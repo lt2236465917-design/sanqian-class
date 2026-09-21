@@ -95,6 +95,7 @@ void main() {
             case 'openPortal':
               return portal;
             case 'recognizePhotos':
+            case 'recognizePhotosWithOCR':
             case 'recognizeText':
               return recognize(call);
             case 'cancelRecognition':
@@ -117,6 +118,9 @@ void main() {
   Future<void> showReview(
     WidgetTester tester, {
     List<Map<String, dynamic>>? courses,
+    String source = 'school-portal',
+    List<String> imagePaths = const [],
+    List<String> expectedCourseNames = const [],
   }) async {
     await tester.binding.setSurfaceSize(const Size(430, 1200));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -124,8 +128,10 @@ void main() {
       MaterialApp(
         home: ImportReviewView(
           courses: courses ?? [],
-          source: 'school-portal',
-          timetableText: sourceText,
+          source: source,
+          timetableText: source == 'school-portal' ? sourceText : null,
+          imagePaths: imagePaths,
+          expectedCourseNames: expectedCourseNames,
         ),
       ),
     );
@@ -323,6 +329,9 @@ void main() {
       expect(find.text('星期\n原：1\nAI：2'), findsOneWidget);
       expect(find.text('教室\n原：6406\nAI：AI 教室'), findsOneWidget);
       await tester.tap(find.text('采用并继续核对'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byType(CheckboxListTile));
+      await tester.tap(find.byType(CheckboxListTile));
       await tester.pumpAndSettle();
       expect(
         tester
@@ -626,6 +635,165 @@ void main() {
     expect(find.text('已选择 2 张'), findsOneWidget);
     expect(find.byType(ImportReviewView), findsNothing);
   });
+
+  testWidgets('normal photo result has no OCR request or review gate', (
+    tester,
+  ) async {
+    await showReview(
+      tester,
+      source: 'photos',
+      courses: [course('摄影')],
+      imagePaths: ['/fixture/one.png'],
+    );
+    expect(find.text('使用 OCR 复核'), findsNothing);
+    expect(find.byType(CheckboxListTile), findsNothing);
+    expect(calls.where((c) => c.method == 'recognizePhotosWithOCR'), isEmpty);
+  });
+
+  testWidgets('photo anomaly requires review and OCR requires consent once', (
+    tester,
+  ) async {
+    await showReview(
+      tester,
+      source: 'photos',
+      courses: [course('摄影'), course('摄影')],
+      imagePaths: ['/fixture/one.png'],
+    );
+    expect(find.text('摄影'), findsOneWidget);
+    expect(calls.where((c) => c.method == 'recognizePhotosWithOCR'), isEmpty);
+    final save = find.widgetWithText(FilledButton, '查看变化并保存');
+    expect(tester.widget<FilledButton>(save).onPressed, isNull);
+    await tester.tap(find.byType(CheckboxListTile));
+    await tester.pumpAndSettle();
+    expect(tester.widget<FilledButton>(save).onPressed, isNotNull);
+    await tester.tap(find.widgetWithText(OutlinedButton, '使用 OCR 复核'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+    expect(calls.where((c) => c.method == 'recognizePhotosWithOCR'), isEmpty);
+    await tester.tap(find.widgetWithText(OutlinedButton, '使用 OCR 复核'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('发送并复核'));
+    await tester.pumpAndSettle();
+    expect(
+      calls.singleWhere((c) => c.method == 'recognizePhotosWithOCR').arguments,
+      {
+        'paths': ['/fixture/one.png'],
+      },
+    );
+    expect(find.text('核对 AI 识别结果'), findsOneWidget);
+    await tester.tap(find.text('保留当前内容'));
+    await tester.pumpAndSettle();
+    expect(find.text('摄影'), findsOneWidget);
+    expect(find.text('规则遗漏课程'), findsNothing);
+    expect(find.text('使用 OCR 复核'), findsNothing);
+    expect(await db.query('Course'), isEmpty);
+  });
+
+  testWidgets(
+    'OCR losses remain visible and need acknowledgement after adoption',
+    (tester) async {
+      recognize = (_) async => {
+        'courses': [course('摄影')],
+      };
+      final original = course('摄影');
+      final first = (original['meetings'] as List).single;
+      original['meetings'] = [
+        first,
+        first,
+        {...Map<String, dynamic>.from(first), 'weekday': 6},
+      ];
+      await showReview(
+        tester,
+        source: 'photos',
+        courses: [original],
+        imagePaths: ['/fixture/one.png'],
+      );
+      await tester.tap(find.widgetWithText(OutlinedButton, '使用 OCR 复核'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('发送并复核'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('3 条原有安排未保留'), findsOneWidget);
+      await tester.tap(find.text('采用并继续核对'));
+      await tester.pumpAndSettle();
+      expect(find.text('使用 OCR 复核'), findsNothing);
+      expect(find.textContaining('3 条原有安排未保留'), findsOneWidget);
+      expect(
+        tester
+            .widget<FilledButton>(find.widgetWithText(FilledButton, '查看变化并保存'))
+            .onPressed,
+        isNull,
+      );
+      expect(await db.query('Course'), isEmpty);
+    },
+  );
+
+  for (final failure in ['network', 'cancel']) {
+    testWidgets('OCR $failure preserves current courses and never retries', (
+      tester,
+    ) async {
+      final reply = Completer<Object?>();
+      recognize = (_) => failure == 'network'
+          ? Future.error(
+              PlatformException(code: 'recognition', message: '复核网络错误'),
+            )
+          : reply.future;
+      await showReview(
+        tester,
+        source: 'photos',
+        courses: [course('摄影'), course('摄影')],
+        imagePaths: ['/fixture/one.png'],
+      );
+      await tester.tap(find.widgetWithText(OutlinedButton, '使用 OCR 复核'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('发送并复核'));
+      if (failure == 'cancel') {
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
+        await tester.tap(find.text('取消识别'));
+        await tester.pumpAndSettle();
+        reply.complete({
+          'courses': [course('迟到结果')],
+        });
+        await tester.pumpAndSettle();
+      } else {
+        await tester.pumpAndSettle();
+      }
+      expect(find.text('摄影'), findsOneWidget);
+      expect(find.text('核对 AI 识别结果'), findsNothing);
+      expect(find.text('使用 OCR 复核'), findsNothing);
+      expect(
+        calls.where((c) => c.method == 'recognizePhotosWithOCR'),
+        hasLength(1),
+      );
+      expect(await db.query('Course'), isEmpty);
+    });
+  }
+
+  testWidgets(
+    'portal candidate coverage is checked after AI and never triggers OCR',
+    (tester) async {
+      portal['courses'] = [course('本地课程')];
+      await tester.binding.setSurfaceSize(const Size(430, 1400));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(const MaterialApp(home: SchoolAccountView()));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, '打开学校网页'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('来源候选中有课程'), findsNothing);
+      await send(tester);
+      expect(find.textContaining('来源候选中有课程未出现在识别结果中：本地课程'), findsOneWidget);
+      expect(find.textContaining('以下课程未出现在来源候选中：规则遗漏课程'), findsOneWidget);
+      expect(find.text('使用 OCR 复核'), findsNothing);
+      expect(
+        tester
+            .widget<FilledButton>(find.widgetWithText(FilledButton, '查看变化并保存'))
+            .onPressed,
+        isNull,
+      );
+      expect(calls.where((c) => c.method == 'recognizePhotosWithOCR'), isEmpty);
+    },
+  );
 
   testWidgets('photos cancel ignores late successful result', (tester) async {
     final reply = Completer<Object?>();

@@ -49,10 +49,11 @@ final class ScheduleImportPlugin: NSObject, FlutterPlugin {
                         result(try JSONSerialization.jsonObject(with: Data(output.jsonText.utf8)))
                     } catch { result(FlutterError(code: "recognition", message: error.localizedDescription, details: nil)) }
                 }
-            case "recognizePhotos":
+            case "recognizePhotos", "recognizePhotosWithOCR":
                 guard recognition == nil else { throw ImportBridgeError.busy }
                 let paths = args["paths"] as? [String] ?? []
                 guard !paths.isEmpty, paths.count <= 20 else { throw ImportBridgeError.images }
+                let useOCR = call.method == "recognizePhotosWithOCR"
                 recognition = Task { [weak self] in
                     defer { self?.recognition = nil }
                     do {
@@ -67,7 +68,12 @@ final class ScheduleImportPlugin: NSObject, FlutterPlugin {
                             guard let bytes = image.jpegData(compressionQuality: 0.95) else { throw ImportBridgeError.images }
                             return AIImportImage(data: bytes)
                         }
-                        let output = try await DeepSeekTimetableClient(apiKey: key).recognize(images: input)
+                        let pages: [VisionTimetablePage]?
+                        if useOCR {
+                            pages = try await VisionTimetableRecognizer().recognize(images: images)
+                        } else { pages = nil }
+                        try Task.checkCancellation()
+                        let output = try await DeepSeekTimetableClient(apiKey: key).recognize(images: input, ocrPages: pages)
                         let object = try JSONSerialization.jsonObject(with: Data(output.jsonText.utf8))
                         try Task.checkCancellation()
                         result(object)

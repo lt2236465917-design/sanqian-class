@@ -82,6 +82,8 @@ public enum DeepSeekTimetableClientError: Error, Equatable {
     case emptyCourses
     case invalidCourseField(String)
     case invalidTimetableText
+    case invalidOCRContext
+    case ocrContextTooLarge(limit: Int)
     case truncatedResponse
     case apiError(statusCode: Int)
 }
@@ -104,6 +106,8 @@ extension DeepSeekTimetableClientError: LocalizedError {
         case .transport: return "无法连接 DeepSeek 服务"
         case .invalidResponse: return "DeepSeek 返回格式无法解析"
         case .invalidTimetableText: return "请仅提供已提取的课表文字，勿包含登录页、链接或凭据"
+        case .invalidOCRContext: return "本机文字识别未得到可用复核依据，当前结果已保留"
+        case .ocrContextTooLarge: return "复核文字过多，请减少每批图片数量；当前结果已保留"
         case .invalidJSON: return "AI 返回的内容不是完整的结构化课表，请重试；本次未保存课程"
         case .emptyCourses: return "AI 未识别到课程，请检查图片或网页是否包含完整课表"
         case .invalidCourseField(let path): return "AI 返回的课表字段格式不正确（\(path)），本次未保存课程；请重试"

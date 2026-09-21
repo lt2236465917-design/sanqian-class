@@ -327,6 +327,262 @@ class ScheduleImportValidationException implements Exception {
       'ScheduleImportValidationException: ${errors.join('; ')}';
 }
 
+/// Deterministic preparation of model output before the user reviews it.
+/// Source names are candidates, not an authoritative or exhaustive answer.
+class ScheduleRecognitionPreparation {
+  final List<Map<String, dynamic>> courses;
+  final List<String> warnings;
+  final List<String> missingCourses;
+  final List<String> extraCourses;
+  final bool hasStructuralAnomaly;
+  final bool shouldOfferOCR;
+
+  const ScheduleRecognitionPreparation({
+    required this.courses,
+    this.warnings = const [],
+    this.missingCourses = const [],
+    this.extraCourses = const [],
+    this.hasStructuralAnomaly = false,
+    this.shouldOfferOCR = false,
+  });
+}
+
+ScheduleRecognitionPreparation prepareScheduleRecognition(
+  Iterable<Map<String, dynamic>> rawCourses, {
+  required String source,
+  Iterable<String> expectedCourseNames = const [],
+}) {
+  final parsed = rawCourses.map(ScheduleImportCourseDraft.fromJson).toList();
+  for (final course in parsed) {
+    final errors = course.validate();
+    if (errors.isNotEmpty) throw ScheduleImportValidationException(errors);
+  }
+  final groups = <ScheduleImportCourseDraft>[];
+  for (final incoming in parsed) {
+    // Consider the entire response, so an unknown teacher appearing first
+    // cannot be assigned to one of two parallel classes by input order.
+    final index = groups.indexWhere((existing) {
+      if (!_recognitionCompatible(existing, incoming)) return false;
+      if (_recognitionIdentity(existing) == _recognitionIdentity(incoming)) {
+        return true;
+      }
+      return !parsed.any(
+        (other) =>
+            (_recognitionCompatible(other, incoming) &&
+                !_recognitionCompatible(other, existing)) ||
+            (_recognitionCompatible(other, existing) &&
+                !_recognitionCompatible(other, incoming)),
+      );
+    });
+    if (index < 0) {
+      groups.add(incoming);
+    } else {
+      groups[index] = _mergeRecognitionCourses(groups[index], incoming);
+    }
+  }
+  // meetingKey includes every schedule field, including null and empty weeks.
+  // Never treat an unknown field as a wildcard or fill it from another row.
+  final canonical = groups
+      .map(
+        (course) => _mergeRecognitionCourses(
+          course,
+          ScheduleImportCourseDraft(name: course.name),
+        ),
+      )
+      .toList();
+  final warnings = <String>[];
+  final merged = parsed.length - canonical.length;
+  final removed =
+      parsed.fold<int>(0, (n, c) => n + c.meetings.length) -
+      canonical.fold<int>(0, (n, c) => n + c.meetings.length);
+  if (merged > 0) {
+    warnings.add('已合并 $merged 项重复课程；请核对合并后的课程和安排。');
+  }
+  if (removed > 0) {
+    warnings.add('已去除 $removed 条完全重复的上课安排；不同周次、时段和地点仍保留。');
+  }
+  final names = <String, List<ScheduleImportCourseDraft>>{};
+  for (final course in canonical) {
+    names.putIfAbsent(_recognitionName(course.name), () => []).add(course);
+  }
+  final ambiguous = names.values
+      .where((rows) => rows.length > 1)
+      .map((rows) => rows.first.name)
+      .toList();
+  if (ambiguous.isNotEmpty) {
+    warnings.add(
+      '同名课程的身份或待定安排有歧义，已分别保留：${ambiguous.join('、')}。请核对教师、教学班和课程编码。',
+    );
+  }
+  final expected = <String, String>{
+    for (final name in expectedCourseNames)
+      if (name.trim().isNotEmpty) _recognitionName(name): name.trim(),
+  };
+  final actual = <String, String>{
+    for (final course in canonical) _recognitionName(course.name): course.name,
+  };
+  final missing = expected.keys
+      .where((key) => !actual.containsKey(key))
+      .map((key) => expected[key]!)
+      .toList();
+  // An absent local candidate list means coverage is unknown, not that all
+  // model courses are extra. Unparsed webpage rows can legitimately add names.
+  final extra = expected.isEmpty
+      ? <String>[]
+      : actual.keys
+            .where((key) => !expected.containsKey(key))
+            .map((key) => actual[key]!)
+            .toList();
+  if (missing.isNotEmpty) {
+    warnings.add('来源候选中有课程未出现在识别结果中：${missing.join('、')}。请对照原课表检查是否漏课。');
+  }
+  if (extra.isNotEmpty) {
+    warnings.add('以下课程未出现在来源候选中：${extra.join('、')}。候选可能不完整，请核对是否为额外课程。');
+  }
+  final pending = canonical.where((course) => course.isPending).length;
+  if (pending > 0) {
+    warnings.add('有 $pending 门课程包含待定安排，缺失信息未自动补全，请核对。');
+  }
+  final anomaly =
+      merged > 0 ||
+      removed > 0 ||
+      ambiguous.isNotEmpty ||
+      missing.isNotEmpty ||
+      extra.isNotEmpty ||
+      pending > 0;
+  return ScheduleRecognitionPreparation(
+    courses: canonical.map((course) => course.toJson()).toList(),
+    warnings: List.unmodifiable(warnings),
+    missingCourses: List.unmodifiable(missing),
+    extraCourses: List.unmodifiable(extra),
+    hasStructuralAnomaly: anomaly,
+    shouldOfferOCR: source == 'photos' && anomaly,
+  );
+}
+
+ScheduleImportCourseDraft _mergeRecognitionCourses(
+  ScheduleImportCourseDraft first,
+  ScheduleImportCourseDraft second,
+) {
+  final meetings = <String, ScheduleImportMeetingDraft>{};
+  for (final meeting in [...first.meetings, ...second.meetings]) {
+    // Two unknown times may be different morning/afternoon occurrences.
+    // They are not proven duplicates even when all known fields match.
+    final key = meeting.isPending
+        ? '${meeting.meetingKey}:pending:${meetings.length}'
+        : meeting.meetingKey;
+    final old = meetings[key];
+    meetings[key] = old == null
+        ? meeting
+        : ScheduleImportMeetingDraft(
+            weekday: old.weekday,
+            weeks: old.weeks,
+            periodIndex: old.periodIndex,
+            periodCount: old.periodCount,
+            startMinute: old.startMinute,
+            endMinute: old.endMinute,
+            location: old.location,
+            sourceReference: old.sourceReference ?? meeting.sourceReference,
+            raw: _mergeRaw(old.raw, {
+              ...meeting.raw,
+              if (meeting.sourceReference != null)
+                'sourceReference': meeting.sourceReference,
+            }),
+          );
+  }
+  return ScheduleImportCourseDraft(
+    name: first.name.trim(),
+    stableId: _firstNonEmpty(first.stableId, second.stableId),
+    courseCode: _firstNonEmpty(first.courseCode, second.courseCode),
+    section: _firstNonEmpty(first.section, second.section),
+    teacher: _firstNonEmpty(first.teacher, second.teacher),
+    pendingReason: _firstNonEmpty(first.pendingReason, second.pendingReason),
+    meetings: meetings.values.toList(),
+    raw: _mergeRaw(first.raw, second.raw),
+  );
+}
+
+// Comparing a follow-up with the current review is not a truth check. It
+// makes losses visible before replacement, including lost meetings of a
+// course whose name remains present. Expand weeks so regrouping is harmless.
+List<String> scheduleRecognitionReplacementWarnings(
+  Iterable<Map<String, dynamic>> previous,
+  Iterable<Map<String, dynamic>> replacement,
+) {
+  Set<String> occurrences(Iterable<Map<String, dynamic>> courses) => {
+    for (final json in courses)
+      for (final meeting in ScheduleImportCourseDraft.fromJson(json).meetings)
+        for (final week
+            in (meeting.weeks?.isNotEmpty ?? false)
+                ? meeting.weeks!.cast<int?>()
+                : <int?>[null])
+          jsonEncode([
+            _recognitionName(json['name'] as String),
+            week,
+            meeting.weekday,
+            meeting.periodIndex,
+            meeting.periodCount,
+            meeting.startMinute,
+            meeting.endMinute,
+            _normalise(meeting.location),
+          ]),
+  };
+  final before = occurrences(previous);
+  final after = occurrences(replacement);
+  final lost = before.difference(after).length;
+  final replacementNames = replacement
+      .map((course) => _recognitionName(course['name'] as String))
+      .toSet();
+  final missingNames = previous
+      .where(
+        (course) => !replacementNames.contains(
+          _recognitionName(course['name'] as String),
+        ),
+      )
+      .map((course) => course['name'] as String)
+      .toSet();
+  return [
+    if (missingNames.isNotEmpty)
+      '复核结果未保留当前课程：${missingNames.join('、')}。请对照原课表检查，包括完全待定的课程。',
+    if (lost > 0) '复核结果有 $lost 条原有安排未保留或字段发生变化（按周展开）；请检查漏课、周次、时间和地点后再决定是否采用。',
+  ];
+}
+
+String _recognitionName(String value) => _recognitionField(value);
+String _recognitionField(String? value) =>
+    _normalise(value).replaceAll(RegExp(r'\s+'), '').replaceAll('，', ',');
+
+List<String> _recognitionFields(ScheduleImportCourseDraft course) => [
+  _recognitionField(course.stableId),
+  _recognitionField(course.courseCode),
+  _recognitionField(course.section),
+  _recognitionField(course.teacher),
+];
+
+String _recognitionIdentity(ScheduleImportCourseDraft course) => jsonEncode([
+  _recognitionName(course.name),
+  ..._recognitionFields(course),
+  course.meetings.isEmpty,
+]);
+
+bool _recognitionCompatible(
+  ScheduleImportCourseDraft first,
+  ScheduleImportCourseDraft second,
+) {
+  if (_recognitionName(first.name) != _recognitionName(second.name) ||
+      first.meetings.isEmpty != second.meetings.isEmpty) {
+    return false;
+  }
+  final left = _recognitionFields(first);
+  final right = _recognitionFields(second);
+  for (var i = 0; i < left.length; i++) {
+    if (left[i].isNotEmpty && right[i].isNotEmpty && left[i] != right[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
 String _normalise(String? value) => (value ?? '').trim().toLowerCase();
 String? _asString(dynamic value) => value?.toString();
 int? _asInt(dynamic value) {

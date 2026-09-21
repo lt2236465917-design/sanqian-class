@@ -130,7 +130,11 @@ class _PhotoScheduleImportViewState extends State<PhotoScheduleImportView> {
       final saved = await Navigator.push<bool>(
         context,
         MaterialPageRoute(
-          builder: (_) => ImportReviewView(courses: courses, source: 'photos'),
+          builder: (_) => ImportReviewView(
+            courses: courses,
+            source: 'photos',
+            imagePaths: _images.map((image) => image.path).toList(),
+          ),
         ),
       );
       if (saved == true && mounted) Navigator.pop(context, true);
@@ -214,116 +218,116 @@ class _PhotoScheduleImportViewState extends State<PhotoScheduleImportView> {
     appBar: AppBar(title: const Text('多图课表导入')),
     body: SafeArea(
       child: ListView(
-      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-      padding: const EdgeInsets.all(20),
-      children: [
-        const Text(
-          '选择同一学期的多张课表截图，由 AI 联合识别。保留星期、周次与时间表头；核对课程后再保存。',
-          style: TextStyle(height: 1.6),
-        ),
-        const SizedBox(height: 16),
-        TextButton.icon(
-          onPressed: _busy ? null : _pick,
-          icon: const Icon(Icons.photo_library_outlined),
-          label: const Text('选择课表图片'),
-        ),
-        Wrap(
-          spacing: 12,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            Text(
-              '已选择 ${_images.length} 张',
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-            Text(
-              '每次最多 20 张',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        padding: const EdgeInsets.all(20),
+        children: [
+          const Text(
+            '选择同一学期的多张课表截图，由 AI 联合识别。保留星期、周次与时间表头；核对课程后再保存。',
+            style: TextStyle(height: 1.6),
+          ),
+          const SizedBox(height: 16),
+          TextButton.icon(
+            onPressed: _busy ? null : _pick,
+            icon: const Icon(Icons.photo_library_outlined),
+            label: const Text('选择课表图片'),
+          ),
+          Wrap(
+            spacing: 12,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              Text(
+                '已选择 ${_images.length} 张',
+                style: const TextStyle(fontWeight: FontWeight.w600),
               ),
-            ),
-          ],
-        ),
-        if (_images.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 12),
-            child: Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                for (var i = 0; i < _images.length; i++)
-                  SizedBox(
-                    width: 126,
-                    child: Card(
-                      clipBehavior: Clip.antiAlias,
-                      child: Column(
-                        children: [
-                          Semantics(
-                            button: true,
-                            label: '查看第 ${i + 1} 张课表原图',
-                            child: InkWell(
-                              onTap: _busy ? null : () => _previewImage(i),
-                              child: ExcludeSemantics(
-                                child: SizedBox(
-                                  width: 126,
-                                  height: 104,
-                                  child: Image.file(
-                                    File(_images[i].path),
-                                    fit: BoxFit.cover,
-                                    cacheWidth: 300,
-                                    errorBuilder: (_, error, stack) =>
-                                        const Center(
-                                          child: Icon(
-                                            Icons.broken_image_outlined,
+              Text(
+                '每次最多 20 张',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+          if (_images.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  for (var i = 0; i < _images.length; i++)
+                    SizedBox(
+                      width: 126,
+                      child: Card(
+                        clipBehavior: Clip.antiAlias,
+                        child: Column(
+                          children: [
+                            Semantics(
+                              button: true,
+                              label: '查看第 ${i + 1} 张课表原图',
+                              child: InkWell(
+                                onTap: _busy ? null : () => _previewImage(i),
+                                child: ExcludeSemantics(
+                                  child: SizedBox(
+                                    width: 126,
+                                    height: 104,
+                                    child: Image.file(
+                                      File(_images[i].path),
+                                      fit: BoxFit.cover,
+                                      cacheWidth: 300,
+                                      errorBuilder: (_, error, stack) =>
+                                          const Center(
+                                            child: Icon(
+                                              Icons.broken_image_outlined,
+                                            ),
                                           ),
-                                        ),
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                          TextButton.icon(
-                            onPressed: _busy
-                                ? null
-                                : () => setState(() => _images.removeAt(i)),
-                            icon: const Icon(Icons.close, size: 16),
-                            label: Text('移除第 ${i + 1} 张'),
-                          ),
-                        ],
+                            TextButton.icon(
+                              onPressed: _busy
+                                  ? null
+                                  : () => setState(() => _images.removeAt(i)),
+                              icon: const Icon(Icons.close, size: 16),
+                              label: Text('移除第 ${i + 1} 张'),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
-          ),
-        const SizedBox(height: 12),
-        AIKeyStatus(revision: _keyRevision),
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: 8),
-          child: Text(
-            'AI 识别需要联网和 DeepSeek Key。确认发送后，所选图片会发送到 DeepSeek，可能消耗账户余额。',
-          ),
-        ),
-        FilledButton(
-          onPressed: _busy || _images.isEmpty ? null : _recognize,
-          child: Text(_recognizing ? 'AI 正在识别…' : 'AI 识别课表'),
-        ),
-        TextButton(
-          onPressed: _busy ? null : _openSettings,
-          child: const Text('DeepSeek 设置'),
-        ),
-        if (_recognizing) ...[
-          const RecognitionProgress(),
-          TextButton(onPressed: _cancel, child: const Text('取消识别')),
-        ],
-        if (_error.isNotEmpty)
-          Semantics(
-            liveRegion: true,
+          const SizedBox(height: 12),
+          AIKeyStatus(revision: _keyRevision),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
             child: Text(
-              _error,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
+              'AI 识别需要联网和 DeepSeek Key。确认发送后，所选图片会发送到 DeepSeek，可能消耗账户余额。',
             ),
           ),
-      ],
+          FilledButton(
+            onPressed: _busy || _images.isEmpty ? null : _recognize,
+            child: Text(_recognizing ? 'AI 正在识别…' : 'AI 识别课表'),
+          ),
+          TextButton(
+            onPressed: _busy ? null : _openSettings,
+            child: const Text('DeepSeek 设置'),
+          ),
+          if (_recognizing) ...[
+            const RecognitionProgress(),
+            TextButton(onPressed: _cancel, child: const Text('取消识别')),
+          ],
+          if (_error.isNotEmpty)
+            Semantics(
+              liveRegion: true,
+              child: Text(
+                _error,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            ),
+        ],
       ),
     ),
   );
