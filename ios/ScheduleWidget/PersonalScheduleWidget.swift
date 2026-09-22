@@ -34,9 +34,16 @@ struct PersonalWidgetProvider: TimelineProvider {
         let now = Date()
         let current = readEntry(at: now)
         let events = current.events
+        guard let zone = TimeZone(identifier: "Asia/Shanghai") else {
+            completion(Timeline(entries: [current], policy: .after(now.addingTimeInterval(15 * 60))))
+            return
+        }
         var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(identifier: "Asia/Shanghai")!
-        let tomorrow = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now))!
+        calendar.timeZone = zone
+        guard let tomorrow = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now)) else {
+            completion(Timeline(entries: [current], policy: .after(now.addingTimeInterval(15 * 60))))
+            return
+        }
         let boundaries = Set(events.flatMap { [$0.start, $0.end] }.filter { $0 > now && $0 < tomorrow })
         let dates = [now] + boundaries.sorted() + [tomorrow]
         let policy: TimelineReloadPolicy = current.sourceState == .ready
@@ -73,7 +80,7 @@ struct PersonalWidgetView: View {
     }
     private var calendar: Calendar {
         var value = Calendar(identifier: .gregorian)
-        value.timeZone = TimeZone(identifier: "Asia/Shanghai")!
+        value.timeZone = TimeZone(identifier: "Asia/Shanghai") ?? .current
         return value
     }
     private var today: [PersonalWidgetEvent] {

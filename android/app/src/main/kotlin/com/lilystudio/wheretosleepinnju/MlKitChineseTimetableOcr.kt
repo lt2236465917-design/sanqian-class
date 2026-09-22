@@ -21,6 +21,16 @@ fun interface TimetableOcr {
  */
 class MlKitChineseTimetableOcr : TimetableOcr {
     override fun recognize(images: List<AIImportImage>, cancelled: AtomicBoolean): List<OcrPage> {
+        try {
+            return recognizeSafely(images, cancelled)
+        } catch (error: DeepSeekTimetableClientError) {
+            throw error
+        } catch (_: Throwable) {
+            throw DeepSeekTimetableClientError.InvalidOCRContext
+        }
+    }
+
+    private fun recognizeSafely(images: List<AIImportImage>, cancelled: AtomicBoolean): List<OcrPage> {
         val recognizer = TextRecognition.getClient(ChineseTextRecognizerOptions.Builder().build())
         try {
             return images.mapIndexed { index, image ->

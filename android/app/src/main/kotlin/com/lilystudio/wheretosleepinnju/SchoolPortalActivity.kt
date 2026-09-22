@@ -52,10 +52,18 @@ class SchoolPortalActivity : Activity() {
         super.onCreate(savedInstanceState)
         backHandle = PredictiveBack.register(this) { goBack() }
         setContentView(R.layout.activity_school_portal)
-        status = findViewById(R.id.portal_status)
-        container = findViewById(R.id.portal_web_container)
-        findViewById<Button>(R.id.portal_cancel).setOnClickListener { cancel() }
-        findViewById<Button>(R.id.portal_extract).setOnClickListener { requestExtraction() }
+        val statusView = findViewById<TextView>(R.id.portal_status)
+        val containerView = findViewById<FrameLayout>(R.id.portal_web_container)
+        val cancelButton = findViewById<Button>(R.id.portal_cancel)
+        val extractButton = findViewById<Button>(R.id.portal_extract)
+        if (statusView == null || containerView == null || cancelButton == null || extractButton == null) {
+            finish()
+            return
+        }
+        status = statusView
+        container = containerView
+        cancelButton.setOnClickListener { cancel() }
+        extractButton.setOnClickListener { requestExtraction() }
 
         if (!WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER) ||
             !WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)

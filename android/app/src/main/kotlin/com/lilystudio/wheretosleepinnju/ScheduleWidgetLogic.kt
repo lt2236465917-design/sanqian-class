@@ -43,6 +43,11 @@ data class WidgetPresentation(
 private val shanghaiZone: TimeZone = TimeZone.getTimeZone("Asia/Shanghai")
 private const val REFRESH_FLOOR_MS = 30_000L
 
+internal object ScheduleWidgetIds {
+    @JvmStatic
+    fun usable(ids: IntArray?): IntArray = if (ids == null || ids.isEmpty()) IntArray(0) else ids
+}
+
 fun widgetSnapshotJson(args: Map<*, *>): String {
     val safe = linkedMapOf<String, Any?>(
         "schemaVersion" to 1,

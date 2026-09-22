@@ -1,4 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     package="com.lilystudio.wheretosleepinnju">
     <!-- io.flutter.app.FlutterApplication is an android.app.Application that
          calls FlutterMain.startInitialization(this); in its onCreate method.
@@ -106,5 +107,9 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+        <provider
+            android:name="com.google.mlkit.common.internal.MlKitInitProvider"
+            android:authorities="${applicationId}.mlkitinitprovider"
+            tools:node="remove" />
     </application>
 </manifest>
