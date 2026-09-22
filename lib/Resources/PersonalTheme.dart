@@ -15,6 +15,12 @@ ThemeData personalTheme(Brightness brightness) {
   return ThemeData(
     useMaterial3: true,
     colorScheme: scheme,
+    pageTransitionsTheme: const PageTransitionsTheme(
+      builders: {
+        TargetPlatform.android: CupertinoPageTransitionsBuilder(),
+        TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+      },
+    ),
     scaffoldBackgroundColor: dark
         ? const Color(0xFF17151B)
         : const Color(0xFFF7F4F0),

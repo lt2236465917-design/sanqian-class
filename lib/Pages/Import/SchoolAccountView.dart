@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../Utils/ScheduleDerivedDataService.dart';
+import '../Settings/DeepSeekSettingsView.dart';
 import 'ImportReviewView.dart';
+import 'Widgets/AIKeyStatus.dart';
 
 class SchoolAccountView extends StatefulWidget {
   const SchoolAccountView({super.key});
@@ -14,6 +16,7 @@ class _SchoolAccountViewState extends State<SchoolAccountView> {
   String? _localId;
   String _savedAccount = '';
   bool _busy = false;
+  int _keyRevision = 0;
   String _message = '';
   @override
   void initState() {
@@ -43,6 +46,14 @@ class _SchoolAccountViewState extends State<SchoolAccountView> {
     _password.dispose();
     _account.dispose();
     super.dispose();
+  }
+
+  Future<void> _openSettings() async {
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(builder: (_) => const DeepSeekSettingsView()),
+    );
+    if (mounted) setState(() => _keyRevision++);
   }
 
   Future<void> _open() async {
@@ -85,8 +96,8 @@ class _SchoolAccountViewState extends State<SchoolAccountView> {
             .join('；');
         throw FormatException(
           warnings.isEmpty
-              ? '未读取到可供 AI 识别的课表原文，请进入“我的课表”后重试，或使用多图课表导入'
-              : '$warnings 可改用多图课表导入。',
+              ? '未读取到可供 AI 识别的课表原文，请进入“我的课表”后重试，或使用课程截图导入课表'
+              : '$warnings 可改用课程截图导入课表。',
         );
       }
       final saved = await Navigator.push<bool>(
@@ -147,7 +158,7 @@ class _SchoolAccountViewState extends State<SchoolAccountView> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('学校账号与导入')),
+    appBar: AppBar(title: const Text('学校账号导入课表')),
     body: SafeArea(
       child: ListView(
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
@@ -163,6 +174,16 @@ class _SchoolAccountViewState extends State<SchoolAccountView> {
             style: TextStyle(fontSize: 16, height: 1.5),
           ),
           const SizedBox(height: 16),
+          const Text(
+            '想要使用 AI 完整功能录入课表，请先在 DeepSeek 设置中保存 API Key。',
+            style: TextStyle(fontSize: 16, height: 1.45),
+          ),
+          AIKeyStatus(revision: _keyRevision),
+          TextButton(
+            onPressed: _busy ? null : _openSettings,
+            child: const Text('DeepSeek 设置'),
+          ),
+          const SizedBox(height: 8),
           Text(
             _localId == null
                 ? '建议在这里填好学号和密码。打开网页后会自动填入，不会自动点登录。也可以留空，到网页里自己填。'

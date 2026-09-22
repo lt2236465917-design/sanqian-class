@@ -7,6 +7,17 @@ class CourseWeekSelection {
     final start = (node['startWeek'] as int) + 1;
     final end = (node['endWeek'] as int) + 1;
     final type = node['weekType'] as int;
+    if (type == Constant.DEFINED_WEEKS) {
+      final defined =
+          (node['definedWeeks'] as List? ?? [])
+              .whereType<num>()
+              .map((week) => week.toInt())
+              .where((week) => week >= 1 && week <= Config.MAX_WEEKS)
+              .toSet()
+              .toList()
+            ..sort();
+      return defined;
+    }
     if (start < 1 || end > Config.MAX_WEEKS || start > end) return [];
     return [
       for (var week = start; week <= end; week++)
@@ -19,9 +30,7 @@ class CourseWeekSelection {
 
   static String summary(Map node) {
     final selected = weeks(node);
-    if (selected.isEmpty) {
-      return '所选范围没有${Constant.WEEK_TYPES[node['weekType']]}，请调整周次。';
-    }
+    if (selected.isEmpty) return '请选择至少一周上课。';
     if (selected.length == 1) return '第 ${selected.single} 周';
     if (node['weekType'] == Constant.FULL_WEEKS) {
       return '第 ${selected.first}–${selected.last} 周 · 共 ${selected.length} 周';

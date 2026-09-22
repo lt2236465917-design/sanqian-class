@@ -10,7 +10,7 @@ class Constant {
     "周四",
     "周五",
     "周六",
-    "周日"
+    "周日",
   ];
   static const List<String> WEEK_WITHOUT_BIAS = [
     "周一",
@@ -19,7 +19,7 @@ class Constant {
     "周四",
     "周五",
     "周六",
-    "周日"
+    "周日",
   ];
   static const List<String> WEEK_WITHOUT_BIAS_WITHOUT_PRE = [
     "一",
@@ -28,7 +28,7 @@ class Constant {
     "四",
     "五",
     "六",
-    "日"
+    "日",
   ];
 
   static const List<Map> CLASS_TIME_LIST = [
@@ -65,12 +65,11 @@ class Constant {
   static const int DOUBLE_WEEKS = 2;
   static const int DEFINED_WEEKS = 3;
 
-  //TODO: add 自定义
-  static const List<String> WEEK_TYPES = ['全部', '单周', '双周'];
+  static const List<String> WEEK_TYPES = ['全部', '单周', '双周', '自定义'];
 
   static const themeModeList = [
     ThemeMode.system,
     ThemeMode.light,
-    ThemeMode.dark
+    ThemeMode.dark,
   ];
 }

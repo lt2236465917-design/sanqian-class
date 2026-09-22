@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
@@ -16,6 +17,7 @@ import '../Import/SchoolAccountView.dart';
 import '../Import/PhotoScheduleImportView.dart';
 import 'Widgets/FloatingScheduleNavigation.dart';
 import 'Widgets/ScheduleStatusBadge.dart';
+import 'Widgets/WeekScheduleDetailPage.dart';
 
 enum _ScheduleTab { today, week, month }
 
@@ -103,9 +105,9 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
             }
             if (message == _widgetNotice) return;
             _widgetNotice = message;
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(message)),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(message)));
           }, onError: (Object _) {}),
         );
       }
@@ -271,25 +273,7 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
       index: _tab.index,
       children: [
         _page(_ScheduleTab.today, _todayContent(schedule)),
-        _page(_ScheduleTab.week, [
-          _weekNavigation(schedule),
-          const SizedBox(height: 20),
-          ..._agenda(
-            schedule,
-            schedule.inWeek(schedule.weekAt(_weekDay)),
-            groupByDay: true,
-            firstDayAction: _returnButton(
-              '本周',
-              () => setState(() => _weekDay = PersonalSchedule.day(_clock)),
-            ),
-            emptyTitle: '这一周暂无课程',
-            emptySubtitle: '可以切换周次，看看接下来的安排。',
-          ),
-          if (schedule.pending.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            _pendingCourses(schedule),
-          ],
-        ]),
+        _page(_ScheduleTab.week, _weekOverviewContent(schedule)),
         _page(_ScheduleTab.month, _monthContent(schedule)),
       ],
     );
@@ -428,6 +412,256 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
       next: () => _changeWeek(schedule, week + 1),
     );
   }
+
+  List<Widget> _weekOverviewContent(PersonalSchedule schedule) {
+    final week = schedule.weekAt(_weekDay);
+    return [
+      _weekNavigation(schedule),
+      const SizedBox(height: 16),
+      _weekDistribution(schedule, week),
+      const SizedBox(height: 18),
+      ..._agenda(
+        schedule,
+        schedule.inWeek(week),
+        groupByDay: true,
+        firstDayAction: _returnButton(
+          '本周',
+          () => setState(() => _weekDay = PersonalSchedule.day(_clock)),
+        ),
+        emptyTitle: '这一周暂无课程',
+        emptySubtitle: '可以切换周次，看看接下来的安排。',
+      ),
+      if (schedule.pending.isNotEmpty) ...[
+        const SizedBox(height: 4),
+        _pendingCourses(schedule),
+      ],
+    ];
+  }
+
+  Widget _weekDistribution(PersonalSchedule schedule, int week) {
+    final occurrences = schedule.inWeek(week);
+    const rows = ['上午', '下午', '晚上'];
+    final children = <TableRow>[
+      TableRow(
+        children: [
+          const SizedBox.shrink(),
+          for (final weekday in _weekdays)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Center(
+                child: Text(
+                  '周' + weekday,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: _colors.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+      for (final row in rows)
+        TableRow(
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: Center(
+                child: Text(
+                  row,
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: _colors.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ),
+            for (var weekday = 1; weekday <= 7; weekday++)
+              _miniScheduleCell(
+                occurrences
+                    .where(
+                      (item) =>
+                          item.date.weekday == weekday && _dayPart(item) == row,
+                    )
+                    .toList(),
+              ),
+          ],
+        ),
+    ];
+
+    return Semantics(
+      identifier: 'week-overview-open-detail',
+      button: true,
+      label: '本周分布，${occurrences.length} 节课，查看完整周表',
+      onTap: () => unawaited(_openWeekDetail(schedule)),
+      excludeSemantics: true,
+      child: Card(
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => unawaited(_openWeekDetail(schedule)),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 14, 12, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Expanded(
+                      child: Text(
+                        '本周分布',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '点击查看完整周表  ›',
+                      style: TextStyle(fontSize: 12, color: _colors.primary),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Table(
+                  columnWidths: const {0: FixedColumnWidth(32)},
+                  defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                  children: children,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _miniScheduleCell(List<CourseOccurrence> courses) {
+    if (courses.isEmpty) {
+      return Container(
+        height: 44,
+        margin: const EdgeInsets.all(1),
+        decoration: BoxDecoration(
+          color: _colors.surfaceContainerHighest.withValues(alpha: .42),
+          borderRadius: BorderRadius.circular(5),
+        ),
+      );
+    }
+    final ordered = [...courses]
+      ..sort(
+        (a, b) => (a.course.startTime ?? 0).compareTo(b.course.startTime ?? 0),
+      );
+    final visible = ordered.length <= 2 ? ordered : ordered.take(1).toList();
+    final overflow = ordered.length - visible.length;
+    final chips = <Widget>[
+      for (final course in visible)
+        _miniCourseChip(course, maxLines: ordered.length == 1 ? 2 : 1),
+      if (overflow > 0) _miniOverflowChip(overflow),
+    ];
+    return Container(
+      height: 44,
+      margin: const EdgeInsets.all(1),
+      child: Column(
+        children: [
+          for (var index = 0; index < chips.length; index++) ...[
+            if (index > 0) const SizedBox(height: 2),
+            Expanded(child: chips[index]),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _miniCourseChip(CourseOccurrence item, {required int maxLines}) {
+    final color = _miniCourseColor(item);
+    return Container(
+      width: double.infinity,
+      alignment: Alignment.center,
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .16),
+        borderRadius: BorderRadius.circular(5),
+      ),
+      child: Text(
+        _compactCourseName(item.course.name),
+        maxLines: maxLines,
+        overflow: TextOverflow.ellipsis,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          fontSize: 8.5,
+          height: 1.1,
+          fontWeight: FontWeight.w600,
+          color: color,
+        ),
+      ),
+    );
+  }
+
+  Widget _miniOverflowChip(int count) => Container(
+    width: double.infinity,
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      color: _colors.surfaceContainerHighest.withValues(alpha: .72),
+      borderRadius: BorderRadius.circular(5),
+    ),
+    child: Text(
+      '+$count 节',
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: TextStyle(
+        fontSize: 8.5,
+        fontWeight: FontWeight.w600,
+        color: _colors.onSurfaceVariant,
+      ),
+    ),
+  );
+
+  String _dayPart(CourseOccurrence item) {
+    final clock = item.clockRange;
+    if (clock == null) {
+      for (final part in ['上午', '下午', '晚上']) {
+        if (item.period.startsWith(part)) return part;
+      }
+    }
+    final hour = clock == null
+        ? ((item.course.startTime ?? 1) <= 4
+              ? 9
+              : (item.course.startTime ?? 1) <= 8
+              ? 14
+              : 19)
+        : int.tryParse(clock.split(':').first) ?? 9;
+    if (hour < 12) return '上午';
+    if (hour < 18) return '下午';
+    return '晚上';
+  }
+
+  String _compactCourseName(String? name) {
+    final value = (name ?? '未命名课程').trim();
+    if (value.length <= 8) return value;
+    return value.substring(0, 7) + '…';
+  }
+
+  Color _miniCourseColor(CourseOccurrence item) {
+    final seed = (item.course.courseId ?? item.course.startTime ?? 0).abs() % 4;
+    return [
+      _colors.primary,
+      _colors.tertiary,
+      _colors.secondary,
+      _colors.error,
+    ][seed];
+  }
+
+  Future<void> _openWeekDetail(PersonalSchedule schedule) =>
+      Navigator.of(context).push<void>(
+        CupertinoPageRoute<void>(
+          builder: (_) => WeekScheduleDetailPage(
+            schedule: schedule,
+            week: schedule.weekAt(_weekDay),
+            now: _clock,
+            colorForCourse: _miniCourseColor,
+            onCourseTap: (course) => _details(course, schedule),
+          ),
+        ),
+      );
 
   void _changeWeek(PersonalSchedule schedule, int week) {
     if (schedule.weekAt(_weekDay) == week) return;

@@ -207,59 +207,60 @@ class _ReminderSettingsViewState extends State<ReminderSettingsView>
     appBar: AppBar(title: const Text('上课提醒')),
     body: SafeArea(
       child: ListView(
-      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-      padding: const EdgeInsets.all(20),
-      children: [
-        for (final item in const {
-          15: '提前 15 分钟',
-          180: '提前 3 小时',
-          1440: '提前 24 小时',
-        }.entries)
-          SwitchListTile(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 8,
-              vertical: 8,
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        padding: const EdgeInsets.all(20),
+        children: [
+          for (final item in const {
+            15: '提前 15 分钟',
+            180: '提前 3 小时',
+            1440: '提前 24 小时',
+          }.entries)
+            SwitchListTile(
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 8,
+                vertical: 8,
+              ),
+              title: Text(item.value),
+              value: _enabled[item.key]!,
+              onChanged: _busy ? null : (v) => _change(item.key, v),
             ),
-            title: Text(item.value),
-            value: _enabled[item.key]!,
-            onChanged: _busy ? null : (v) => _change(item.key, v),
-          ),
-        if (_busy) Semantics(liveRegion: true, child: const Text('正在更新提醒设置…')),
-        if (_status.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Semantics(
-              liveRegion: true,
-              child: Text(
-                _status,
-                style: TextStyle(
-                  color: _isError ? Theme.of(context).colorScheme.error : null,
+          if (_status.isNotEmpty && _isError)
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Semantics(
+                liveRegion: true,
+                child: Text(
+                  _status,
+                  style: TextStyle(
+                    color: _isError
+                        ? Theme.of(context).colorScheme.error
+                        : null,
+                  ),
                 ),
               ),
             ),
-          ),
-        if (_widgetError != null)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              _widgetError!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
+          if (_widgetError != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                _widgetError!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
             ),
-          ),
-        if (_permissionDenied)
-          TextButton.icon(
-            onPressed: _busy ? null : _openSettings,
-            icon: const Icon(Icons.settings_outlined),
-            label: const Text('打开系统设置'),
-          ),
-        if (_retry != null)
-          TextButton(
-            onPressed: _busy ? null : _retry,
-            child: const Text('重试提醒设置'),
-          ),
-        const SizedBox(height: 12),
-        const Text('课程会同步到系统日历，按你选择的时间提醒，无需打开 App。'),
-      ],
+          if (_permissionDenied)
+            TextButton.icon(
+              onPressed: _busy ? null : _openSettings,
+              icon: const Icon(Icons.settings_outlined),
+              label: const Text('打开系统设置'),
+            ),
+          if (_retry != null)
+            TextButton(
+              onPressed: _busy ? null : _retry,
+              child: const Text('重试提醒设置'),
+            ),
+          const SizedBox(height: 12),
+          const Text('课程会同步到系统日历，按你选择的时间提醒，无需打开 App 就够了。'),
+        ],
       ),
     ),
   );

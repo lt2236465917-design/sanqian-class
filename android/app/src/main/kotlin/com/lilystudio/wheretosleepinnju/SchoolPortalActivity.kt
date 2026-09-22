@@ -147,7 +147,7 @@ class SchoolPortalActivity : Activity() {
 
             override fun onReceivedError(view: WebView, errorCode: Int, description: String?, failingUrl: String?) {
                 cancelExtraction()
-                showStatus("网页没打开。请确认手机能上网后点取消，再重新打开学校网页；也可以改用多图课表导入。")
+                showStatus("网页没打开。请确认手机能上网后点取消，再重新打开学校网页；也可以改用课程截图导入课表。")
             }
         }
         webView.webChromeClient = object : WebChromeClient() {
