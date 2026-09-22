@@ -65,8 +65,7 @@ class Constant {
   static const int DOUBLE_WEEKS = 2;
   static const int DEFINED_WEEKS = 3;
 
-  //TODO: add 自定义
-  static const List<String> WEEK_TYPES = ['全部', '单周', '双周'];
+  static const List<String> WEEK_TYPES = ['全部', '单周', '双周', '自定义'];
 
   static const themeModeList = [
     ThemeMode.system,

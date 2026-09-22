@@ -92,7 +92,15 @@ class _ManageTableViewState extends State<ManageTableView> {
       );
       if (!mounted) return;
       await MainStateModel.of(context).changeclassTable(table.id!);
-      if (mounted) Navigator.pop(context, true);
+      if (mounted) {
+        setState(() {
+          _selectedId = table.id;
+          _tables = _loadTables();
+        });
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('新课表已创建并切换')));
+      }
     } catch (_) {
       _error();
     } finally {

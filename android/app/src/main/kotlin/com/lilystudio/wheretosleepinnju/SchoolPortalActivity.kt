@@ -44,11 +44,13 @@ class SchoolPortalActivity : Activity() {
     private var deadlineRunnable: Runnable? = null
     private var bootstrapping = false
     private var started = false
+    private var backHandle: Any? = null
 
     private val activeWebView: WebView get() = childWebViews.lastOrNull() ?: mainWebView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        backHandle = PredictiveBack.register(this) { goBack() }
         setContentView(R.layout.activity_school_portal)
         status = findViewById(R.id.portal_status)
         container = findViewById(R.id.portal_web_container)
@@ -77,6 +79,8 @@ class SchoolPortalActivity : Activity() {
     }
 
     override fun onDestroy() {
+        PredictiveBack.unregister(this, backHandle)
+        backHandle = null
         cancelExtraction()
         (childWebViews + if (this::mainWebView.isInitialized) listOf(mainWebView) else emptyList()).forEach {
             it.stopLoading()
@@ -135,7 +139,7 @@ class SchoolPortalActivity : Activity() {
 
             override fun onReceivedError(view: WebView, errorCode: Int, description: String?, failingUrl: String?) {
                 cancelExtraction()
-                showStatus("网页没打开。请确认手机能上网后点取消，再重新打开学校网页；也可以改用多图课表导入。")
+                showStatus("网页没打开。请确认手机能上网后点取消，再重新打开学校网页；也可以改用课程截图导入课表。")
             }
         }
         webView.webChromeClient = object : WebChromeClient() {
@@ -214,6 +218,10 @@ class SchoolPortalActivity : Activity() {
     }
 
     private fun goBack() {
+        if (!this::mainWebView.isInitialized) {
+            cancel()
+            return
+        }
         if (activeWebView.canGoBack()) {
             activeWebView.goBack()
         } else if (childWebViews.isNotEmpty()) {

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_name">今日课表</string>
+    <string name="widget_description">查看今天的课程，以及正在上或下一节课</string>
+    <string name="widget_brand">三千上课</string>
+    <string name="widget_preview_title">今日课表</string>
+    <string name="widget_preview_hint">添加后显示今天的课程</string>
+</resources>

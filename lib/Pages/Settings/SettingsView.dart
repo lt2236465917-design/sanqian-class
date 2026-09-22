@@ -67,7 +67,7 @@ class SettingsView extends StatelessWidget {
                 children: [
                   tile(
                     Icons.school_outlined,
-                    '学校账号与导入',
+                    '学校账号导入课表',
                     '中国艺术研究院 · 登录后 AI 识别课表',
                     () => open(
                       const SchoolAccountView(),
@@ -77,8 +77,8 @@ class SettingsView extends StatelessWidget {
                   const Divider(height: 1, indent: 18, endIndent: 18),
                   tile(
                     Icons.document_scanner_outlined,
-                    '多图课表导入',
-                    'AI 联合识别多张截图，核对后保存',
+                    '课程截图导入课表',
+                    'AI 联合识别课程截图，核对后保存',
                     () => open(
                       const PhotoScheduleImportView(),
                       successMessage: '课表已保存，返回首页即可查看。',

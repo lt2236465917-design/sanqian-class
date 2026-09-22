@@ -101,7 +101,9 @@ class _DeepSeekSettingsViewState extends State<DeepSeekSettingsView> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('DeepSeek 设置')),
-    body: ListView(
+    body: SafeArea(
+      child: ListView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.all(20),
       children: [
         Text(
@@ -160,9 +162,55 @@ class _DeepSeekSettingsViewState extends State<DeepSeekSettingsView> {
           ),
         const SizedBox(height: 16),
         const Text(
-          '多图课表与学校网页课表均使用 DeepSeek 识别。确认发送后，所选图片或课表文字会发送到 DeepSeek，并可能消耗账户余额。',
+          '''创建 DeepSeek API Key 的完整流程
+
+第 1 步：打开开放平台，注册 / 登录
+
+在电脑浏览器打开：
+
+platform.deepseek.com
+
+用手机号或邮箱注册账号，然后登录。
+
+第 2 步：完成实名认证
+
+登录后，按平台提示完成实名认证。
+
+只有认证通过后，才能进行充值和创建 API Key。
+
+第 3 步：账户充值
+
+进入充值页面，按提示选择支付宝或微信等方式充值。
+
+DeepSeek API 是预付费模式：先充值，后使用。
+如果余额不足，调用 API 时会报 402 错误。
+
+第 4 步：创建 API Key
+
+充值完成后，进入平台的：
+
+API Keys 页面
+
+点击创建 API Key，然后复制保存。
+
+注意：API Key 通常只完整显示一次，一定要马上复制到安全的地方，比如记事本或密码管理器。
+
+第 5 步：在代码或工具里使用
+
+把你的 API Key 填到上方，就可以调用 DeepSeek 了。
+
+---
+
+安全提醒：API Key 千万不要泄露
+
+· 不要发到微信群、QQ 群、朋友圈。
+· 不要上传到 GitHub、网盘或公开文档。
+· 不要截图给别人看。
+· 一旦泄露，别人可能用你的余额调用 API。''',
+          style: TextStyle(height: 1.6),
         ),
       ],
+      ),
     ),
   );
 }

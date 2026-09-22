@@ -1,18 +1,36 @@
 package com.lilystudio.wheretosleepinnju;
 
-import android.os.Bundle;
+import android.content.Intent;
 import androidx.annotation.NonNull;
 import io.flutter.embedding.android.FlutterActivity;
 import io.flutter.embedding.engine.FlutterEngine;
-import io.flutter.plugins.GeneratedPluginRegistrant;
+import io.flutter.plugin.common.MethodChannel;
 
 
 public class MainActivity extends FlutterActivity {
+    private MethodChannel scheduleWidgetChannel;
+
+    @Override
+    protected void onNewIntent(@NonNull Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        if (intent.getBooleanExtra(ScheduleWidgetUpdater.EXTRA_OPEN_SCHEDULE, false)) {
+            intent.removeExtra(ScheduleWidgetUpdater.EXTRA_OPEN_SCHEDULE);
+            if (scheduleWidgetChannel != null) {
+                scheduleWidgetChannel.invokeMethod("openSchedule", null);
+            }
+        }
+    }
+
     @Override
     public void configureFlutterEngine(@NonNull FlutterEngine flutterEngine) {
         super.configureFlutterEngine(flutterEngine);
         flutterEngine.getPlugins().add(new ScheduleImportPlugin());
-        new io.flutter.plugin.common.MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), "sanqian/settings")
+        scheduleWidgetChannel = new MethodChannel(
+            flutterEngine.getDartExecutor().getBinaryMessenger(),
+            "sanqian/widget"
+        );
+        new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), "sanqian/settings")
             .setMethodCallHandler((call, result) -> {
                 if (call.method.equals("openAppSettings")) {
                     try {

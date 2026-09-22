@@ -211,12 +211,19 @@ class _PhotoScheduleImportViewState extends State<PhotoScheduleImportView> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('多图课表导入')),
-    body: ListView(
+    appBar: AppBar(title: const Text('课程截图导入课表')),
+    body: SafeArea(
+      child: ListView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.all(20),
       children: [
         const Text(
           '选择同一学期的多张课表截图，由 AI 联合识别。保留星期、周次与时间表头；核对课程后再保存。',
+          style: TextStyle(height: 1.6),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          '为了让课程录入更准确、更完整，请尽量选择展示完整课表内容的截图，包含星期、周次和时间表头。',
           style: TextStyle(height: 1.6),
         ),
         const SizedBox(height: 16),
@@ -298,7 +305,7 @@ class _PhotoScheduleImportViewState extends State<PhotoScheduleImportView> {
         const Padding(
           padding: EdgeInsets.symmetric(vertical: 8),
           child: Text(
-            'AI 识别需要联网和 DeepSeek Key。确认发送后，所选图片会发送到 DeepSeek，可能消耗账户余额。',
+            '想要使用 AI 完整功能录入课表，请先在 DeepSeek 设置中保存 API Key。确认发送后，所选图片会发送到 DeepSeek，可能消耗账户余额。',
           ),
         ),
         FilledButton(
@@ -322,6 +329,7 @@ class _PhotoScheduleImportViewState extends State<PhotoScheduleImportView> {
             ),
           ),
       ],
+      ),
     ),
   );
 }

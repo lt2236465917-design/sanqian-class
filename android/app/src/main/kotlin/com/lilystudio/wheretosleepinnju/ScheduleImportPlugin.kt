@@ -16,7 +16,6 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.PluginRegistry
 import org.json.JSONObject
-import java.io.File
 import java.net.HttpURLConnection
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
@@ -32,6 +31,7 @@ class ScheduleImportPlugin :
 
     private lateinit var channel: MethodChannel
     private lateinit var store: ScheduleCredentialsStore
+    private var appContext: android.content.Context? = null
     private var activity: Activity? = null
     private var activityBinding: ActivityPluginBinding? = null
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -45,6 +45,7 @@ class ScheduleImportPlugin :
     private var permissionResult: MethodChannel.Result? = null
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
+        appContext = binding.applicationContext
         store = ScheduleCredentialsStore.get(binding.applicationContext)
         channel = MethodChannel(binding.binaryMessenger, CHANNEL)
         channel.setMethodCallHandler(this)
@@ -52,6 +53,7 @@ class ScheduleImportPlugin :
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         channel.setMethodCallHandler(null)
+        appContext = null
         executor.shutdownNow()
     }
 
@@ -122,6 +124,11 @@ class ScheduleImportPlugin :
                     client.recognizeImages(images)
                 }
                 "requestReminderPermission" -> requestReminderPermission(result)
+                "clearLegacyReminders" -> {
+                    val context = appContext ?: throw IllegalStateException("暂时无法清理旧提醒，请重试。")
+                    ScheduleReminderScheduler(context).clear()
+                    result.success(true)
+                }
                 "syncDerivedData" -> {
                     val args = call.arguments as? Map<*, *> ?: emptyMap<String, Any?>()
                     result.success(syncDerivedData(args))
@@ -206,31 +213,18 @@ class ScheduleImportPlugin :
     }
 
     private fun syncDerivedData(args: Map<*, *>): Map<String, Any?> {
-        var widgetError: String? = "Android 桌面组件尚未接入"
-        val activityContext = activity?.applicationContext
-        if (activityContext != null) {
-            try {
-                val safe = mapOf(
-                    "schemaVersion" to 1,
-                    "tableId" to (args["tableId"] ?: 0),
-                    "revision" to (args["revision"] ?: ""),
-                    "generatedAtMs" to (args["generatedAtMs"] ?: 0),
-                    "occurrences" to (args["occurrences"] ?: emptyList<Any>())
-                )
-                val file = File(activityContext.filesDir, "personal-schedule.json")
-                file.writeText(toJsonValue(safe).toString())
-            } catch (_: Exception) {
-                widgetError = "共享课表写入失败"
-            }
+        val context = appContext ?: return mapOf("widgetError" to "桌面小组件暂时无法更新")
+        try {
+            ScheduleWidgetStore.write(context, args)
+        } catch (_: Exception) {
+            return mapOf("widgetError" to "共享课表写入失败")
         }
-        val occurrences = (args["occurrences"] as? List<*>)?.mapNotNull { row ->
-            (row as? Map<*, *>)?.entries?.associate { it.key.toString() to it.value }
-        } ?: emptyList()
-        val leads = (args["leadMinutes"] as? List<*>)?.mapNotNull { (it as? Number)?.toInt() } ?: emptyList()
-        val context = activityContext ?: return mapOf("widgetError" to widgetError, "count" to 0, "permission" to "denied")
-        val status = ScheduleReminderScheduler(context).replace(occurrences, leads).toMutableMap()
-        status["widgetError"] = widgetError
-        return status
+        return try {
+            ScheduleWidgetUpdater.refresh(context)
+            emptyMap()
+        } catch (_: Exception) {
+            mapOf("widgetError" to "桌面小组件暂时无法刷新")
+        }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
