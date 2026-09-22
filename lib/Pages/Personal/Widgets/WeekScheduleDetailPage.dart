@@ -5,7 +5,6 @@ import 'package:flutter/services.dart';
 
 import '../../../Models/CourseModel.dart';
 import '../../../Models/PersonalSchedule.dart';
-import '../../../Utils/ClassTimeUtil.dart';
 
 class WeekScheduleDetailPage extends StatelessWidget {
   final PersonalSchedule schedule;
@@ -31,22 +30,18 @@ class WeekScheduleDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final occurrences = schedule.inWeek(week);
-    final placed = <_PeriodCourse>[];
-    final unplaced = <CourseOccurrence>[];
-    for (final item in occurrences) {
-      final startRow = (item.course.startTime ?? 0) - 1;
-      final count = item.course.timeCount ?? 0;
-      final endRow = startRow + count + 1;
-      if (startRow < 0 || count < 0 || endRow > schedule.periods.length) {
-        unplaced.add(item);
-      } else {
-        placed.add(_PeriodCourse(item, startRow, endRow));
-      }
-    }
-    final axis = _PeriodAxis(
+    final axis = _TimeAxis.fromSchedule(
       schedule.periods,
       MediaQuery.textScalerOf(context).scale(1),
     );
+    final placed = <_TimeCourse>[];
+    for (final item in occurrences) {
+      final bounds = axis.boundsFor(
+        item.course.startTime ?? 0,
+        item.course.timeCount ?? 0,
+      );
+      if (bounds != null) placed.add(_TimeCourse(item, bounds.$1, bounds.$2));
+    }
     final today = schedule.weekAt(now) == week ? now.weekday : 0;
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: Theme.of(context).brightness == Brightness.dark
@@ -155,16 +150,15 @@ class WeekScheduleDetailPage extends StatelessWidget {
                               height: axis.height,
                               child: Stack(
                                 children: [
-                                  for (var i = 0; i < axis.periods.length; i++)
+                                  for (var i = 0; i < axis.rows.length; i++)
                                     Positioned(
                                       top: axis.y(i),
-                                      height: axis.rowHeight,
+                                      height: axis.rows[i].height,
                                       left: 0,
                                       right: 4,
                                       child: _periodLabel(
                                         context,
-                                        axis.periods[i],
-                                        i,
+                                        axis.rows[i],
                                       ),
                                     ),
                                 ],
@@ -197,10 +191,12 @@ class WeekScheduleDetailPage extends StatelessWidget {
                                                 (block.day - 1) * dayWidth + 2,
                                             width: math.max(0, dayWidth - 4),
                                             top: axis.y(block.startRow) + 2,
-                                            height:
-                                                axis.y(block.endRow) -
-                                                axis.y(block.startRow) -
-                                                4,
+                                            height: math.max(
+                                              0,
+                                              axis.y(block.endRow) -
+                                                  axis.y(block.startRow) -
+                                                  4,
+                                            ),
                                             child: _courseBlock(context, block),
                                           ),
                                       ],
@@ -211,35 +207,6 @@ class WeekScheduleDetailPage extends StatelessWidget {
                             ),
                           ],
                         ),
-                        if (unplaced.isNotEmpty ||
-                            schedule.pending.isNotEmpty) ...[
-                          const SizedBox(height: 12),
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              '时间待定',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: colors.onSurfaceVariant,
-                              ),
-                            ),
-                          ),
-                          for (final item in unplaced)
-                            ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              title: Text(item.course.name ?? '未命名课程'),
-                              subtitle: Text(
-                                '周${_weekdays[item.date.weekday - 1]} · ${item.period}',
-                              ),
-                              onTap: () => onCourseTap(item.course),
-                            ),
-                          for (final course in schedule.pending)
-                            ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              title: Text(course.name ?? '未命名课程'),
-                              onTap: () => onCourseTap(course),
-                            ),
-                        ],
                       ],
                     ),
                   ),
@@ -252,38 +219,16 @@ class WeekScheduleDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _periodLabel(BuildContext context, Map period, int index) {
+  Widget _periodLabel(BuildContext context, _TimeRow row) {
     final color = Theme.of(context).colorScheme.onSurfaceVariant;
-    final hasClock = ClassTimeUtil.hasClockTimes([period]);
-    final rawLabel = (period['label'] as String? ?? '').trim();
-    final range = hasClock ? '${period['start']}–${period['end']}' : null;
-    final label = rawLabel.isEmpty
-        ? '第 ${index + 1} 节'
-        : rawLabel.replaceAll('—', '–').replaceAll('-', '–') == range
-        ? ''
-        : rawLabel;
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (label.isNotEmpty) ...[
-          Text(
-            label,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              color: color,
-            ),
-          ),
-          const SizedBox(height: 5),
-        ],
-        Text(
-          hasClock ? '${period['start']}\n${period['end']}' : '时间待定',
-          style: TextStyle(fontSize: 10, height: 1.5, color: color),
-        ),
-      ],
+    if (row.isBreak) return const SizedBox.shrink();
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerLeft,
+      child: Text(
+        '${row.start}\n${row.end}',
+        style: TextStyle(fontSize: 10, height: 1.15, color: color),
+      ),
     );
   }
 
@@ -358,46 +303,58 @@ class WeekScheduleDetailPage extends StatelessWidget {
           child: LayoutBuilder(
             builder: (context, constraints) {
               final scale = MediaQuery.textScalerOf(context).scale(1);
+              const pad = 8.0;
+              final nameLine = 11 * 1.15 * scale;
+              final footerLine = 10 * 1.15 * scale;
               final showFooter =
-                  footer.isNotEmpty && constraints.maxHeight >= 72 * scale;
-              final lines =
-                  ((constraints.maxHeight -
-                              12 -
-                              (showFooter ? 32 * scale : 0)) /
-                          (14 * scale))
-                      .floor()
-                      .clamp(1, 8);
+                  footer.isNotEmpty &&
+                  constraints.maxHeight >= pad + nameLine + 2 + footerLine;
+              final lines = math.max(
+                1,
+                ((constraints.maxHeight -
+                            pad -
+                            (showFooter ? 2 + footerLine : 0)) /
+                        nameLine)
+                    .floor(),
+              );
               return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      name,
-                      maxLines: lines,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 11,
-                        height: 1.25,
-                        fontWeight: FontWeight.w600,
-                        color: color,
-                      ),
-                    ),
-                    if (showFooter) ...[
-                      const Spacer(),
-                      const SizedBox(height: 4),
-                      Text(
-                        footer,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 10,
-                          height: 1.25,
-                          color: color,
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: SizedBox(
+                    width: math.max(0, constraints.maxWidth - 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          name,
+                          maxLines: lines.clamp(1, 4),
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 11,
+                            height: 1.15,
+                            fontWeight: FontWeight.w600,
+                            color: color,
+                          ),
                         ),
-                      ),
-                    ],
-                  ],
+                        if (showFooter) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            footer,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 10,
+                              height: 1.15,
+                              color: color,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
                 ),
               );
             },
@@ -408,43 +365,126 @@ class WeekScheduleDetailPage extends StatelessWidget {
   }
 }
 
-class _PeriodCourse {
+class _TimeCourse {
   final CourseOccurrence item;
   final int startRow;
   final int endRow;
-  const _PeriodCourse(this.item, this.startRow, this.endRow);
+  const _TimeCourse(this.item, this.startRow, this.endRow);
 }
 
-class _PeriodAxis {
-  final List<Map> periods;
-  final double rowHeight;
+class _TimeRow {
+  final String start;
+  final String end;
+  final double height;
+  final bool isBreak;
+  final int? sourcePeriod;
 
-  _PeriodAxis(this.periods, double textScale)
-    : rowHeight = (periods.length <= 4 ? 112.0 : 76.0) * textScale;
+  const _TimeRow({
+    required this.start,
+    required this.end,
+    required this.height,
+    required this.isBreak,
+    this.sourcePeriod,
+  });
+}
 
-  double get height => periods.length * rowHeight;
-  double y(int row) => row * rowHeight;
+class _TimeAxis {
+  final List<_TimeRow> rows;
+  final List<int> _sourceStarts;
+  final List<int> _sourceEnds;
+
+  const _TimeAxis(this.rows, this._sourceStarts, this._sourceEnds);
+
+  static _TimeAxis fromSchedule(List<Map> periods, double scale) {
+    final detailed = _fromPeriods(periods, scale);
+    final starts = <int>[];
+    final ends = <int>[];
+    for (var source = 0; source < periods.length; source++) {
+      final indexes = <int>[];
+      for (var row = 0; row < detailed.length; row++) {
+        if (detailed[row].sourcePeriod == source) indexes.add(row);
+      }
+      starts.add(indexes.isEmpty ? -1 : indexes.first);
+      ends.add(indexes.isEmpty ? -1 : indexes.last + 1);
+    }
+    return _TimeAxis(detailed, starts, ends);
+  }
+
+  static List<_TimeRow> _fromPeriods(List<Map> periods, double scale) {
+    final rows = <_TimeRow>[];
+    for (var i = 0; i < periods.length; i++) {
+      final p = periods[i];
+      final start = '${p['start'] ?? ''}';
+      final end = '${p['end'] ?? ''}';
+      if (rows.isNotEmpty && _minutes(start) - _minutes(rows.last.end) > 5) {
+        rows.add(
+          _TimeRow(
+            start: rows.last.end,
+            end: start,
+            height: 22 * scale,
+            isBreak: true,
+          ),
+        );
+      }
+      rows.add(
+        _TimeRow(
+          start: start,
+          end: end,
+          height: 68 * scale,
+          isBreak: false,
+          sourcePeriod: i,
+        ),
+      );
+    }
+    return rows;
+  }
+
+  static int _minutes(String value) {
+    final parts = value.split(':');
+    if (parts.length != 2) return 0;
+    return (int.tryParse(parts[0]) ?? 0) * 60 + (int.tryParse(parts[1]) ?? 0);
+  }
+
+  (int, int)? boundsFor(int startPeriod, int count) {
+    final source = startPeriod - 1;
+    final span = count + 1;
+    if (source < 0 || source >= _sourceStarts.length || span < 1) {
+      return null;
+    }
+    final endSource = source + span - 1;
+    if (endSource >= _sourceEnds.length ||
+        _sourceStarts[source] < 0 ||
+        _sourceEnds[endSource] < 0) {
+      return null;
+    }
+    // One stored session keeps a single cell, including when it covers
+    // several imported periods.
+    return (_sourceStarts[source], _sourceEnds[endSource]);
+  }
+
+  double get height => rows.fold(0, (sum, row) => sum + row.height);
+  double y(int row) => rows.take(row).fold(0, (sum, item) => sum + item.height);
   Iterable<double> get offsets sync* {
-    for (var row = 0; row <= periods.length; row++) {
+    for (var row = 0; row <= rows.length; row++) {
       yield y(row);
     }
   }
 }
 
 class _CourseBlock {
-  final List<_PeriodCourse> courses;
+  final List<_TimeCourse> courses;
   final int day;
   final int startRow;
   int endRow;
 
-  _CourseBlock(_PeriodCourse course)
+  _CourseBlock(_TimeCourse course)
     : courses = [course],
       day = course.item.date.weekday,
       startRow = course.startRow,
       endRow = course.endRow;
 }
 
-List<_CourseBlock> _blocks(List<_PeriodCourse> courses) {
+List<_CourseBlock> _blocks(List<_TimeCourse> courses) {
   final sorted = [...courses]
     ..sort((a, b) {
       final day = a.item.date.weekday.compareTo(b.item.date.weekday);
@@ -452,20 +492,44 @@ List<_CourseBlock> _blocks(List<_PeriodCourse> courses) {
     });
   final result = <_CourseBlock>[];
   for (final course in sorted) {
-    if (result.isNotEmpty &&
-        result.last.day == course.item.date.weekday &&
-        course.startRow < result.last.endRow) {
-      result.last.courses.add(course);
-      result.last.endRow = math.max(result.last.endRow, course.endRow);
-    } else {
-      result.add(_CourseBlock(course));
+    if (result.isNotEmpty && result.last.day == course.item.date.weekday) {
+      final touches = course.startRow <= result.last.endRow;
+      final overlaps = course.startRow < result.last.endRow;
+      final sameSession =
+          result.last.courses.length == 1 &&
+          touches &&
+          _sameSession(result.last.courses.first, course);
+      if (sameSession) {
+        result.last.endRow = math.max(result.last.endRow, course.endRow);
+        continue;
+      }
+      if (overlaps) {
+        result.last.courses.add(course);
+        result.last.endRow = math.max(result.last.endRow, course.endRow);
+        continue;
+      }
     }
+    result.add(_CourseBlock(course));
   }
   return result;
 }
 
+bool _sameSession(_TimeCourse a, _TimeCourse b) {
+  if (!PersonalSchedule.sameDay(a.item.date, b.item.date)) return false;
+  final left = a.item.course;
+  final right = b.item.course;
+  final sameId = left.courseId != null && left.courseId == right.courseId;
+  final sameName =
+      (left.name ?? '') == (right.name ?? '') &&
+      (left.classNumber ?? '') == (right.classNumber ?? '');
+  if (!sameId && !sameName) return false;
+  final leftRoom = (left.classroom ?? '').trim();
+  final rightRoom = (right.classroom ?? '').trim();
+  return leftRoom.isEmpty || rightRoom.isEmpty || leftRoom == rightRoom;
+}
+
 class _WeekGridPainter extends CustomPainter {
-  final _PeriodAxis axis;
+  final _TimeAxis axis;
   final Color lineColor;
   final int today;
   final Color todayColor;
