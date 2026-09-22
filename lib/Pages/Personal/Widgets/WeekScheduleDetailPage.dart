@@ -142,70 +142,80 @@ class WeekScheduleDetailPage extends StatelessWidget {
                               style: TextStyle(color: colors.onSurfaceVariant),
                             ),
                           ),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            SizedBox(
-                              width: _timeWidth,
-                              height: axis.height,
-                              child: Stack(
-                                children: [
-                                  for (var i = 0; i < axis.rows.length; i++)
-                                    Positioned(
-                                      top: axis.y(i),
-                                      height: axis.rows[i].height,
-                                      left: 0,
-                                      right: 4,
-                                      child: _periodLabel(
-                                        context,
-                                        axis.rows[i],
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                            Expanded(
-                              child: SizedBox(
-                                height: axis.height,
-                                child: LayoutBuilder(
-                                  builder: (context, constraints) {
-                                    final dayWidth = constraints.maxWidth / 7;
-                                    return Stack(
-                                      clipBehavior: Clip.hardEdge,
-                                      children: [
-                                        Positioned.fill(
-                                          child: CustomPaint(
-                                            painter: _WeekGridPainter(
-                                              axis: axis,
-                                              lineColor: colors.outlineVariant
-                                                  .withValues(alpha: .5),
-                                              today: today,
-                                              todayColor: colors.primary
-                                                  .withValues(alpha: .035),
-                                            ),
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            final blocks = _blocks(placed);
+                            final dayWidth = math.max(
+                              0.0,
+                              (constraints.maxWidth - _timeWidth) / 7,
+                            );
+                            axis.fitCourseText(
+                              blocks,
+                              dayWidth,
+                              MediaQuery.textScalerOf(context),
+                            );
+                            return Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SizedBox(
+                                  width: _timeWidth,
+                                  height: axis.height,
+                                  child: Stack(
+                                    children: [
+                                      for (var i = 0; i < axis.rows.length; i++)
+                                        Positioned(
+                                          top: axis.y(i),
+                                          height: axis.rows[i].height,
+                                          left: 0,
+                                          right: 4,
+                                          child: _periodLabel(
+                                            context,
+                                            axis.rows[i],
                                           ),
                                         ),
-                                        for (final block in _blocks(placed))
-                                          Positioned(
-                                            left:
-                                                (block.day - 1) * dayWidth + 2,
-                                            width: math.max(0, dayWidth - 4),
-                                            top: axis.y(block.startRow) + 2,
-                                            height: math.max(
-                                              0,
-                                              axis.y(block.endRow) -
-                                                  axis.y(block.startRow) -
-                                                  4,
-                                            ),
-                                            child: _courseBlock(context, block),
-                                          ),
-                                      ],
-                                    );
-                                  },
+                                    ],
+                                  ),
                                 ),
-                              ),
-                            ),
-                          ],
+                                SizedBox(
+                                  width: math.max(
+                                    0,
+                                    constraints.maxWidth - _timeWidth,
+                                  ),
+                                  height: axis.height,
+                                  child: Stack(
+                                    clipBehavior: Clip.none,
+                                    children: [
+                                      Positioned.fill(
+                                        child: CustomPaint(
+                                          painter: _WeekGridPainter(
+                                            axis: axis,
+                                            lineColor: colors.outlineVariant
+                                                .withValues(alpha: .5),
+                                            today: today,
+                                            todayColor: colors.primary
+                                                .withValues(alpha: .035),
+                                          ),
+                                        ),
+                                      ),
+                                      for (final block in blocks)
+                                        Positioned(
+                                          left: (block.day - 1) * dayWidth + 2,
+                                          width: math.max(0, dayWidth - 4),
+                                          top: axis.y(block.startRow) + 2,
+                                          height: math.max(
+                                            0,
+                                            axis.y(block.endRow) -
+                                                axis.y(block.startRow) -
+                                                4,
+                                          ),
+                                          child: _courseBlock(context, block),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
                         ),
                       ],
                     ),
@@ -236,22 +246,21 @@ class WeekScheduleDetailPage extends StatelessWidget {
     final item = block.courses.first.item;
     final color = colorForCourse(item);
     final multiple = block.courses.length > 1;
-    final name = multiple
-        ? '${block.courses.length} 门课\n${block.courses.map((c) => c.item.course.name ?? '未命名课程').join('、')}'
-        : item.course.name ?? '未命名课程';
-    final room = item.course.classroom?.trim() ?? '';
-    final footer = multiple ? '时间重叠' : room;
+    final lines = [
+      for (final entry in block.courses)
+        (_courseName(entry.item.course), _courseRoom(entry.item.course)),
+    ];
     return Semantics(
       button: true,
       label:
-          '周${_weekdays[block.day - 1]}，${block.courses.map((entry) => entry.item.clockRange ?? entry.item.period).toSet().join('、')}，$name${room.isEmpty ? '' : '，$room'}',
+          '周${_weekdays[block.day - 1]}，${block.courses.map((entry) => entry.item.clockRange ?? entry.item.period).toSet().join('、')}，${lines.map((line) => '${line.$1}，${line.$2}').join('；')}',
       child: Material(
         color: Color.alphaBlend(
           color.withValues(alpha: .16),
           Theme.of(context).colorScheme.surface,
         ),
         borderRadius: BorderRadius.circular(7),
-        clipBehavior: Clip.antiAlias,
+        clipBehavior: Clip.none,
         child: InkWell(
           onTap: () {
             if (!multiple) {
@@ -284,9 +293,9 @@ class WeekScheduleDetailPage extends StatelessWidget {
                       ),
                       for (final entry in block.courses)
                         ListTile(
-                          title: Text(entry.item.course.name ?? '未命名课程'),
+                          title: Text(_courseName(entry.item.course)),
                           subtitle: Text(
-                            '${entry.item.clockRange ?? entry.item.period}\n${entry.item.course.classroom ?? '教室待定'}',
+                            '${entry.item.clockRange ?? entry.item.period}\n${_courseRoom(entry.item.course)}',
                           ),
                           isThreeLine: true,
                           onTap: () {
@@ -300,69 +309,50 @@ class WeekScheduleDetailPage extends StatelessWidget {
               ),
             );
           },
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final scale = MediaQuery.textScalerOf(context).scale(1);
-              const pad = 8.0;
-              final nameLine = 11 * 1.15 * scale;
-              final footerLine = 10 * 1.15 * scale;
-              final showFooter =
-                  footer.isNotEmpty &&
-                  constraints.maxHeight >= pad + nameLine + 2 + footerLine;
-              final lines = math.max(
-                1,
-                ((constraints.maxHeight -
-                            pad -
-                            (showFooter ? 2 + footerLine : 0)) /
-                        nameLine)
-                    .floor(),
-              );
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: SizedBox(
-                    width: math.max(0, constraints.maxWidth - 8),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          name,
-                          maxLines: lines.clamp(1, 4),
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: 11,
-                            height: 1.15,
-                            fontWeight: FontWeight.w600,
-                            color: color,
-                          ),
-                        ),
-                        if (showFooter) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            footer,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 10,
-                              height: 1.15,
-                              color: color,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (var i = 0; i < lines.length; i++) ...[
+                  if (i > 0) const SizedBox(height: 6),
+                  Text(
+                    lines[i].$1,
+                    softWrap: true,
+                    style: _courseNameStyle.copyWith(color: color),
                   ),
-                ),
-              );
-            },
+                  const SizedBox(height: 2),
+                  Text(
+                    lines[i].$2,
+                    softWrap: true,
+                    style: _courseRoomStyle.copyWith(color: color),
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
       ),
     );
   }
+}
+
+const _courseNameStyle = TextStyle(
+  fontSize: 12,
+  height: 1.25,
+  fontWeight: FontWeight.w600,
+);
+const _courseRoomStyle = TextStyle(fontSize: 11, height: 1.25);
+
+String _courseName(Course course) {
+  final name = course.name?.trim() ?? '';
+  return name.isEmpty ? '未命名课程' : name;
+}
+
+String _courseRoom(Course course) {
+  final room = course.classroom?.trim() ?? '';
+  return room.isEmpty ? '地点待定' : room;
 }
 
 class _TimeCourse {
@@ -375,11 +365,11 @@ class _TimeCourse {
 class _TimeRow {
   final String start;
   final String end;
-  final double height;
+  double height;
   final bool isBreak;
   final int? sourcePeriod;
 
-  const _TimeRow({
+  _TimeRow({
     required this.start,
     required this.end,
     required this.height,
@@ -462,6 +452,36 @@ class _TimeAxis {
     return (_sourceStarts[source], _sourceEnds[endSource]);
   }
 
+  /// Every class row uses the tallest cell, so the grid stays even.
+  void fitCourseText(
+    List<_CourseBlock> blocks,
+    double dayWidth,
+    TextScaler scaler,
+  ) {
+    final textWidth = math.max(8.0, dayWidth - 12);
+    var uniform = 0.0;
+    for (final row in rows) {
+      if (!row.isBreak) uniform = math.max(uniform, row.height);
+    }
+    for (final block in blocks) {
+      final teaching = <int>[
+        for (var i = block.startRow; i < block.endRow && i < rows.length; i++)
+          if (!rows[i].isBreak) i,
+      ];
+      if (teaching.isEmpty) continue;
+      var breakHeight = 0.0;
+      for (var i = block.startRow; i < block.endRow && i < rows.length; i++) {
+        if (rows[i].isBreak) breakHeight += rows[i].height;
+      }
+      final needed = _courseTextHeight(block, textWidth, scaler) + 20;
+      final perRow = math.max(0.0, (needed - breakHeight) / teaching.length);
+      uniform = math.max(uniform, perRow);
+    }
+    for (final row in rows) {
+      if (!row.isBreak) row.height = uniform;
+    }
+  }
+
   double get height => rows.fold(0, (sum, row) => sum + row.height);
   double y(int row) => rows.take(row).fold(0, (sum, item) => sum + item.height);
   Iterable<double> get offsets sync* {
@@ -512,6 +532,47 @@ List<_CourseBlock> _blocks(List<_TimeCourse> courses) {
     result.add(_CourseBlock(course));
   }
   return result;
+}
+
+double _courseTextHeight(
+  _CourseBlock block,
+  double textWidth,
+  TextScaler scaler,
+) {
+  var height = 0.0;
+  for (var i = 0; i < block.courses.length; i++) {
+    if (i > 0) height += 6;
+    final course = block.courses[i].item.course;
+    height += _textHeight(
+      _courseName(course),
+      _courseNameStyle,
+      textWidth,
+      scaler,
+    );
+    height += 2;
+    height += _textHeight(
+      _courseRoom(course),
+      _courseRoomStyle,
+      textWidth,
+      scaler,
+    );
+  }
+  return height;
+}
+
+double _textHeight(
+  String text,
+  TextStyle style,
+  double width,
+  TextScaler scaler,
+) {
+  final painter = TextPainter(
+    text: TextSpan(text: text, style: style),
+    textDirection: TextDirection.ltr,
+    textScaler: scaler,
+    maxLines: null,
+  )..layout(maxWidth: math.max(1, width));
+  return painter.height;
 }
 
 bool _sameSession(_TimeCourse a, _TimeCourse b) {

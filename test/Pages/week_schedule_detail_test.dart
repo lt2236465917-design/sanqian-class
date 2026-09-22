@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wheretosleepinnju/Models/CourseModel.dart';
 import 'package:wheretosleepinnju/Models/PersonalSchedule.dart';
@@ -63,6 +64,16 @@ void main() {
         .length;
     expect(history, greaterThan(0));
     expect(find.text('中国艺术史'), findsNWidgets(history));
+    expectFullyShown(tester, '艺术人类学理论与沿革专题研究');
+    expectFullyShown(tester, '第五会议室（主校区）');
+    expectFullyShown(tester, '硕士英语(全日制学术型)');
+    expect(tester.getSize(find.text('艺术人类学理论与沿革专题研究')).height, greaterThan(36));
+    final morning = periodRowHeight(tester, '09:00\n12:00');
+    final afternoon = periodRowHeight(tester, '13:30\n16:30');
+    final evening = periodRowHeight(tester, '19:00\n21:30');
+    expect(morning, afternoon);
+    expect(afternoon, evening);
+    expect(morning, greaterThan(68));
 
     await tester.tap(find.textContaining('中国艺术史').first);
     await tester.pumpAndSettle();
@@ -115,6 +126,37 @@ void main() {
     expect(find.text('09:00\n09:45'), findsOneWidget);
     expect(find.text('11:15\n12:00'), findsOneWidget);
     expect(find.text('英语'), findsOneWidget);
+    expect(find.text('6406'), findsOneWidget);
+    expectFullyShown(tester, '英语');
+    expectFullyShown(tester, '6406');
     expect(tester.takeException(), isNull);
   });
+}
+
+double periodRowHeight(WidgetTester tester, String label) {
+  final positioned = find.ancestor(
+    of: find.text(label),
+    matching: find.byType(Positioned),
+  );
+  return tester.getSize(positioned).height;
+}
+
+void expectFullyShown(WidgetTester tester, String text) {
+  final finder = find.text(text);
+  expect(finder, findsWidgets);
+  final paragraph = tester.renderObject<RenderParagraph>(finder.first);
+  final widget = tester.widget<Text>(finder.first);
+  expect(widget.maxLines, isNull);
+  expect(
+    widget.overflow,
+    anyOf(isNull, TextOverflow.clip, TextOverflow.visible),
+  );
+  expect(paragraph.didExceedMaxLines, isFalse);
+  expect(paragraph.text.toPlainText(), text);
+  final caret = paragraph.getOffsetForCaret(
+    TextPosition(offset: text.length),
+    Rect.zero,
+  );
+  expect(caret.dx, lessThanOrEqualTo(paragraph.size.width + 1));
+  expect(caret.dy, lessThanOrEqualTo(paragraph.size.height + 1));
 }
