@@ -20,6 +20,9 @@ allprojects {
 }
 
 rootProject.buildDir = '../build'
+// Keep fixture URLs free of checkout path escaping, isolated for each worktree.
+def unitTestResourcesDir = new File(gradle.gradleUserHomeDir,
+        "caches/sanqian-unit-test-resources/${UUID.nameUUIDFromBytes(rootDir.absolutePath.getBytes('UTF-8'))}")
 subprojects {
     buildscript {
         repositories {
@@ -42,11 +45,42 @@ subprojects { subproject ->
     }
     subproject.buildDir = "${rootProject.buildDir}/${subproject.name}"
     subproject.evaluationDependsOn(':app')
+    subproject.tasks.withType(com.android.build.gradle.tasks.GenerateTestConfig).configureEach { task ->
+        task.doLast {
+            // AGP writes UTF-8, but Robolectric loads these paths as Java properties.
+            // Escape Unicode so checkouts such as Desktop/课表 retain valid resource paths.
+            def configFile = task.outputDirectory.file('com/android/tools/test_config.properties').get().asFile
+            def testProperties = new Properties()
+            configFile.withReader('UTF-8') { testProperties.load(it) }
+            configFile.withOutputStream {
+                testProperties.store(it, 'Android unit test paths escaped for Properties.load(InputStream)')
+            }
+        }
+    }
+    if (subproject.name == 'webview_flutter_android') {
+        // This plugin pins Mockito/Byte Buddy 1.12.22, whose Java 21 parser is opt-in.
+        subproject.tasks.withType(Test).configureEach { task ->
+            task.jvmArgs '-Dnet.bytebuddy.experimental=true'
+        }
+    }
 }
 subprojects {
     project.evaluationDependsOn(':app')
 }
 
+// AGP assigns task output directories during project evaluation, so override them afterwards.
+gradle.projectsEvaluated {
+    subprojects { subproject ->
+        subproject.tasks.withType(com.android.build.gradle.internal.tasks.ProcessJavaResTask).configureEach { task ->
+            if (task.name.endsWith('UnitTestJavaRes')) {
+                // Some upstream tests pass URL.getFile() straight to File without URL decoding.
+                task.outDirectory.set(new File(unitTestResourcesDir, "${subproject.name}/${task.name}"))
+            }
+        }
+    }
+}
+
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
+    delete unitTestResourcesDir
 }
