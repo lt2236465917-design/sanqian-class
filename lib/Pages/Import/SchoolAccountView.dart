@@ -1,3 +1,4 @@
+import '../../Components/ScheduleDesign.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../Utils/ScheduleDerivedDataService.dart';
@@ -145,60 +146,58 @@ class _SchoolAccountViewState extends State<SchoolAccountView> {
     appBar: AppBar(title: const Text('学校账号与导入')),
     body: SafeArea(
       child: ListView(
-      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-      padding: const EdgeInsets.all(20),
-      children: [
-        const Text(
-          '用中国艺术研究院研究生系统的账号。\n\n账号一般是学号，也可以是学校发给你的统一身份认证用户名。\n密码就是学校网页上用的那个密码。\n验证码不要写在这一页，打开网页后会显示。',
-          style: TextStyle(fontSize: 16, height: 1.45),
-        ),
-        const SizedBox(height: 16),
-        const Text(
-          '打开网页后请按顺序做：\n1. 已保存的账号和密码会自动填进网页；请填写验证码，再点网页里的「登录」\n2. 进入「研究生综合管理 → 我的课表」\n3. 看到自己的课表后，点右上角「读取并识别」',
-          style: TextStyle(fontSize: 16, height: 1.5),
-        ),
-        const SizedBox(height: 16),
-        Text(
-          _localId == null
-              ? '建议在这里填好学号和密码。打开网页后会自动填入，不会自动点登录。也可以留空，到网页里自己填。'
-              : '已在本机记住账号 $_savedAccount。打开网页后会自动填入账号和密码；验证码仍要自己填，也不会自动点登录。',
-          style: const TextStyle(
-            fontSize: 16,
-            height: 1.45,
-            fontWeight: FontWeight.w600,
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        padding: const EdgeInsets.all(20),
+        children: [
+          const ScheduleIntro(
+            icon: Icons.school_outlined,
+            eyebrow: '中国艺术研究院 · 研究生',
+            title: '从学校带入课表',
+            description: '使用学号或统一身份认证用户名。验证码在学校网页填写，读取后先核对，再保存。',
           ),
-        ),
-        const SizedBox(height: 16),
-        TextField(
-          controller: _account,
-          enabled: !_busy,
-          textInputAction: TextInputAction.next,
-          decoration: const InputDecoration(labelText: '学号或学校登录名（可留空）'),
-          autocorrect: false,
-        ),
-        const SizedBox(height: 16),
-        TextField(
-          controller: _password,
-          enabled: !_busy,
-          obscureText: true,
-          enableSuggestions: false,
-          autocorrect: false,
-          decoration: InputDecoration(
-            labelText: _localId == null ? '学校网页密码（可留空）' : '新密码（留空则不改本机保存）',
+          const ImportJourney(step: 0),
+          const ScheduleSection('学校账号', subtitle: '可以留空，在学校网页中自行登录。'),
+          if (_localId != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: ScheduleNotice(
+                '本机已记住账号 $_savedAccount。密码会自动填入学校网页，验证码和登录仍由你确认。',
+              ),
+            ),
+          TextField(
+            controller: _account,
+            enabled: !_busy,
+            textInputAction: TextInputAction.next,
+            decoration: const InputDecoration(labelText: '学号或学校登录名（可留空）'),
+            autocorrect: false,
           ),
-        ),
-        const SizedBox(height: 16),
-        FilledButton(
-          onPressed: _busy ? null : _open,
-          child: Text(_busy ? '正在打开学校网页…' : '打开学校网页'),
-        ),
-        TextButton(
-          onPressed: _busy || _localId == null ? null : _clear,
-          child: const Text('清除已保存账号'),
-        ),
-        const SizedBox(height: 8),
-        Text(_message, style: const TextStyle(height: 1.5)),
-      ],
+          const SizedBox(height: 16),
+          TextField(
+            controller: _password,
+            enabled: !_busy,
+            obscureText: true,
+            enableSuggestions: false,
+            autocorrect: false,
+            decoration: InputDecoration(
+              labelText: _localId == null ? '学校网页密码（可留空）' : '新密码（留空则不改本机保存）',
+            ),
+          ),
+          const SizedBox(height: 16),
+          FilledButton(
+            onPressed: _busy ? null : _open,
+            child: Text(_busy ? '正在打开学校网页…' : '打开学校网页'),
+          ),
+          TextButton(
+            onPressed: _busy || _localId == null ? null : _clear,
+            child: const Text('清除已保存账号'),
+          ),
+          const SizedBox(height: 8),
+          if (_message.isNotEmpty) ScheduleNotice(_message),
+          const ScheduleSection('打开网页后'),
+          const ScheduleNotice(
+            '1. 填写验证码，点击学校网页里的“登录”\n2. 进入“研究生综合管理 → 我的课表”\n3. 看到课表后，点右上角“读取并识别”',
+          ),
+        ],
       ),
     ),
   );

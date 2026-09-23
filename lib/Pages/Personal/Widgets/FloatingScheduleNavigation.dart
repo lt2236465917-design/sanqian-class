@@ -77,7 +77,9 @@ class _FrostedScheduleNavigation extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final dark = Theme.of(context).brightness == Brightness.dark;
     final highContrast = MediaQuery.highContrastOf(context);
-    final duration = MediaQuery.disableAnimationsOf(context)
+    final duration =
+        (MediaQuery.disableAnimationsOf(context) ||
+            MediaQuery.accessibleNavigationOf(context))
         ? Duration.zero
         : const Duration(milliseconds: 360);
     final height =
@@ -111,7 +113,10 @@ class _FrostedScheduleNavigation extends StatelessWidget {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(40),
               child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+                filter: ImageFilter.blur(
+                  sigmaX: highContrast ? 0 : 16,
+                  sigmaY: highContrast ? 0 : 16,
+                ),
                 child: Container(
                   key: const ValueKey('floating-schedule-bar'),
                   height: height,

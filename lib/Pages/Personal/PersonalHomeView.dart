@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 
+import '../../Components/ScheduleDesign.dart';
 import '../../Models/CourseModel.dart';
 import '../../Models/PersonalSchedule.dart';
 import '../../Models/ScreenshotSchedule.dart';
@@ -15,6 +16,7 @@ import '../../Utils/ScheduleImportService.dart';
 import '../Settings/SettingsView.dart';
 import '../Import/SchoolAccountView.dart';
 import '../Import/PhotoScheduleImportView.dart';
+import '../AddCourse/EditCourseView.dart';
 import 'Widgets/FloatingScheduleNavigation.dart';
 import 'Widgets/ScheduleStatusBadge.dart';
 
@@ -104,9 +106,9 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
             }
             if (message == _widgetNotice) return;
             _widgetNotice = message;
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(message)),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(SnackBar(content: Text(message)));
           }, onError: (Object _) {}),
         );
       }
@@ -142,36 +144,39 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
     final page = await showModalBottomSheet<Widget>(
       context: context,
       useSafeArea: true,
+      isScrollControlled: true,
       builder: (sheetContext) => SafeArea(
         top: false,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: Text(
-                '选择导入方式',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  '选择导入方式',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+                ),
               ),
-            ),
-            ListTile(
-              leading: const Icon(Icons.school_outlined),
-              title: const Text('账号导入'),
-              subtitle: const Text('登录学校账号，读取并核对课表'),
-              trailing: const Icon(Icons.chevron_right_rounded),
-              onTap: () =>
-                  Navigator.pop(sheetContext, const SchoolAccountView()),
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library_outlined),
-              title: const Text('图片导入'),
-              subtitle: const Text('选择课表截图，识别并核对课程'),
-              trailing: const Icon(Icons.chevron_right_rounded),
-              onTap: () =>
-                  Navigator.pop(sheetContext, const PhotoScheduleImportView()),
-            ),
-            const SizedBox(height: 16),
-          ],
+              ScheduleActionTile(
+                icon: Icons.school_outlined,
+                title: '账号导入',
+                subtitle: '登录学校账号，读取并核对课表',
+                onTap: () =>
+                    Navigator.pop(sheetContext, const SchoolAccountView()),
+              ),
+              ScheduleActionTile(
+                icon: Icons.photo_library_outlined,
+                title: '图片导入',
+                subtitle: '选择课表截图，识别并核对课程',
+                onTap: () => Navigator.pop(
+                  sheetContext,
+                  const PhotoScheduleImportView(),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
         ),
       ),
     );
@@ -197,6 +202,28 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
           child: Column(
             children: [
               _header(schedule),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(22, 8, 22, 12),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '课表视图 · ${_tab == _ScheduleTab.today
+                            ? "按日"
+                            : _tab == _ScheduleTab.week
+                            ? "按周"
+                            : "按月"}',
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: _chooseImport,
+                      icon: const Icon(Icons.add_rounded, size: 18),
+                      label: const Text('导入课表'),
+                    ),
+                  ],
+                ),
+              ),
               Expanded(child: _body(schedule)),
             ],
           ),
@@ -211,8 +238,20 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
       _ScheduleTab.week => '周课表',
       _ScheduleTab.month => '月课表',
     };
-    return Padding(
+    final todayCount = schedule?.onDay(_now).length ?? 0;
+    return Container(
       padding: const EdgeInsets.fromLTRB(22, 18, 18, 20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            _colors.primaryContainer.withValues(alpha: .48),
+            Theme.of(context).scaffoldBackgroundColor.withValues(alpha: .08),
+          ],
+        ),
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(28)),
+      ),
       child: Row(
         children: [
           Expanded(
@@ -240,11 +279,34 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
               ],
             ),
           ),
-          IconButton(
-            tooltip: '设置',
-            onPressed: () => _open(const SettingsView()),
-            icon: const Icon(Icons.settings_outlined),
-            color: _colors.onSurface,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              IconButton(
+                tooltip: '设置',
+                onPressed: () => _open(const SettingsView()),
+                icon: const Icon(Icons.settings_outlined),
+                color: _colors.onSurface,
+              ),
+              if (_tab == _ScheduleTab.today && schedule != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 5,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _colors.surface.withValues(alpha: .72),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    '$todayCount 节课',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: _colors.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+            ],
           ),
         ],
       ),
@@ -784,13 +846,26 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
                 ),
               ),
               const SizedBox(height: 12),
-              Text(
-                _room(item.course),
-                style: TextStyle(
-                  fontSize: 16,
-                  height: 1.5,
-                  color: _colors.onSurfaceVariant,
-                ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.place_outlined,
+                    size: 19,
+                    color: _colors.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: 7),
+                  Expanded(
+                    child: Text(
+                      _room(item.course),
+                      style: TextStyle(
+                        fontSize: 15,
+                        height: 1.5,
+                        color: _colors.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                ],
               ),
               if ((item.course.teacher ?? '').isNotEmpty) ...[
                 const SizedBox(height: 4),
@@ -902,13 +977,31 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: IconButton(
-                      tooltip: '关闭详情',
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close_rounded),
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '课程详情',
+                          style: TextStyle(
+                            color: _colors.onSurfaceVariant,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      TextButton.icon(
+                        onPressed: () async {
+                          Navigator.pop(context);
+                          await _open(EditCourseView(course: course));
+                        },
+                        icon: const Icon(Icons.edit_outlined, size: 18),
+                        label: const Text('编辑'),
+                      ),
+                      IconButton(
+                        tooltip: '关闭详情',
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close_rounded),
+                      ),
+                    ],
                   ),
                   Text(
                     course.name ?? '未命名课程',

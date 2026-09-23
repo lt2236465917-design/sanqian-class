@@ -68,8 +68,8 @@ struct PersonalWidgetView: View {
     @Environment(\.colorScheme) private var colorScheme
     let entry: PersonalWidgetEntry
     private var accent: Color {
-        colorScheme == .dark ? Color(red: 0.79, green: 0.70, blue: 0.92)
-            : Color(red: 0.40, green: 0.31, blue: 0.51)
+        colorScheme == .dark ? Color(red: 0.886, green: 0.812, blue: 0.949)
+            : Color(red: 0.408, green: 0.302, blue: 0.482)
     }
     private var calendar: Calendar {
         var value = Calendar(identifier: .gregorian)
@@ -172,8 +172,8 @@ struct PersonalWidgetView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .environment(\.timeZone, calendar.timeZone)
         .containerBackground(colorScheme == .dark
-            ? Color(red: 0.12, green: 0.11, blue: 0.14)
-            : Color(red: 0.97, green: 0.96, blue: 0.94), for: .widget)
+            ? Color(red: 0.129, green: 0.114, blue: 0.145)
+            : Color(red: 0.969, green: 0.961, blue: 0.949), for: .widget)
     }
     @ViewBuilder private var smallContent: some View {
         if let event = next, entry.sourceState == .ready {

@@ -1,137 +1,94 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:scoped_model/scoped_model.dart';
-import 'package:fluttertoast/fluttertoast.dart';
-import '../../Utils/States/MainState.dart';
-import '../../core/widget_data/utils/widget_refresh_helper.dart';
+import '../../Components/ScheduleDesign.dart';
+import '../../Models/PersonalSchedule.dart';
+import '../../Utils/ScheduleDerivedDataService.dart';
 
-/// 小组件设置页面
-/// 仅在 iOS 平台显示
+/// Controls only the registered personal schedule widget, not the legacy widget.
 class WidgetSettingsView extends StatefulWidget {
-  const WidgetSettingsView({Key? key}) : super(key: key);
-
+  const WidgetSettingsView({super.key});
   @override
   State<WidgetSettingsView> createState() => _WidgetSettingsViewState();
 }
 
 class _WidgetSettingsViewState extends State<WidgetSettingsView> {
-  // 可选值
-  final List<int> _approachingMinutesOptions = [5, 10, 15, 20, 30];
-  final List<int> _tomorrowPreviewHourOptions = [19, 20, 21, 22, 23];
-
-  @override
-  void dispose() {
-    super.dispose();
+  bool _busy = false, _error = false;
+  String? _status;
+  Future<void> _refresh() async {
+    setState(() {
+      _busy = true;
+      _status = null;
+    });
+    try {
+      final schedule = await loadPersonalSchedule();
+      // Widget-only refresh does not request calendar permission or write events.
+      final result = await ScheduleDerivedDataService.channel
+          .invokeMapMethod<String, dynamic>(
+            'syncDerivedData',
+            ScheduleDerivedDataService.snapshot(schedule),
+          );
+      if (mounted) {
+        setState(() {
+          _error = result == null || result['widgetError'] != null;
+          _status =
+              result?['widgetError'] as String? ??
+              (result == null
+                  ? '当前平台没有返回同步结果，请稍后重试。'
+                  : '已请求更新桌面课表，具体刷新时间由系统决定。');
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _error = true;
+          _status = '暂时无法同步小组件，请返回课表后重试。';
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final ios = defaultTargetPlatform == TargetPlatform.iOS;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('小组件设置'),
-        elevation: 0,
-      ),
+      appBar: AppBar(title: const Text('桌面小组件')),
       body: SafeArea(
         child: ListView(
-        children: [
-          // 即将上课提醒时间
-          ListTile(
-            title: const Text('即将上课提醒时间'),
-            subtitle: const Text('在课程开始前多久显示"即将上课"状态'),
-            trailing: FutureBuilder<int>(
-              future: _getApproachingMinutes(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return Container(width: 0);
-                }
-                return DropdownButton<int>(
-                  value: snapshot.data,
-                  items: _approachingMinutesOptions.map((minutes) {
-                    return DropdownMenuItem<int>(
-                      value: minutes,
-                      child: Text('$minutes 分钟'),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    if (value != null) {
-                      _setApproachingMinutes(value);
-                    }
-                  },
-                );
-              },
+          padding: const EdgeInsets.all(20),
+          children: [
+            const ScheduleIntro(
+              icon: Icons.widgets_outlined,
+              eyebrow: '无需打开 App',
+              title: '下一节课，就在桌面',
+              description: '小尺寸突出下一节，中尺寸展示今日剩余课程。时间、地点和上课状态来自当前课表。',
             ),
-          ),
-
-          const Divider(),
-
-          // 明日预览开始时间
-          ListTile(
-            title: const Text('明日预览开始时间'),
-            subtitle: const Text('晚上几点后显示明天的课程'),
-            trailing: FutureBuilder<int>(
-              future: _getTomorrowPreviewHour(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return Container(width: 0);
-                }
-                return DropdownButton<int>(
-                  value: snapshot.data,
-                  items: _tomorrowPreviewHourOptions.map((hour) {
-                    return DropdownMenuItem<int>(
-                      value: hour,
-                      child: Text('$hour:00'),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    if (value != null) {
-                      _setTomorrowPreviewHour(value);
-                    }
-                  },
-                );
-              },
+            const ScheduleSection('添加到桌面'),
+            ScheduleNotice(
+              ios
+                  ? 'iOS 17 及以上：长按桌面空白处 → 编辑 → 添加小组件，搜索“三千上课”，选择小尺寸或中尺寸。'
+                  : '长按桌面空白处 → 小组件，找到“三千上课”，选择小尺寸或中尺寸并拖到桌面。不同启动器的操作名称可能不同。',
             ),
-          ),
-        ],
+            const ScheduleSection('与当前课表同步'),
+            const Text(
+              '切换课表或修改课程后，App 会提交新的课程安排。时间待定的课程不显示；桌面刷新频率由系统管理。',
+              style: TextStyle(height: 1.6),
+            ),
+            const SizedBox(height: 20),
+            FilledButton.icon(
+              onPressed: _busy ? null : _refresh,
+              icon: const Icon(Icons.sync_rounded),
+              label: Text(_busy ? '正在同步…' : '刷新桌面课表'),
+            ),
+            if (_status != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: ScheduleNotice(_status!, error: _error),
+              ),
+          ],
+        ),
       ),
-      ),
-    );
-  }
-
-  Future<int> _getApproachingMinutes() async {
-    return await ScopedModel.of<MainStateModel>(context)
-        .getWidgetApproachingMinutes();
-  }
-
-  void _setApproachingMinutes(int minutes) async {
-    ScopedModel.of<MainStateModel>(context)
-        .setWidgetApproachingMinutes(minutes);
-    setState(() {});
-
-    // 刷新小组件
-    await WidgetRefreshHelper.manualRefresh();
-
-    // 显示提示
-    Fluttertoast.showToast(
-      msg: '小组件设置已保存',
-      toastLength: Toast.LENGTH_SHORT,
-    );
-  }
-
-  Future<int> _getTomorrowPreviewHour() async {
-    return await ScopedModel.of<MainStateModel>(context)
-        .getWidgetTomorrowPreviewHour();
-  }
-
-  void _setTomorrowPreviewHour(int hour) async {
-    ScopedModel.of<MainStateModel>(context).setWidgetTomorrowPreviewHour(hour);
-    setState(() {});
-
-    // 刷新小组件
-    await WidgetRefreshHelper.manualRefresh();
-
-    // 显示提示
-    Fluttertoast.showToast(
-      msg: '小组件设置已保存',
-      toastLength: Toast.LENGTH_SHORT,
     );
   }
 }

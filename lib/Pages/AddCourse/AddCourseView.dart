@@ -1,3 +1,4 @@
+import '../../Components/ScheduleDesign.dart';
 import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../Models/CourseTableModel.dart';
@@ -118,12 +119,15 @@ class _AddViewState extends State<AddView> {
                 builder: (BuildContext context) {
                   return Container(
                     width: double.infinity,
-                    margin: const EdgeInsets.all(10),
+                    margin: const EdgeInsets.symmetric(horizontal: 20),
                     child: ListView(
                       keyboardDismissBehavior:
                           ScrollViewKeyboardDismissBehavior.onDrag,
                       children: <Widget>[
-                        const Padding(padding: EdgeInsets.all(5)),
+                        const ScheduleSection(
+                          '课程信息',
+                          subtitle: '补充课程名称与教师，再选择上课安排。',
+                        ),
                         TextField(
                           controller: _nameController,
                           decoration: InputDecoration(

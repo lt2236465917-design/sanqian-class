@@ -1,3 +1,4 @@
+import '../../Components/ScheduleDesign.dart';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -158,16 +159,19 @@ class _ManageTableViewState extends State<ManageTableView> {
             return const Center(child: CircularProgressIndicator());
           }
           return ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             children: [
               SizedBox(
                 height: 4,
                 child: _locked ? const LinearProgressIndicator() : null,
               ),
-              const Padding(
-                padding: EdgeInsets.only(bottom: 20),
-                child: Text('点击名称框切换课表，也可直接修改名称。'),
+              const ScheduleIntro(
+                icon: Icons.calendar_month_outlined,
+                eyebrow: '学期与课程',
+                title: '每份课表，各自有序',
+                description: '点击名称框切换课表，也可直接修改名称。当前使用的课表会显示对勾。',
               ),
+              const SizedBox(height: 24),
               for (final table in snapshot.data!)
                 Padding(
                   key: ValueKey(table['id']),

@@ -1,3 +1,4 @@
+import '../../Components/ScheduleDesign.dart';
 import 'package:flutter/material.dart';
 import '../../Utils/ScheduleDerivedDataService.dart';
 import '../../Utils/ScheduleFeedback.dart';
@@ -103,68 +104,75 @@ class _DeepSeekSettingsViewState extends State<DeepSeekSettingsView> {
     appBar: AppBar(title: const Text('DeepSeek 设置')),
     body: SafeArea(
       child: ListView(
-      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-      padding: const EdgeInsets.all(20),
-      children: [
-        Text(
-          _loading
-              ? '正在读取 Key 状态…'
-              : _saved == null
-              ? 'Key 状态暂不可用'
-              : _saved!
-              ? '已保存 Key · ••••••••'
-              : '尚未保存 Key',
-          style: const TextStyle(fontWeight: FontWeight.w600),
-        ),
-        const SizedBox(height: 16),
-        TextField(
-          controller: _key,
-          enabled: !_busy && !_loading,
-          obscureText: true,
-          enableSuggestions: false,
-          autocorrect: false,
-          decoration: InputDecoration(
-            labelText: 'DeepSeek API key',
-            hintText: _saved == true ? '输入新 Key 可替换' : null,
-            errorText: _invalidKey ? '请先填写 Key' : null,
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        padding: const EdgeInsets.all(20),
+        children: [
+          const ScheduleIntro(
+            icon: Icons.auto_awesome_outlined,
+            eyebrow: '课表识别',
+            title: '连接你的 DeepSeek',
+            description: 'Key 仅保存于本机安全存储。只有确认发送后才会调用识别，费用由你的账户承担。',
           ),
-          onChanged: (_) {
-            if (_invalidKey) setState(() => _invalidKey = false);
-          },
-        ),
-        const SizedBox(height: 16),
-        FilledButton(
-          onPressed: _busy || _loading ? null : () => _action(false),
-          child: Text(_busy ? '正在更新 Key…' : '保存'),
-        ),
-        TextButton(
-          onPressed: _busy || _loading || _saved != true
-              ? null
-              : () => _action(true),
-          child: const Text('删除 Key'),
-        ),
-        const SizedBox(height: 8),
-        if (_message.isNotEmpty)
-          Semantics(
-            liveRegion: true,
-            child: Text(
-              _message,
-              style: TextStyle(
-                height: 1.5,
-                color: _isError ? Theme.of(context).colorScheme.error : null,
+          const SizedBox(height: 20),
+          Text(
+            _loading
+                ? '正在读取 Key 状态…'
+                : _saved == null
+                ? 'Key 状态暂不可用'
+                : _saved!
+                ? '已保存 Key · ••••••••'
+                : '尚未保存 Key',
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _key,
+            enabled: !_busy && !_loading,
+            obscureText: true,
+            enableSuggestions: false,
+            autocorrect: false,
+            decoration: InputDecoration(
+              labelText: 'DeepSeek API key',
+              hintText: _saved == true ? '输入新 Key 可替换' : null,
+              errorText: _invalidKey ? '请先填写 Key' : null,
+            ),
+            onChanged: (_) {
+              if (_invalidKey) setState(() => _invalidKey = false);
+            },
+          ),
+          const SizedBox(height: 16),
+          FilledButton(
+            onPressed: _busy || _loading ? null : () => _action(false),
+            child: Text(_busy ? '正在更新 Key…' : '保存'),
+          ),
+          TextButton(
+            onPressed: _busy || _loading || _saved != true
+                ? null
+                : () => _action(true),
+            child: const Text('删除 Key'),
+          ),
+          const SizedBox(height: 8),
+          if (_message.isNotEmpty)
+            Semantics(
+              liveRegion: true,
+              child: Text(
+                _message,
+                style: TextStyle(
+                  height: 1.5,
+                  color: _isError ? Theme.of(context).colorScheme.error : null,
+                ),
               ),
             ),
+          if (_retry != null)
+            TextButton(
+              onPressed: _busy || _loading ? null : _retry,
+              child: const Text('重试'),
+            ),
+          const SizedBox(height: 16),
+          const Text(
+            '多图课表与学校网页课表均使用 DeepSeek 识别。确认发送后，所选图片或课表文字会发送到 DeepSeek，并可能消耗账户余额。',
           ),
-        if (_retry != null)
-          TextButton(
-            onPressed: _busy || _loading ? null : _retry,
-            child: const Text('重试'),
-          ),
-        const SizedBox(height: 16),
-        const Text(
-          '多图课表与学校网页课表均使用 DeepSeek 识别。确认发送后，所选图片或课表文字会发送到 DeepSeek，并可能消耗账户余额。',
-        ),
-      ],
+        ],
       ),
     ),
   );

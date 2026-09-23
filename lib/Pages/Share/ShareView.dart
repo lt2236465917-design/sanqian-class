@@ -1,3 +1,4 @@
+import '../../Components/ScheduleDesign.dart';
 import 'package:flutter/material.dart';
 
 import '../../Models/CourseModel.dart';
@@ -42,24 +43,32 @@ class _ShareViewState extends State<ShareView> {
     appBar: AppBar(title: const Text('课表导入与导出')),
     body: SafeArea(
       child: ListView(
+        padding: const EdgeInsets.all(20),
         children: [
+          const ScheduleIntro(
+            icon: Icons.ios_share_rounded,
+            eyebrow: '与其他设备连接',
+            title: '把课表带过去',
+            description: '使用二维码分享课程，或把已确认的安排导出到系统日历。',
+          ),
+          const SizedBox(height: 20),
           if (_busy) const LinearProgressIndicator(),
-          ListTile(
-            title: const Text('导出当前课表'),
-            subtitle: const Text('生成二维码，或复制完整分享串'),
-            trailing: const Icon(Icons.chevron_right_rounded),
+          ScheduleActionTile(
+            icon: Icons.qr_code_rounded,
+            title: '导出当前课表',
+            subtitle: '生成二维码，或复制完整分享串',
             onTap: _busy ? null : () => _run(_exportClassTable),
           ),
-          ListTile(
-            title: const Text('导入课表'),
-            subtitle: const Text('扫码、选择二维码图片或粘贴分享串'),
-            trailing: const Icon(Icons.chevron_right_rounded),
+          ScheduleActionTile(
+            icon: Icons.qr_code_scanner_rounded,
+            title: '导入课表',
+            subtitle: '扫码、选择二维码图片或粘贴分享串',
             onTap: _busy ? null : () => _run(_importFromQr),
           ),
-          ListTile(
-            title: const Text('导出到系统日历'),
-            subtitle: const Text('按课表日期导出，重复导出会更新已写入的课程'),
-            trailing: const Icon(Icons.chevron_right_rounded),
+          ScheduleActionTile(
+            icon: Icons.event_available_outlined,
+            title: '导出到系统日历',
+            subtitle: '按课表日期导出，重复导出会更新已写入的课程',
             onTap: _busy ? null : () => _run(_exportToSystemCalendar),
           ),
         ],

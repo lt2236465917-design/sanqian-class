@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../../Components/ScheduleDesign.dart';
 
 import '../../Utils/States/MainState.dart';
 import '../../Utils/ScheduleFeedback.dart';
@@ -12,6 +13,7 @@ import 'DeepSeekSettingsView.dart';
 import 'ReminderSettingsView.dart';
 import '../ManageTable/ManageTableView.dart';
 import '../Share/ShareView.dart';
+import 'WidgetSettingsView.dart';
 
 class SettingsView extends StatelessWidget {
   const SettingsView({super.key});
@@ -33,18 +35,10 @@ class SettingsView extends StatelessWidget {
       String title,
       String subtitle,
       VoidCallback action,
-    ) => ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-      leading: Icon(icon, color: Theme.of(context).colorScheme.primary),
-      title: Text(
-        title,
-        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: const TextStyle(fontSize: 14, height: 1.5),
-      ),
-      trailing: const Icon(Icons.chevron_right_rounded, size: 20),
+    ) => ScheduleActionTile(
+      icon: icon,
+      title: title,
+      subtitle: subtitle,
       onTap: action,
     );
     final model = MainStateModel.of(context);
@@ -54,6 +48,13 @@ class SettingsView extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
           children: [
+            const ScheduleIntro(
+              icon: Icons.tune_rounded,
+              eyebrow: '三千上课',
+              title: '让课表适合你',
+              description: '管理课程、导入新学期，安排提醒与桌面小组件。',
+            ),
+            const SizedBox(height: 24),
             const Padding(
               padding: EdgeInsets.only(left: 6, bottom: 12),
               child: Text(
@@ -151,6 +152,15 @@ class SettingsView extends StatelessWidget {
                     '提前 15 分钟、3 小时或 24 小时',
                     () => open(const ReminderSettingsView()),
                   ),
+                  ...[
+                    const Divider(height: 1, indent: 18, endIndent: 18),
+                    tile(
+                      Icons.widgets_outlined,
+                      '桌面小组件',
+                      '查看支持的尺寸、添加方式与同步状态',
+                      () => open(const WidgetSettingsView()),
+                    ),
+                  ],
                   const Divider(height: 1, indent: 18, endIndent: 18),
                   tile(
                     Icons.brightness_6_outlined,
