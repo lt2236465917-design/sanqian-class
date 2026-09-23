@@ -24,8 +24,8 @@ class _WeekNodeDialogState extends State<WeekNodeDialog> {
     return AlertDialog(
       title: const Text('选择上课周'),
       scrollable: true,
-      content: SizedBox(
-        width: 360,
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 360),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,

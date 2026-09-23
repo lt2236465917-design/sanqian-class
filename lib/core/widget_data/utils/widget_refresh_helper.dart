@@ -52,7 +52,7 @@ class WidgetRefreshHelper {
   /// 通用刷新方法
   static Future<void> _refreshWidget(String reason) async {
     try {
-      // Course reminders are shared; widget transport remains iOS-only.
+      // Android and iOS both publish the shared schedule snapshot from here.
       if (!Platform.isIOS && !Platform.isAndroid) return;
       await ScheduleDerivedDataService.sync(await loadPersonalSchedule());
       if (!Platform.isIOS) return;

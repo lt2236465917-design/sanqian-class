@@ -16,7 +16,6 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.PluginRegistry
 import org.json.JSONObject
-import java.io.File
 import java.net.HttpURLConnection
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
@@ -32,6 +31,7 @@ class ScheduleImportPlugin :
 
     private lateinit var channel: MethodChannel
     private lateinit var store: ScheduleCredentialsStore
+    private var appContext: android.content.Context? = null
     private var activity: Activity? = null
     private var activityBinding: ActivityPluginBinding? = null
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -41,17 +41,19 @@ class ScheduleImportPlugin :
     private val generation = java.util.concurrent.atomic.AtomicInteger(0)
     private val connection = AtomicReference<HttpURLConnection?>(null)
     private var running: Future<*>? = null
-    private var portalResult: MethodChannel.Result? = null
-    private var permissionResult: MethodChannel.Result? = null
+    private val bridge = PendingBridgeResults()
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
+        appContext = binding.applicationContext
         store = ScheduleCredentialsStore.get(binding.applicationContext)
         channel = MethodChannel(binding.binaryMessenger, CHANNEL)
         channel.setMethodCallHandler(this)
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
-        channel.setMethodCallHandler(null)
+        abandonPending("插件已卸载")
+        if (this::channel.isInitialized) channel.setMethodCallHandler(null)
+        appContext = null
         executor.shutdownNow()
     }
 
@@ -63,6 +65,7 @@ class ScheduleImportPlugin :
     }
 
     override fun onDetachedFromActivityForConfigChanges() {
+        abandonPending("界面已销毁")
         activityBinding?.removeActivityResultListener(this)
         activityBinding?.removeRequestPermissionsResultListener(this)
         activityBinding = null
@@ -104,6 +107,21 @@ class ScheduleImportPlugin :
                     store.deleteSchoolCredentials()
                     result.success(true)
                 }
+                "loadLegacyJwCredentials" -> {
+                    val saved = store.loadLegacyJw()
+                    result.success(saved?.let { mapOf("username" to it.first, "password" to it.second) })
+                }
+                "saveLegacyJwCredentials" -> {
+                    store.saveLegacyJw(
+                        call.argument<String>("username") ?: "",
+                        call.argument<String>("password") ?: ""
+                    )
+                    result.success(true)
+                }
+                "deleteLegacyJwCredentials" -> {
+                    store.deleteLegacyJw()
+                    result.success(true)
+                }
                 "openPortal" -> openPortal(result)
                 "cancelRecognition" -> {
                     cancelRecognition()
@@ -122,6 +140,11 @@ class ScheduleImportPlugin :
                     client.recognizeImages(images)
                 }
                 "requestReminderPermission" -> requestReminderPermission(result)
+                "clearLegacyReminders" -> {
+                    val context = appContext ?: throw IllegalStateException("暂时无法清理旧提醒，请重试。")
+                    ScheduleReminderScheduler(context).clear()
+                    result.success(true)
+                }
                 "syncDerivedData" -> {
                     val args = call.arguments as? Map<*, *> ?: emptyMap<String, Any?>()
                     result.success(syncDerivedData(args))
@@ -135,12 +158,16 @@ class ScheduleImportPlugin :
 
     private fun openPortal(result: MethodChannel.Result) {
         val current = activity
-        if (current == null || portalResult != null) {
+        if (current == null || bridge.contains("portal")) {
             result.error("schedule_import", ImportBridgeError.unavailable.message, null)
             return
         }
-        portalResult = result
-        current.startActivityForResult(Intent(current, SchoolPortalActivity::class.java), REQUEST_PORTAL)
+        val reply = bridge.track("portal", replyOf(result))
+        try {
+            current.startActivityForResult(Intent(current, SchoolPortalActivity::class.java), REQUEST_PORTAL)
+        } catch (error: Exception) {
+            reply.error("schedule_import", error.message)
+        }
     }
 
     private fun recognize(result: MethodChannel.Result, work: (DeepSeekTimetableClient) -> DeepSeekTimetableResult) {
@@ -150,6 +177,7 @@ class ScheduleImportPlugin :
         }
         cancelled.set(false)
         val ticket = generation.incrementAndGet()
+        val reply = bridge.track("recognize", replyOf(result))
         running = executor.submit {
             try {
                 val key = store.loadDeepSeekAPIKey() ?: throw DeepSeekTimetableClientError.MissingAPIKey
@@ -157,9 +185,9 @@ class ScheduleImportPlugin :
                 val output = work(client)
                 if (cancelled.get() || generation.get() != ticket) throw DeepSeekTimetableClientError.Cancelled
                 val parsed = DeepSeekTimetableClient.jsonToAny(JSONObject(output.jsonText))
-                if (generation.get() == ticket) complete(result, success = parsed, error = null)
+                if (generation.get() == ticket) finish(reply, parsed, null)
             } catch (error: Exception) {
-                if (generation.get() == ticket) complete(result, success = null, error = error)
+                if (generation.get() == ticket) finish(reply, null, error)
             } finally {
                 if (generation.get() == ticket) {
                     connection.set(null)
@@ -169,10 +197,29 @@ class ScheduleImportPlugin :
         }
     }
 
-    private fun complete(result: MethodChannel.Result, success: Any?, error: Exception?) {
+    private fun finish(reply: OnceBridgeResult, success: Any?, error: Exception?) {
         mainHandler.post {
-            if (error != null) result.error(code(error), error.message, null)
-            else result.success(success)
+            if (error != null) reply.error(code(error), error.message)
+            else reply.success(success)
+        }
+    }
+
+    private fun abandonPending(message: String) {
+        generation.incrementAndGet()
+        cancelRecognition()
+        running?.cancel(true)
+        running = null
+        bridge.cancelAll("cancelled", message)
+        busy.set(false)
+    }
+
+    private fun replyOf(result: MethodChannel.Result) = object : BridgeReply {
+        override fun success(value: Any?) {
+            result.success(value)
+        }
+
+        override fun error(code: String, message: String?) {
+            result.error(code, message, null)
         }
     }
 
@@ -197,46 +244,32 @@ class ScheduleImportPlugin :
             result.success(true)
             return
         }
-        if (permissionResult != null) {
+        if (bridge.contains("permission")) {
             result.error("notification_permission", "正在请求通知权限", null)
             return
         }
-        permissionResult = result
+        bridge.track("permission", replyOf(result))
         ActivityCompat.requestPermissions(current, arrayOf(Manifest.permission.POST_NOTIFICATIONS), REQUEST_NOTIFY)
     }
 
     private fun syncDerivedData(args: Map<*, *>): Map<String, Any?> {
-        var widgetError: String? = "Android 桌面组件尚未接入"
-        val activityContext = activity?.applicationContext
-        if (activityContext != null) {
-            try {
-                val safe = mapOf(
-                    "schemaVersion" to 1,
-                    "tableId" to (args["tableId"] ?: 0),
-                    "revision" to (args["revision"] ?: ""),
-                    "generatedAtMs" to (args["generatedAtMs"] ?: 0),
-                    "occurrences" to (args["occurrences"] ?: emptyList<Any>())
-                )
-                val file = File(activityContext.filesDir, "personal-schedule.json")
-                file.writeText(toJsonValue(safe).toString())
-            } catch (_: Exception) {
-                widgetError = "共享课表写入失败"
-            }
+        val context = appContext ?: return mapOf("widgetError" to "桌面小组件暂时无法更新")
+        try {
+            ScheduleWidgetStore.write(context, args)
+        } catch (_: Exception) {
+            return mapOf("widgetError" to "共享课表写入失败")
         }
-        val occurrences = (args["occurrences"] as? List<*>)?.mapNotNull { row ->
-            (row as? Map<*, *>)?.entries?.associate { it.key.toString() to it.value }
-        } ?: emptyList()
-        val leads = (args["leadMinutes"] as? List<*>)?.mapNotNull { (it as? Number)?.toInt() } ?: emptyList()
-        val context = activityContext ?: return mapOf("widgetError" to widgetError, "count" to 0, "permission" to "denied")
-        val status = ScheduleReminderScheduler(context).replace(occurrences, leads).toMutableMap()
-        status["widgetError"] = widgetError
-        return status
+        return try {
+            ScheduleWidgetUpdater.refresh(context)
+            emptyMap()
+        } catch (_: Exception) {
+            mapOf("widgetError" to "桌面小组件暂时无法刷新")
+        }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
         if (requestCode != REQUEST_PORTAL) return false
-        val pending = portalResult ?: return true
-        portalResult = null
+        val pending = bridge.take("portal") ?: return true
         if (resultCode != Activity.RESULT_OK) {
             pending.success(null)
             return true
@@ -249,15 +282,14 @@ class ScheduleImportPlugin :
         try {
             pending.success(DeepSeekTimetableClient.jsonToAny(JSONObject(json)))
         } catch (error: Exception) {
-            pending.error("schedule_import", error.message, null)
+            pending.error("schedule_import", error.message)
         }
         return true
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray): Boolean {
         if (requestCode != REQUEST_NOTIFY) return false
-        val pending = permissionResult ?: return true
-        permissionResult = null
+        val pending = bridge.take("permission") ?: return true
         pending.success(grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)
         return true
     }

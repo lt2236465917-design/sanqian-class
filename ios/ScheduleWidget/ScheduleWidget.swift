@@ -3,8 +3,7 @@ import SwiftUI
 
 // MARK: - Widget Constants
 struct WidgetConstants {
-    // WARNING: This MUST match 'kAppGroupIdentifier' in ios/Runner/AppConstants.swift
-    static let appGroupId = "group.top.idealclover.wheretosleepinnju.group"
+    static var appGroupId: String { ScheduleAppGroup.identifier }
     
     struct UserDefaultsKeys {
         static let widgetData = "widget_data"

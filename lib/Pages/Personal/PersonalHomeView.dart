@@ -9,6 +9,7 @@ import '../../Models/CourseModel.dart';
 import '../../Models/PersonalSchedule.dart';
 import '../../Models/ScreenshotSchedule.dart';
 import '../../Utils/ClassTimeUtil.dart';
+import '../../Utils/CourseWeeks.dart';
 import '../../Utils/ScheduleDerivedDataService.dart';
 import '../../Utils/ScheduleImportService.dart';
 import '../Settings/SettingsView.dart';
@@ -39,6 +40,7 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
   Timer? _timer;
   final _scrolls = List.generate(3, (_) => ScrollController());
   int _request = 0;
+  String? _widgetNotice;
 
   DateTime get _clock => (widget.clock ?? DateTime.now)();
   ColorScheme get _colors => Theme.of(context).colorScheme;
@@ -93,9 +95,19 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
       });
       if (widget.loader == null) {
         unawaited(
-          ScheduleDerivedDataService.sync(
-            data,
-          ).catchError((Object error) => <String, dynamic>{'error': '$error'}),
+          ScheduleDerivedDataService.sync(data).then((result) {
+            final message = result['widgetError'];
+            if (!mounted) return;
+            if (message is! String || message.isEmpty) {
+              _widgetNotice = null;
+              return;
+            }
+            if (message == _widgetNotice) return;
+            _widgetNotice = message;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(message)),
+            );
+          }, onError: (Object _) {}),
         );
       }
     } catch (error) {
@@ -874,12 +886,7 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
       course.timeCount ?? 0,
     );
     final scheduled = (course.weekTime ?? 0) > 0 && (course.weekTime ?? 0) <= 7;
-    List<int> weeks;
-    try {
-      weeks = List<int>.from(jsonDecode(course.weeks ?? '[]'));
-    } catch (_) {
-      weeks = [];
-    }
+    final weeks = CourseWeeks.parse(course.weeks);
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,

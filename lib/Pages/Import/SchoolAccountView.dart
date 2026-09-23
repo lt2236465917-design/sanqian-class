@@ -143,7 +143,9 @@ class _SchoolAccountViewState extends State<SchoolAccountView> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('学校账号与导入')),
-    body: ListView(
+    body: SafeArea(
+      child: ListView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.all(20),
       children: [
         const Text(
@@ -197,6 +199,7 @@ class _SchoolAccountViewState extends State<SchoolAccountView> {
         const SizedBox(height: 8),
         Text(_message, style: const TextStyle(height: 1.5)),
       ],
+      ),
     ),
   );
 }

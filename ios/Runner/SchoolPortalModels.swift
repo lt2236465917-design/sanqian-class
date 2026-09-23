@@ -143,10 +143,68 @@ extension SchoolPortalFrameMessage {
     }
 }
 
+enum PortalNavigation: Equatable {
+    case allow
+    case upgrade(URL)
+    case block
+}
+
+struct PortalWindowSnapshot: Equatable {
+    var isKey: Bool
+    var hasRoot: Bool
+    var presentedDepth: Int
+    var ownsCaller: Bool = false
+}
+
+struct PortalSceneSnapshot: Equatable {
+    var activation: String
+    var windows: [PortalWindowSnapshot]
+}
+
+struct PortalPresenterChoice: Equatable {
+    var sceneIndex: Int
+    var windowIndex: Int
+    var presentedDepth: Int
+}
+
+enum PortalPresenterResolver {
+    static func choose(_ scenes: [PortalSceneSnapshot]) -> PortalPresenterChoice? {
+        let enumerated = Array(scenes.enumerated())
+        let active = enumerated.filter { $0.element.activation == "foregroundActive" }
+        let pool = active.isEmpty ? enumerated.filter { $0.element.activation == "foregroundInactive" } : active
+        let callerIsKnown = enumerated.contains { pair in pair.element.windows.contains { $0.ownsCaller } }
+        let candidates = callerIsKnown ? pool.filter { $0.element.windows.contains { $0.ownsCaller } } : pool
+        guard let scene = candidates.first(where: { $0.element.windows.contains { $0.isKey && $0.hasRoot } })
+            ?? candidates.first(where: { $0.element.windows.contains { $0.hasRoot } }) else { return nil }
+        let windows = scene.element.windows
+        guard let windowIndex = windows.firstIndex(where: { $0.ownsCaller && $0.hasRoot })
+            ?? windows.firstIndex(where: { $0.isKey && $0.hasRoot })
+            ?? windows.firstIndex(where: { $0.hasRoot }) else { return nil }
+        return PortalPresenterChoice(sceneIndex: scene.offset, windowIndex: windowIndex, presentedDepth: windows[windowIndex].presentedDepth)
+    }
+}
+
 /// URL and origin checks are shared with the offline security regression tests.
 enum SchoolPortalSecurity {
     static func allows(scheme: String, host: String, allowedHosts: Set<String>) -> Bool {
         scheme.lowercased() == "https" && allowedHosts.contains(host.lowercased())
+    }
+
+    static func navigation(for url: URL, allowedHosts: Set<String>) -> PortalNavigation {
+        guard url.user == nil, url.password == nil, let host = url.host?.lowercased(), let scheme = url.scheme?.lowercased() else {
+            return .block
+        }
+        if scheme == "https" && allowedHosts.contains(host) { return .allow }
+        let port = url.port
+        if scheme == "http" && allowedHosts.contains(host) && (port == nil || port == 80 || port == 443) {
+            guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return .block }
+            components.scheme = "https"
+            components.user = nil
+            components.password = nil
+            components.port = port == 443 ? 443 : nil
+            if let upgraded = components.url { return .upgrade(upgraded) }
+        }
+        return .block
     }
 
     static func sanitizedURL(_ url: URL?) -> String? {

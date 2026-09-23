@@ -762,7 +762,8 @@ class _ImportReviewViewState extends State<ImportReviewView> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: Text(_needsPortalAI ? 'AI 识别网页课表' : '核对导入课表')),
-    body: Column(
+    body: SafeArea(
+      child: Column(
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
@@ -973,6 +974,7 @@ class _ImportReviewViewState extends State<ImportReviewView> {
           ),
         ),
       ],
+      ),
     ),
   );
   String _summary(Map<String, dynamic> course) {
@@ -1311,7 +1313,9 @@ class _CourseEditorState extends State<_CourseEditor> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('编辑课程')),
-    body: ListView(
+    body: SafeArea(
+      child: ListView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.all(20),
       children: [
         for (final e in const {
@@ -1381,6 +1385,7 @@ class _CourseEditorState extends State<_CourseEditor> {
         if (_error != null) Text(_error!),
         FilledButton(onPressed: _done, child: const Text('完成核对')),
       ],
+      ),
     ),
   );
 }

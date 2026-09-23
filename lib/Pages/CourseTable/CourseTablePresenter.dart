@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'dart:async';
-import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_swiper_null_safety_flutter3/flutter_swiper_null_safety_flutter3.dart';
 import 'package:flutter/material.dart';
@@ -17,6 +16,7 @@ import '../../Resources/Constant.dart';
 import '../../Resources/Url.dart';
 import '../../Utils/States/MainState.dart';
 import '../../Utils/ColorUtil.dart';
+import '../../Utils/CourseWeeks.dart';
 import '../../Utils/WeekUtil.dart';
 import '../../Components/Dialog.dart';
 import '../../Components/Toast.dart';
@@ -335,8 +335,7 @@ class CourseTablePresenter {
   }
 
   bool isThisWeek(Course course, int nowWeek) {
-    List weeks = json.decode(course.weeks!);
-    return weeks.contains(nowWeek);
+    return CourseWeeks.parse(course.weeks).contains(nowWeek);
   }
 
 //TEST: 测试用函数

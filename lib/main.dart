@@ -54,11 +54,28 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   late final MainStateModel _model;
+  final _navigatorKey = GlobalKey<NavigatorState>();
+  static const _widgetChannel = MethodChannel('sanqian/widget');
 
   @override
   void initState() {
     super.initState();
     _model = MainStateModel()..initThemeState();
+    if (Platform.isAndroid) {
+      _widgetChannel.setMethodCallHandler((call) async {
+        if (call.method == 'openSchedule') {
+          _navigatorKey.currentState?.popUntil((route) => route.isFirst);
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    if (Platform.isAndroid) {
+      _widgetChannel.setMethodCallHandler(null);
+    }
+    super.dispose();
   }
 
   @override
@@ -66,6 +83,7 @@ class _MyAppState extends State<MyApp> {
     model: _model,
     child: ScopedModelDescendant<MainStateModel>(
       builder: (context, child, model) => MaterialApp(
+        navigatorKey: _navigatorKey,
         debugShowCheckedModeBanner: false,
         title: personalAppName,
         locale: const Locale('zh', 'CN'),
