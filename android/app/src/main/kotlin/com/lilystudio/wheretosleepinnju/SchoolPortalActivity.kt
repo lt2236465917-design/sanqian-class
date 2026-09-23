@@ -44,6 +44,8 @@ class SchoolPortalActivity : Activity() {
     private var deadlineRunnable: Runnable? = null
     private var bootstrapping = false
     private var started = false
+    private var preparing = false
+    private var portalEpoch = 0
     private var backHandle: Any? = null
 
     private val activeWebView: WebView get() = childWebViews.lastOrNull() ?: mainWebView
@@ -52,18 +54,12 @@ class SchoolPortalActivity : Activity() {
         super.onCreate(savedInstanceState)
         backHandle = PredictiveBack.register(this) { goBack() }
         setContentView(R.layout.activity_school_portal)
-        val statusView = findViewById<TextView>(R.id.portal_status)
-        val containerView = findViewById<FrameLayout>(R.id.portal_web_container)
-        val cancelButton = findViewById<Button>(R.id.portal_cancel)
-        val extractButton = findViewById<Button>(R.id.portal_extract)
-        if (statusView == null || containerView == null || cancelButton == null || extractButton == null) {
-            finish()
-            return
+        status = findViewById(R.id.portal_status)
+        container = findViewById(R.id.portal_web_container)
+        findViewById<Button>(R.id.portal_cancel).setOnClickListener { cancel() }
+        findViewById<Button>(R.id.portal_extract).setOnClickListener {
+            if (!started) preparePortal() else requestExtraction()
         }
-        status = statusView
-        container = containerView
-        cancelButton.setOnClickListener { cancel() }
-        extractButton.setOnClickListener { requestExtraction() }
 
         if (!WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER) ||
             !WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)
@@ -72,14 +68,49 @@ class SchoolPortalActivity : Activity() {
             return
         }
 
-        CookieManager.getInstance().setAcceptCookie(true)
-        CookieManager.getInstance().removeAllCookies(null)
-        WebStorage.getInstance().deleteAllData()
-        mainWebView = createWebView()
-        show(mainWebView)
-        bootstrapping = true
-        started = true
-        mainWebView.loadUrl(BOOTSTRAP_URL)
+        preparePortal()
+    }
+
+    private fun preparePortal() {
+        if (preparing || started || isFinishing || isDestroyed) return
+        preparing = true
+        val epoch = portalEpoch
+        showStatus("正在清理上一次登录状态…")
+        PortalStorageReset.reset(
+            deleteWebStorage = { WebStorage.getInstance().deleteAllData() },
+            removeAllCookies = { done ->
+                CookieManager.getInstance().removeAllCookies { hadCookiesRemoved ->
+                    handler.post { done(hadCookiesRemoved == true) }
+                }
+            },
+            onReady = {
+                preparing = false
+                if (!portalCleanupMayOpen(epoch, portalEpoch, isFinishing, isDestroyed)) {
+                    return@reset
+                }
+                try {
+                    CookieManager.getInstance().setAcceptCookie(true)
+                    CookieManager.getInstance().flush()
+                    mainWebView = createWebView()
+                    show(mainWebView)
+                    bootstrapping = true
+                    started = true
+                    showStatus("")
+                    mainWebView.loadUrl(BOOTSTRAP_URL)
+                } catch (_: Exception) {
+                    started = false
+                    showStatus("门户未能打开。请点「读取并识别」重试。")
+                }
+            },
+            onFailure = { message ->
+                preparing = false
+                if (!portalCleanupMayOpen(epoch, portalEpoch, isFinishing, isDestroyed)) {
+                    return@reset
+                }
+                started = false
+                showStatus(message)
+            }
+        )
     }
 
     override fun onBackPressed() {
@@ -87,6 +118,8 @@ class SchoolPortalActivity : Activity() {
     }
 
     override fun onDestroy() {
+        portalEpoch += 1
+        preparing = false
         PredictiveBack.unregister(this, backHandle)
         backHandle = null
         cancelExtraction()
@@ -147,7 +180,7 @@ class SchoolPortalActivity : Activity() {
 
             override fun onReceivedError(view: WebView, errorCode: Int, description: String?, failingUrl: String?) {
                 cancelExtraction()
-                showStatus("网页没打开。请确认手机能上网后点取消，再重新打开学校网页；也可以改用课程截图导入课表。")
+                showStatus("网页没打开。请确认手机能上网后点取消，再重新打开学校网页；也可以改用多图课表导入。")
             }
         }
         webView.webChromeClient = object : WebChromeClient() {
@@ -192,22 +225,23 @@ class SchoolPortalActivity : Activity() {
     }
 
     private fun handleNavigation(view: WebView, uri: Uri): Boolean {
-        if (uri.scheme.equals("http", true) &&
-            uri.host.equals("iam.zgysyjy.org.cn", true) &&
-            uri.port == 443
-        ) {
-            val upgraded = uri.buildUpon().scheme("https").build()
-            view.loadUrl(upgraded.toString())
-            return true
-        }
         val blankPopup = childWebViews.contains(view) && uri.toString() == "about:blank"
-        if (isAllowed(uri) || blankPopup) return false
-        val scheme = uri.scheme ?: "未知协议"
-        val host = uri.host ?: "无主机"
-        val port = if (uri.port == -1) "默认端口" else uri.port.toString()
-        val path = uri.path ?: "/"
-        showStatus("学校跳转被阻止：$scheme://$host:$port$path。请联系开发者核对学校跳转地址。")
-        return true
+        if (blankPopup) return false
+        when (val decision = SchoolPortalSecurity.decide(uri.toString())) {
+            PortalNavigation.Allow -> return false
+            is PortalNavigation.Upgrade -> {
+                view.loadUrl(decision.url)
+                return true
+            }
+            PortalNavigation.Block -> {
+                val scheme = uri.scheme ?: "未知协议"
+                val host = uri.host ?: "无主机"
+                val port = if (uri.port == -1) "默认端口" else uri.port.toString()
+                val path = uri.path ?: "/"
+                showStatus("学校跳转被阻止：$scheme://$host:$port$path。请联系开发者核对学校跳转地址。")
+                return true
+            }
+        }
     }
 
     private fun isAllowed(uri: Uri?): Boolean {

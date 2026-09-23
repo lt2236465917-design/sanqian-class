@@ -174,31 +174,30 @@ final class SchoolPortalSession: NSObject, WKNavigationDelegate, WKUIDelegate {
 
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
         let blankPopup = childWebViews.contains(where: { $0 === webView }) && navigationAction.request.url?.absoluteString == "about:blank"
-        if let url = navigationAction.request.url,
-           url.scheme?.lowercased() == "http",
-           url.host?.lowercased() == "iam.zgysyjy.org.cn",
-           url.port == 443,
-           var components = URLComponents(url: url, resolvingAgainstBaseURL: false) {
-            // The school's gateway returns an HTTP URL on port 443 after a
-            // successful callback. Upgrade this exact same-host destination
-            // before WebKit loads it; every other HTTP navigation remains blocked.
-            components.scheme = "https"
-            if let upgraded = components.url {
+        if let url = navigationAction.request.url, !blankPopup {
+            switch SchoolPortalSecurity.navigation(for: url, allowedHosts: configuration.allowedHosts) {
+            case .upgrade(let upgraded):
                 decisionHandler(.cancel)
                 webView.load(URLRequest(url: upgraded, cachePolicy: .reloadIgnoringLocalCacheData))
                 return
+            case .allow:
+                decisionHandler(.allow)
+                return
+            case .block:
+                break
             }
         }
-        let allowed = isAllowed(navigationAction.request.url) || blankPopup
-        if !allowed {
-            let url = navigationAction.request.url
-            let scheme = url?.scheme ?? "未知协议"
-            let host = url?.host ?? "无主机"
-            let port = url?.port.map(String.init) ?? "默认端口"
-            let path = url?.path ?? "/"
-            fail("学校跳转被阻止：\(scheme)://\(host):\(port)\(path)。请联系开发者核对学校跳转地址。")
+        if blankPopup {
+            decisionHandler(.allow)
+            return
         }
-        decisionHandler(allowed ? .allow : .cancel)
+        let url = navigationAction.request.url
+        let scheme = url?.scheme ?? "未知协议"
+        let host = url?.host ?? "无主机"
+        let port = url?.port.map(String.init) ?? "默认端口"
+        let path = url?.path ?? "/"
+        fail("学校跳转被阻止：\(scheme)://\(host):\(port)\(path)。请联系开发者核对学校跳转地址。")
+        decisionHandler(.cancel)
     }
 
     func webView(_ webView: WKWebView, decidePolicyFor navigationResponse: WKNavigationResponse, decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void) {

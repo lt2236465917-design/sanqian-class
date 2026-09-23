@@ -156,7 +156,7 @@ void main() {
       await show(tester, const PhotoScheduleImportView());
       expect(find.text('尚未配置 DeepSeek Key，请先打开下方设置。'), findsOneWidget);
       expect(calls.where((c) => c.method.startsWith('recognize')), isEmpty);
-      await tester.ensureVisible(find.text('DeepSeek 设置'));
+      await tester.scrollUntilVisible(find.text('DeepSeek 设置'), 200);
       await tester.tap(find.text('DeepSeek 设置'));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField), 'fixture-key');

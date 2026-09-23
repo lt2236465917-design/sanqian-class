@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -49,17 +51,17 @@ class _FloatingScheduleNavigationState
           selectedIndex: widget.selectedIndex,
           onSelected: widget.onSelected,
         )
-      : _MaterialScheduleNavigation(
+      : _FrostedScheduleNavigation(
           selectedIndex: widget.selectedIndex,
           onSelected: widget.onSelected,
         );
 }
 
-class _MaterialScheduleNavigation extends StatelessWidget {
+class _FrostedScheduleNavigation extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onSelected;
 
-  const _MaterialScheduleNavigation({
+  const _FrostedScheduleNavigation({
     required this.selectedIndex,
     required this.onSelected,
   });
@@ -75,18 +77,15 @@ class _MaterialScheduleNavigation extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final dark = Theme.of(context).brightness == Brightness.dark;
     final highContrast = MediaQuery.highContrastOf(context);
-    final duration = MediaQuery.disableAnimationsOf(context)
+    final duration =
+        (MediaQuery.disableAnimationsOf(context) ||
+            MediaQuery.accessibleNavigationOf(context))
         ? Duration.zero
         : const Duration(milliseconds: 360);
     final height =
         64.0 + (MediaQuery.textScalerOf(context).scale(11) - 11).clamp(0, 32);
-    // The iOS 26 path uses UIKit's native glass. Older iOS and Android use
-    // this opaque material dock so the same shape and contrast stay stable
-    // across renderers that do not provide the same backdrop blur.
-    final surface = dark ? const Color(0xFF29262E) : const Color(0xFFFFFCF6);
-    final rim = dark
-        ? Colors.white.withValues(alpha: .14)
-        : colors.outlineVariant.withValues(alpha: .72);
+    final glass = dark ? const Color(0xFF29262E) : const Color(0xFFFFFCF6);
+    final rim = Colors.white.withValues(alpha: dark ? .15 : .78);
 
     return SafeArea(
       top: false,
@@ -113,124 +112,123 @@ class _MaterialScheduleNavigation extends StatelessWidget {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(40),
-              child: Container(
-                key: const ValueKey('floating-schedule-bar'),
-                height: height,
-                padding: const EdgeInsets.all(5),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: highContrast
-                        ? [surface, surface]
-                        : dark
-                        ? [
-                            surface.withValues(alpha: .98),
-                            const Color(0xFF211F26).withValues(alpha: .98),
-                          ]
-                        : [
-                            Colors.white.withValues(alpha: .98),
-                            surface.withValues(alpha: .98),
-                          ],
-                  ),
-                  borderRadius: BorderRadius.circular(40),
-                  border: Border.all(color: rim, width: .8),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(
+                  sigmaX: highContrast ? 0 : 16,
+                  sigmaY: highContrast ? 0 : 16,
                 ),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    // One moving lens keeps the transition continuous.
-                    AnimatedAlign(
-                      duration: duration,
-                      curve: Curves.easeOutCubic,
-                      alignment: Alignment(-1 + selectedIndex.toDouble(), 0),
-                      child: FractionallySizedBox(
-                        widthFactor: 1 / _items.length,
-                        heightFactor: 1,
-                        child: Container(
-                          key: const ValueKey('floating-tab-indicator'),
-                          margin: const EdgeInsets.symmetric(horizontal: 2),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(32),
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: dark
-                                  ? [
-                                      Colors.white.withValues(alpha: .17),
-                                      colors.primary.withValues(alpha: .12),
-                                    ]
-                                  : [
-                                      const Color(
-                                        0xFFECE7EE,
-                                      ).withValues(alpha: .86),
-                                      const Color(
-                                        0xFFE3DEE7,
-                                      ).withValues(alpha: .64),
-                                    ],
-                            ),
-                            border: Border.all(
-                              color: Colors.white.withValues(
-                                alpha: dark ? .22 : .8,
+                child: Container(
+                  key: const ValueKey('floating-schedule-bar'),
+                  height: height,
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    color: glass.withValues(
+                      alpha: highContrast
+                          ? .96
+                          : dark
+                          ? .76
+                          : .72,
+                    ),
+                    borderRadius: BorderRadius.circular(40),
+                    border: Border.all(color: rim, width: .8),
+                  ),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      // One moving lens keeps the transition continuous.
+                      AnimatedAlign(
+                        duration: duration,
+                        curve: Curves.easeOutCubic,
+                        alignment: Alignment(-1 + selectedIndex.toDouble(), 0),
+                        child: FractionallySizedBox(
+                          widthFactor: 1 / _items.length,
+                          heightFactor: 1,
+                          child: Container(
+                            key: const ValueKey('floating-tab-indicator'),
+                            margin: const EdgeInsets.symmetric(horizontal: 2),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(32),
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: dark
+                                    ? [
+                                        Colors.white.withValues(alpha: .17),
+                                        colors.primary.withValues(alpha: .12),
+                                      ]
+                                    : [
+                                        const Color(
+                                          0xFFECE7EE,
+                                        ).withValues(alpha: .86),
+                                        const Color(
+                                          0xFFE3DEE7,
+                                        ).withValues(alpha: .64),
+                                      ],
                               ),
-                              width: .8,
+                              border: Border.all(
+                                color: Colors.white.withValues(
+                                  alpha: dark ? .22 : .8,
+                                ),
+                                width: .8,
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                    Row(
-                      children: [
-                        for (var index = 0; index < _items.length; index++)
-                          Expanded(
-                            child: Semantics(
-                              key: ValueKey('tab-${_items[index].key}'),
-                              container: true,
-                              button: true,
-                              selected: index == selectedIndex,
-                              inMutuallyExclusiveGroup: true,
-                              label: _items[index].label,
-                              onTap: () => onSelected(index),
-                              child: ExcludeSemantics(
-                                child: TextButton(
-                                  onPressed: () => onSelected(index),
-                                  style: TextButton.styleFrom(
-                                    minimumSize: const Size(44, 44),
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 5,
-                                    ),
-                                    shape: const StadiumBorder(),
-                                    foregroundColor: index == selectedIndex
-                                        ? colors.primary
-                                        : colors.onSurface,
-                                    overlayColor: colors.primary.withValues(
-                                      alpha: .08,
-                                    ),
-                                  ),
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(_items[index].icon, size: 23),
-                                      const SizedBox(height: 3),
-                                      Text(
-                                        _items[index].label,
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          height: 1.1,
-                                          fontWeight: index == selectedIndex
-                                              ? FontWeight.w600
-                                              : FontWeight.w400,
-                                        ),
+                      Row(
+                        children: [
+                          for (var index = 0; index < _items.length; index++)
+                            Expanded(
+                              child: Semantics(
+                                key: ValueKey('tab-${_items[index].key}'),
+                                container: true,
+                                button: true,
+                                selected: index == selectedIndex,
+                                inMutuallyExclusiveGroup: true,
+                                label: _items[index].label,
+                                onTap: () => onSelected(index),
+                                child: ExcludeSemantics(
+                                  child: TextButton(
+                                    onPressed: () => onSelected(index),
+                                    style: TextButton.styleFrom(
+                                      minimumSize: const Size(44, 44),
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 5,
                                       ),
-                                    ],
+                                      shape: const StadiumBorder(),
+                                      foregroundColor: index == selectedIndex
+                                          ? colors.primary
+                                          : colors.onSurface,
+                                      overlayColor: colors.primary.withValues(
+                                        alpha: .08,
+                                      ),
+                                    ),
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(_items[index].icon, size: 23),
+                                        const SizedBox(height: 3),
+                                        Text(
+                                          _items[index].label,
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            height: 1.1,
+                                            fontWeight: index == selectedIndex
+                                                ? FontWeight.w600
+                                                : FontWeight.w400,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                      ],
-                    ),
-                  ],
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:dio/dio.dart';
 import '../../../generated/l10n.dart';
 import 'package:flutter/material.dart';
@@ -11,9 +10,44 @@ import '../../../Utils/States/MainState.dart';
 import '../../../Components/Toast.dart';
 import '../../../Components/TransBgTextButton.dart';
 import '../../../Resources/Config.dart';
+import '../../../Resources/Constant.dart';
 import '../../../Resources/Url.dart';
+import '../../../Utils/CourseWeeks.dart';
 
 //TODO: 全校课程
+
+class CourseCardCopy {
+  final String time;
+  final String teacher;
+  final String detail;
+
+  const CourseCardCopy(this.time, this.teacher, this.detail);
+
+  static CourseCardCopy of(Course course, S labels) {
+    final weekday = course.weekTime;
+    final day = weekday != null &&
+            weekday > 0 &&
+            weekday < Constant.WEEK_WITH_BIAS.length
+        ? Constant.WEEK_WITH_BIAS[weekday]
+        : '星期待定';
+    final start = course.startTime;
+    final count = course.timeCount ?? 0;
+    final period = start == null || start <= 0
+        ? labels.lecture_no_time
+        : labels.class_duration('$start', '${start + count}');
+    final weeks = CourseWeeks.parse(course.weeks);
+    final weekText = weeks.isEmpty ? '周次待定' : weeks.map(labels.week).join(' ');
+    final room = (course.classroom ?? '').trim();
+    final place = room.isEmpty ? labels.lecture_no_classroom : room;
+    final teacherName = (course.teacher ?? '').trim();
+    final info = (course.info ?? '').trim();
+    return CourseCardCopy(
+      '时间&地点： $day $period $weekText $place',
+      '授课教师：${teacherName.isEmpty ? labels.lecture_no_teacher : teacherName}',
+      info.isEmpty ? labels.unknown_info : info,
+    );
+  }
+}
 
 class CourseCard extends StatefulWidget {
   final Course course;
@@ -52,8 +86,8 @@ class _CourseCardState extends State<CourseCard> {
   }
 
   addCourse() async {
-    int weekInt = json.decode(widget.course.weeks!)[0];
-    if (weekInt < 0 || weekInt > Config.MAX_WEEKS) {
+    final weekInt = CourseWeeks.firstAddable(widget.course.weeks);
+    if (weekInt == null || weekInt > Config.MAX_WEEKS) {
       Toast.showToast(S.of(context).lecture_add_fail_toast, context);
       return;
     }
@@ -72,14 +106,12 @@ class _CourseCardState extends State<CourseCard> {
 
   @override
   Widget build(BuildContext context) {
-    // String subtitle = S.of(context).lecture_teacher_title +
-    //     (widget.course.teacher ?? S.of(context).lecture_no_teacher) +
-    //     '\n' +
-    //     (widget.course.classroom ?? S.of(context).lecture_no_classroom);
-    String time = "时间&地点： 周一 第5-6节 第3周 第7周 第11周 第15周 仙Ⅰ-109 ";
-    String teacher = "授课教师：李其芳";
-    widget.course.info =
-        "邀请您参加腾讯会议会议主题：大四上形势与政策课会议时间：2021/09/13-2021/10/25 14:00-14:30(GMT 08:00) 中国标准时间 - 北京, 每两周 (周一)点击链接入会，或添加至会议列表：https://meeting.tencent.com/dm/QwC3svPLW9jO?rs=25会议 ID：699 6156 9408手机一键拨号入会 8675536550000,,69961569408";
+    final labels = S.of(context);
+    final course = widget.course;
+    final copy = CourseCardCopy.of(course, labels);
+    final time = copy.time;
+    final teacher = copy.teacher;
+    final detail = copy.detail;
     return Padding(
         padding: const EdgeInsets.only(bottom: 10, left: 5, right: 5),
         child: Card(
@@ -128,7 +160,7 @@ class _CourseCardState extends State<CourseCard> {
                   alignment: Alignment.topLeft,
                   padding: const EdgeInsets.all(15.0),
                   child:
-                      Text(widget.course.info ?? S.of(context).unknown_info)),
+                      Text(detail)),
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: <Widget>[

@@ -16,6 +16,7 @@ public final class ScheduleCredentialsStore {
     private let account: String
     private let lock = NSRecursiveLock()
     private var schoolItem: String { account + ".school.active" }
+    private var legacyJwItem: String { account + ".legacy.jw" }
 
     public init(service: String = "com.sanqian.schedule.credentials", account: String = "deepseek.apiKey") {
         self.service = service
@@ -62,6 +63,27 @@ public final class ScheduleCredentialsStore {
     }
 
     public func deleteSchoolCredentials() throws { try delete(item: schoolItem) }
+
+    /// Legacy JW login form only. The password is returned so the form can
+    /// autofill; callers must not log it.
+    public func saveLegacyJw(username: String, password: String) throws {
+        let account = username.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !account.isEmpty, !password.isEmpty else { throw ScheduleCredentialsStoreError.invalidValue }
+        let bytes = try JSONSerialization.data(withJSONObject: ["username": account, "password": password])
+        try save(bytes, item: legacyJwItem)
+    }
+
+    public func loadLegacyJw() throws -> (username: String, password: String)? {
+        guard let data = try load(item: legacyJwItem) else { return nil }
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: String],
+              let username = json["username"], !username.isEmpty,
+              let password = json["password"], !password.isEmpty else {
+            throw ScheduleCredentialsStoreError.invalidValue
+        }
+        return (username, password)
+    }
+
+    public func deleteLegacyJw() throws { try delete(item: legacyJwItem) }
 
     /// Native-only login injection callback. Never expose its password argument
     /// in a MethodChannel return value. The portal must verify the IAM origin

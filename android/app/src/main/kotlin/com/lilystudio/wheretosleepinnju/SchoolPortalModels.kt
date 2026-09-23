@@ -126,11 +126,67 @@ data class SchoolScheduleParseResult(
     val canReview: Boolean get() = drafts.isNotEmpty() || !(timetableText ?: "").isEmpty()
 }
 
+sealed class PortalNavigation {
+    object Allow : PortalNavigation()
+    data class Upgrade(val url: String) : PortalNavigation()
+    object Block : PortalNavigation()
+}
+
 object SchoolPortalSecurity {
     val allowedHosts = setOf("iam.zgysyjy.org.cn", "access.zgysyjy.org.cn", "wxt.zgysyjy.org.cn")
 
     fun allows(scheme: String, host: String, allowed: Set<String> = allowedHosts): Boolean {
         return scheme.equals("https", true) && allowed.contains(host.lowercase())
+    }
+
+    fun decide(raw: String, allowed: Set<String> = allowedHosts): PortalNavigation {
+        val uri = try {
+            java.net.URI(raw)
+        } catch (_: Exception) {
+            return PortalNavigation.Block
+        }
+        if (!uri.userInfo.isNullOrEmpty()) return PortalNavigation.Block
+        val scheme = uri.scheme?.lowercase() ?: return PortalNavigation.Block
+        val host = uri.host?.lowercase() ?: return PortalNavigation.Block
+        val exact = allowed.contains(host)
+        if (scheme == "https" && exact) return PortalNavigation.Allow
+        val port = uri.port
+        if (scheme == "http" && exact && (port == -1 || port == 80 || port == 443)) {
+            val httpsPort = if (port == 443) 443 else -1
+            return try {
+                PortalNavigation.Upgrade(httpsUrlPreservingEncoding(host, httpsPort, uri))
+            } catch (_: Exception) {
+                PortalNavigation.Block
+            }
+        }
+        return PortalNavigation.Block
+    }
+
+    /**
+     * Changes only the scheme and, when needed, the port.
+     * The component constructor of [URI] encodes '%' again, so raw path,
+     * query, and fragment are copied instead of being rebuilt.
+     */
+    private fun httpsUrlPreservingEncoding(host: String, port: Int, uri: URI): String {
+        val upgraded = buildString {
+            append("https://")
+            append(host)
+            if (port != -1) {
+                append(':')
+                append(port)
+            }
+            append(uri.rawPath ?: "")
+            if (uri.rawQuery != null) {
+                append('?')
+                append(uri.rawQuery)
+            }
+            if (uri.rawFragment != null) {
+                append('#')
+                append(uri.rawFragment)
+            }
+        }
+        URI(upgraded)
+        return upgraded
     }
 
     fun sanitizedURL(value: String?): String? {

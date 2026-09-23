@@ -3,25 +3,29 @@ import 'package:flutter/services.dart';
 import '../../Components/Dialog.dart';
 import '../../Components/TransBgTextButton.dart';
 import '../../generated/l10n.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/material.dart';
 import '../../Resources/Constant.dart';
 import '../../Components/Toast.dart';
 import '../../Resources/Url.dart';
 
+import '../../Utils/JwCredentialVault.dart';
 import 'ImportFromJWPresenter.dart';
 import 'dart:math';
 
 class ImportFromJWView extends StatefulWidget {
-  const ImportFromJWView({Key? key}) : super(key: key);
+  final JwCredentialVault? credentials;
+  final ImportFromJWPresenter? presenter;
+
+  const ImportFromJWView({Key? key, this.credentials, this.presenter})
+      : super(key: key);
 
   @override
   _ImportFromJWViewState createState() => _ImportFromJWViewState();
 }
 
 class _ImportFromJWViewState extends State<ImportFromJWView> {
-  final ImportFromJWPresenter _presenter = ImportFromJWPresenter();
+  late final ImportFromJWPresenter _presenter;
 
   final TextEditingController _usrController = TextEditingController();
   final TextEditingController _pwdController = TextEditingController();
@@ -32,39 +36,43 @@ class _ImportFromJWViewState extends State<ImportFromJWView> {
 
   bool _checkboxSelected = false;
   double randomNumForCaptcha = Random().nextDouble();
+  late final JwCredentialVault _credentials;
 
   @override
   void initState() {
     super.initState();
+    _credentials = widget.credentials ?? JwCredentialVault.platform();
+    _presenter = widget.presenter ?? ImportFromJWPresenter();
     _getUserInfo();
   }
 
-  _getUserInfo() async {
-    SharedPreferences sp = await SharedPreferences.getInstance();
-    String? username = sp.getString('username');
-    String? password = sp.getString('password');
-    if (username == null || password == null) {
-      _checkboxSelected = false;
-    } else {
+  Future<void> _getUserInfo() async {
+    try {
+      final saved = await _credentials.load();
+      if (!mounted) return;
+      if (saved == null) {
+        setState(() => _checkboxSelected = false);
+        return;
+      }
       setState(() {
         _checkboxSelected = true;
-        _usrController.text = username;
-        _pwdController.text = password;
+        _usrController.text = saved.username;
+        _pwdController.text = saved.password;
       });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _checkboxSelected = false);
     }
   }
 
-  _saveUserInfo() async {
-    SharedPreferences sp = await SharedPreferences.getInstance();
-    sp.setString("username", _usrController.value.text.toString());
-    sp.setString("password", _pwdController.value.text.toString());
+  Future<void> _saveUserInfo() async {
+    await _credentials.save(
+      _usrController.value.text.toString(),
+      _pwdController.value.text.toString(),
+    );
   }
 
-  _clearUserInfo() async {
-    SharedPreferences sp = await SharedPreferences.getInstance();
-    sp.remove('username');
-    sp.remove('password');
-  }
+  Future<void> _clearUserInfo() => _credentials.delete();
 
   @override
   Widget build(BuildContext context) {
@@ -177,36 +185,38 @@ class _ImportFromJWViewState extends State<ImportFromJWView> {
                         }),
                       ))
                 ]),
-                // CheckboxListTile(
-                //   contentPadding: EdgeInsets.zero,
-                //   title: Text("title text"),
-                //   value: _checkboxSelected,
-                //   onChanged: (newValue) {},
-                //   controlAffinity: ListTileControlAffinity.leading,  //  <-- leading Checkbox
-                // ),
-                // Row(
-                //   children: <Widget>[
-                //     SizedBox(
-                //         height: 44.0,
-                //         width: 24.0,
-                //         child: Checkbox(
-                //           value: _checkboxSelected,
-                //           checkColor:
-                //               Theme.of(context).brightness == Brightness.light
-                //                   ? Colors.white
-                //                   : Colors.black,
-                //           onChanged: (value) {
-                //             setState(() {
-                //               _checkboxSelected = value!;
-                //             });
-                //           },
-                //         )),
-                //     const Padding(
-                //       padding: EdgeInsets.only(left: 10),
-                //     ),
-                //     Text(S.of(context).remember_password),
-                //   ],
-                // ),
+                Row(
+                  children: <Widget>[
+                    SizedBox(
+                        height: 44.0,
+                        width: 24.0,
+                        child: Checkbox(
+                          value: _checkboxSelected,
+                          checkColor:
+                              Theme.of(context).brightness == Brightness.light
+                                  ? Colors.white
+                                  : Colors.black,
+                          onChanged: (value) async {
+                            final selected = value ?? false;
+                            if (!selected) {
+                              try {
+                                await _clearUserInfo();
+                              } catch (_) {
+                                if (!mounted) return;
+                                Toast.showToast('暂时无法删除已保存的密码，请重试', context);
+                                return;
+                              }
+                            }
+                            if (!mounted) return;
+                            setState(() => _checkboxSelected = selected);
+                          },
+                        )),
+                    const Padding(
+                      padding: EdgeInsets.only(left: 10),
+                    ),
+                    Text(S.of(context).remember_password),
+                  ],
+                ),
                 Container(
                   padding: const EdgeInsets.all(5),
                 ),
@@ -215,11 +225,19 @@ class _ImportFromJWViewState extends State<ImportFromJWView> {
                   child: TextButton(
                       child: Text(S.of(context).import),
                       onPressed: () async {
-                        // 这里没必要同步，异步处理即可
-                        if (_checkboxSelected) {
-                          _saveUserInfo();
-                        } else {
-                          _clearUserInfo();
+                        try {
+                          if (_checkboxSelected) {
+                            await _saveUserInfo();
+                          } else {
+                            await _clearUserInfo();
+                          }
+                        } catch (_) {
+                          Toast.showToast(
+                              _checkboxSelected
+                                  ? '密码未能写入安全存储，请重试'
+                                  : '暂时无法删除已保存的密码，请重试',
+                              context);
+                          return;
                         }
                         if (_usrController.value.text.toString() == 'admin' &&
                             _pwdController.value.text.toString() == 'admin') {

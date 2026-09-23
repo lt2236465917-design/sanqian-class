@@ -1,3 +1,4 @@
+import '../../Components/ScheduleDesign.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -210,6 +211,13 @@ class _ReminderSettingsViewState extends State<ReminderSettingsView>
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         padding: const EdgeInsets.all(20),
         children: [
+          const ScheduleIntro(
+            icon: Icons.notifications_outlined,
+            eyebrow: '提前一点，从容上课',
+            title: '为课程留出准备时间',
+            description: '提醒通过系统日历安排，可组合选择提前时间。待定课程会在确认时间后参与同步。',
+          ),
+          const ScheduleSection('提前提醒'),
           for (final item in const {
             15: '提前 15 分钟',
             180: '提前 3 小时',
@@ -224,7 +232,9 @@ class _ReminderSettingsViewState extends State<ReminderSettingsView>
               value: _enabled[item.key]!,
               onChanged: _busy ? null : (v) => _change(item.key, v),
             ),
-          if (_status.isNotEmpty && _isError)
+          if (_busy)
+            Semantics(liveRegion: true, child: const Text('正在更新提醒设置…')),
+          if (_status.isNotEmpty)
             Padding(
               padding: const EdgeInsets.all(16),
               child: Semantics(
@@ -259,7 +269,7 @@ class _ReminderSettingsViewState extends State<ReminderSettingsView>
               child: const Text('重试提醒设置'),
             ),
           const SizedBox(height: 12),
-          const Text('课程会同步到系统日历，按你选择的时间提醒，无需打开 App 就够了。'),
+          const Text('课程会同步到系统日历，按你选择的时间提醒，无需打开 App。'),
         ],
       ),
     ),

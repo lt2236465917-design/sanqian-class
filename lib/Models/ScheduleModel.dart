@@ -1,6 +1,6 @@
 import 'CourseModel.dart';
-import 'dart:convert';
 import '../Resources/Constant.dart';
+import '../Utils/CourseWeeks.dart';
 
 class ScheduleModel {
   int nowWeek;
@@ -31,13 +31,14 @@ class ScheduleModel {
 
   void classify() {
     for (Course course in courses) {
-      List weeks = json.decode(course.weeks!);
-      if (course.weekTime == 0) {
+      final weeks = CourseWeeks.parse(course.weeks);
+      if (course.weekTime == null || course.weekTime == 0) {
         freeCourses.add(course);
       } else if (weeks.contains(nowWeek)) {
         activeCourses.add(course);
       } else if (course.importType == Constant.ADD_BY_LECTURE &&
-          weeks[0] < nowWeek) {
+          weeks.isNotEmpty &&
+          weeks.first < nowWeek) {
         continue;
       } else {
         hideCourses.add(course);
@@ -128,7 +129,7 @@ class ScheduleModel {
     int maxCount = -1;
     int maxIndex = 0;
     for (int i = 0; i < multiCoursesElement.length; i++) {
-      List weeks = json.decode(multiCoursesElement[i].weeks!);
+      final weeks = CourseWeeks.parse(multiCoursesElement[i].weeks);
       if (multiCoursesElement[i].timeCount! > maxCount &&
           weeks.contains(nowWeek)) {
         maxCount = multiCoursesElement[i].timeCount!;

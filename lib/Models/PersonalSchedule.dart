@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'CourseModel.dart';
 import 'CourseTableModel.dart';
 import '../Utils/ClassTimeUtil.dart';
+import '../Utils/CourseWeeks.dart';
 
 class CourseOccurrence {
   final Course course;
@@ -92,17 +93,7 @@ class PersonalSchedule {
       )
       .toList();
 
-  static List<int> _weeks(Course course) {
-    try {
-      return List<int>.from(
-        jsonDecode(course.weeks ?? '[]'),
-      ).where((week) => week > 0).toSet().toList()..sort();
-    } on FormatException {
-      return [];
-    } on TypeError {
-      return [];
-    }
-  }
+  static List<int> _weeks(Course course) => CourseWeeks.parse(course.weeks);
 
   List<CourseOccurrence> get occurrences {
     final result = <CourseOccurrence>[];

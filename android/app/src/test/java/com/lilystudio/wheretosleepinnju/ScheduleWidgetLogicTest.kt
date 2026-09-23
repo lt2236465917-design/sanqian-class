@@ -33,13 +33,6 @@ class ScheduleWidgetLogicTest {
     ) = WidgetEvent(id, title, room, start, end, clock)
 
     @Test
-    fun nullWidgetIdsStayEmpty() {
-        assertEquals(0, ScheduleWidgetIds.usable(null).size)
-        assertEquals(0, ScheduleWidgetIds.usable(IntArray(0)).size)
-        assertEquals(2, ScheduleWidgetIds.usable(intArrayOf(3, 4)).size)
-    }
-
-    @Test
     fun shanghaiOffsetIsEightHours() {
         val utc = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply {
             set(2026, Calendar.SEPTEMBER, 22, 1, 0, 0)

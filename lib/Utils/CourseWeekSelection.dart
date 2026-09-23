@@ -30,7 +30,13 @@ class CourseWeekSelection {
 
   static String summary(Map node) {
     final selected = weeks(node);
-    if (selected.isEmpty) return '请选择至少一周上课。';
+    if (selected.isEmpty) {
+      final type = node['weekType'] as int?;
+      final label = type != null && type >= 0 && type < Constant.WEEK_TYPES.length
+          ? Constant.WEEK_TYPES[type]
+          : '对应周次';
+      return '所选范围没有$label，请调整周次。';
+    }
     if (selected.length == 1) return '第 ${selected.single} 周';
     if (node['weekType'] == Constant.FULL_WEEKS) {
       return '第 ${selected.first}–${selected.last} 周 · 共 ${selected.length} 周';

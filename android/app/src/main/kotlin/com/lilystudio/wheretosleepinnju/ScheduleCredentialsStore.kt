@@ -67,6 +67,32 @@ class ScheduleCredentialsStore private constructor(context: Context) {
 
     fun deleteSchoolCredentials() = delete(ITEM_SCHOOL)
 
+    fun saveLegacyJw(username: String, password: String) {
+        val account = username.trim()
+        if (account.isEmpty() || password.isEmpty()) throw ScheduleCredentialsStoreError.InvalidValue
+        val payload = JSONObject()
+            .put("username", account)
+            .put("password", password)
+            .toString()
+            .toByteArray(Charsets.UTF_8)
+        save(payload, ITEM_JW)
+    }
+
+    fun loadLegacyJw(): Pair<String, String>? {
+        val data = load(ITEM_JW) ?: return null
+        val json = try {
+            JSONObject(String(data, Charsets.UTF_8))
+        } catch (_: Exception) {
+            throw ScheduleCredentialsStoreError.InvalidValue
+        }
+        val account = json.optString("username")
+        val password = json.optString("password")
+        if (account.isEmpty() || password.isEmpty()) throw ScheduleCredentialsStoreError.InvalidValue
+        return account to password
+    }
+
+    fun deleteLegacyJw() = delete(ITEM_JW)
+
     fun <T> withSchoolCredentials(fill: (String, String) -> T): T {
         val value = schoolCredentials() ?: throw ScheduleCredentialsStoreError.NotFound
         return fill(value.first, value.second)
@@ -159,6 +185,7 @@ class ScheduleCredentialsStore private constructor(context: Context) {
         private const val TRANSFORMATION = "AES/GCM/NoPadding"
         private const val ITEM_API_KEY = "deepseek.apiKey"
         private const val ITEM_SCHOOL = "deepseek.apiKey.school.active"
+        private const val ITEM_JW = "legacy.jw.credentials"
         private const val ITEM_SCHOOL_IDENTITY_PREFIX = "deepseek.apiKey.school.identity."
 
         @Volatile private var instance: ScheduleCredentialsStore? = null

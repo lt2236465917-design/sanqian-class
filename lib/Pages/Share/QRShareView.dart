@@ -81,7 +81,7 @@ class _QRShareViewState extends State<QRShareView> {
                   style: TextStyle(fontSize: 16),
                 ),
                 const Padding(padding: EdgeInsets.all(6)),
-                ElevatedButton(
+                FilledButton(
                   onPressed: () async {
                     await Clipboard.setData(
                       ClipboardData(text: widget.singleShareText),

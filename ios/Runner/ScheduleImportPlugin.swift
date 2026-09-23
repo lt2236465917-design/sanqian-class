@@ -28,14 +28,25 @@ final class ScheduleImportPlugin: NSObject, FlutterPlugin {
                 let info = try store.saveSchoolCredentials(account: args["account"] as? String ?? "", password: args["password"] as? String ?? "")
                 result(["account": info.account, "accountLocalId": info.accountLocalId])
             case "deleteSchoolAccount": try store.deleteSchoolCredentials(); result(true)
+            case "loadLegacyJwCredentials":
+                if let saved = try store.loadLegacyJw() { result(["username": saved.username, "password": saved.password]) }
+                else { result(nil) }
+            case "saveLegacyJwCredentials":
+                try store.saveLegacyJw(username: args["username"] as? String ?? "", password: args["password"] as? String ?? "")
+                result(true)
+            case "deleteLegacyJwCredentials":
+                try store.deleteLegacyJw(); result(true)
             case "openPortal":
+                let once = OnceFlutterResult(result)
                 let controller = SchoolPortalController()
-                controller.completion = result
-                let root = presenter ?? UIApplication.shared.windows.first(where: { $0.isKeyWindow })?.rootViewController
-                guard let root, root.presentedViewController == nil else { throw ImportBridgeError.unavailable }
+                controller.completion = { once.send($0) }
+                guard let host = currentPresenter() else {
+                    once.send(FlutterError(code: "schedule_import", message: ImportBridgeError.unavailable.errorDescription, details: nil))
+                    return
+                }
                 let navigation = UINavigationController(rootViewController: controller)
                 navigation.isModalInPresentation = true
-                root.present(navigation, animated: true)
+                host.present(navigation, animated: true)
             case "cancelRecognition": recognition?.cancel(); result(true)
             case "recognizeText":
                 guard recognition == nil else { throw ImportBridgeError.busy }
@@ -98,6 +109,82 @@ final class ScheduleImportPlugin: NSObject, FlutterPlugin {
             default: result(FlutterMethodNotImplemented)
             }
         } catch { result(FlutterError(code: "schedule_import", message: error.localizedDescription, details: nil)) }
+    }
+
+    private func currentPresenter() -> UIViewController? {
+        if let presenter { return Self.topMost(presenter) }
+        let scenes = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }
+        let snapshots = scenes.map { scene in
+            PortalSceneSnapshot(
+                activation: Self.activation(scene.activationState),
+                windows: scene.windows.map { window in
+                    PortalWindowSnapshot(
+                        isKey: window.isKeyWindow,
+                        hasRoot: window.rootViewController != nil,
+                        presentedDepth: Self.depth(window.rootViewController),
+                        ownsCaller: Self.containsFlutter(window.rootViewController)
+                    )
+                }
+            )
+        }
+        guard let choice = PortalPresenterResolver.choose(snapshots),
+              scenes.indices.contains(choice.sceneIndex) else { return nil }
+        let windows = scenes[choice.sceneIndex].windows
+        guard windows.indices.contains(choice.windowIndex) else { return nil }
+        return Self.controller(windows[choice.windowIndex].rootViewController, depth: choice.presentedDepth)
+    }
+
+    private static func activation(_ state: UIScene.ActivationState) -> String {
+        switch state {
+        case .foregroundActive: return "foregroundActive"
+        case .foregroundInactive: return "foregroundInactive"
+        case .background: return "background"
+        case .unattached: return "unattached"
+        @unknown default: return "unattached"
+        }
+    }
+
+    private static func containsFlutter(_ controller: UIViewController?) -> Bool {
+        guard let controller else { return false }
+        if controller is FlutterViewController { return true }
+        if containsFlutter(controller.presentedViewController) { return true }
+        return controller.children.contains { containsFlutter($0) }
+    }
+
+    private static func depth(_ controller: UIViewController?) -> Int {
+        var depth = 0
+        var current = controller
+        while current?.presentedViewController != nil {
+            depth += 1
+            current = current?.presentedViewController
+        }
+        return depth
+    }
+
+    private static func controller(_ root: UIViewController?, depth: Int) -> UIViewController? {
+        var current = root
+        for _ in 0..<depth {
+            guard let next = current?.presentedViewController else { break }
+            current = next
+        }
+        return current
+    }
+
+    private static func topMost(_ controller: UIViewController) -> UIViewController {
+        var current = controller
+        while let next = current.presentedViewController { current = next }
+        return current
+    }
+}
+
+private final class OnceFlutterResult {
+    private var sent = false
+    private let sendResult: FlutterResult
+    init(_ result: @escaping FlutterResult) { sendResult = result }
+    func send(_ value: Any?) {
+        guard !sent else { return }
+        sent = true
+        sendResult(value)
     }
 }
 private enum ImportBridgeError: LocalizedError {

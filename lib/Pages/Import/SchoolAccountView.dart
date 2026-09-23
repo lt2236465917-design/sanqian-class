@@ -1,9 +1,9 @@
+import '../../Components/ScheduleDesign.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../Utils/ScheduleDerivedDataService.dart';
 import '../Settings/DeepSeekSettingsView.dart';
 import 'ImportReviewView.dart';
-import 'Widgets/AIKeyStatus.dart';
 
 class SchoolAccountView extends StatefulWidget {
   const SchoolAccountView({super.key});
@@ -16,7 +16,6 @@ class _SchoolAccountViewState extends State<SchoolAccountView> {
   String? _localId;
   String _savedAccount = '';
   bool _busy = false;
-  int _keyRevision = 0;
   String _message = '';
   @override
   void initState() {
@@ -53,7 +52,7 @@ class _SchoolAccountViewState extends State<SchoolAccountView> {
       context,
       MaterialPageRoute(builder: (_) => const DeepSeekSettingsView()),
     );
-    if (mounted) setState(() => _keyRevision++);
+    if (mounted) setState(() {});
   }
 
   Future<void> _open() async {
@@ -96,8 +95,8 @@ class _SchoolAccountViewState extends State<SchoolAccountView> {
             .join('；');
         throw FormatException(
           warnings.isEmpty
-              ? '未读取到可供 AI 识别的课表原文，请进入“我的课表”后重试，或使用课程截图导入课表'
-              : '$warnings 可改用课程截图导入课表。',
+              ? '未读取到可供 AI 识别的课表原文，请进入“我的课表”后重试，或使用多图课表导入'
+              : '$warnings 可改用多图课表导入。',
         );
       }
       final saved = await Navigator.push<bool>(
@@ -158,43 +157,31 @@ class _SchoolAccountViewState extends State<SchoolAccountView> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('学校账号导入课表')),
+    appBar: AppBar(title: const Text('学校账号与导入')),
     body: SafeArea(
       child: ListView(
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         padding: const EdgeInsets.all(20),
         children: [
-          const Text(
-            '用中国艺术研究院研究生系统的账号。\n\n账号一般是学号，也可以是学校发给你的统一身份认证用户名。\n密码就是学校网页上用的那个密码。\n验证码不要写在这一页，打开网页后会显示。',
-            style: TextStyle(fontSize: 16, height: 1.45),
+          const ScheduleIntro(
+            icon: Icons.school_outlined,
+            eyebrow: '中国艺术研究院 · 研究生',
+            title: '从学校带入课表',
+            description: '使用学号或统一身份认证用户名。验证码在学校网页填写，读取后先核对，再保存。',
           ),
-          const SizedBox(height: 16),
-          const Text(
-            '打开网页后请按顺序做：\n1. 已保存的账号和密码会自动填进网页；请填写验证码，再点网页里的「登录」\n2. 进入「研究生综合管理 → 我的课表」\n3. 看到自己的课表后，点右上角「读取并识别」',
-            style: TextStyle(fontSize: 16, height: 1.5),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            '想要使用 AI 完整功能录入课表，请先在 DeepSeek 设置中保存 API Key。',
-            style: TextStyle(fontSize: 16, height: 1.45),
-          ),
-          AIKeyStatus(revision: _keyRevision),
+          const ImportJourney(step: 0),
+          const ScheduleSection('学校账号', subtitle: '可以留空，在学校网页中自行登录。'),
           TextButton(
             onPressed: _busy ? null : _openSettings,
             child: const Text('DeepSeek 设置'),
           ),
-          const SizedBox(height: 8),
-          Text(
-            _localId == null
-                ? '建议在这里填好学号和密码。打开网页后会自动填入，不会自动点登录。也可以留空，到网页里自己填。'
-                : '已在本机记住账号 $_savedAccount。打开网页后会自动填入账号和密码；验证码仍要自己填，也不会自动点登录。',
-            style: const TextStyle(
-              fontSize: 16,
-              height: 1.45,
-              fontWeight: FontWeight.w600,
+          if (_localId != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: ScheduleNotice(
+                '本机已记住账号 $_savedAccount。密码会自动填入学校网页，验证码和登录仍由你确认。',
+              ),
             ),
-          ),
-          const SizedBox(height: 16),
           TextField(
             controller: _account,
             enabled: !_busy,
@@ -223,7 +210,11 @@ class _SchoolAccountViewState extends State<SchoolAccountView> {
             child: const Text('清除已保存账号'),
           ),
           const SizedBox(height: 8),
-          Text(_message, style: const TextStyle(height: 1.5)),
+          if (_message.isNotEmpty) ScheduleNotice(_message),
+          const ScheduleSection('打开网页后'),
+          const ScheduleNotice(
+            '1. 填写验证码，点击学校网页里的“登录”\n2. 进入“研究生综合管理 → 我的课表”\n3. 看到课表后，点右上角“读取并识别”',
+          ),
         ],
       ),
     ),

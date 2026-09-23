@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:dio/dio.dart';
 import '../../../generated/l10n.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +12,7 @@ import '../../../Components/Dialog.dart';
 import '../../../Components/TransBgTextButton.dart';
 import '../../../Resources/Config.dart';
 import '../../../Resources/Url.dart';
+import '../../../Utils/CourseWeeks.dart';
 
 class LectureCard extends StatefulWidget {
   final Lecture lecture;
@@ -50,8 +50,8 @@ class _LectureCardState extends State<LectureCard> {
   }
 
   addLecture() async {
-    int weekInt = json.decode(widget.lecture.weeks!)[0];
-    if (weekInt < 0 || weekInt > Config.MAX_WEEKS) {
+    final weekInt = CourseWeeks.firstAddable(widget.lecture.weeks);
+    if (weekInt == null || weekInt > Config.MAX_WEEKS) {
       Toast.showToast(S.of(context).lecture_add_fail_toast, context);
       return;
     }

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import '../../Components/ScheduleDesign.dart';
 import '../../Utils/States/MainState.dart';
 import '../../Models/CourseTableModel.dart';
 import '../../Models/ScheduleImportDraft.dart';
@@ -901,9 +902,11 @@ class _ImportReviewViewState extends State<ImportReviewView> {
           ),
           Expanded(
             child: ListView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               padding: const EdgeInsets.all(20),
               children: [
-                const Text('请核对课程、周次、钟点和教室。缺失信息保持待定，确认前不会保存。'),
+                const ImportJourney(step: 2),
+                const ScheduleNotice('请核对课程、周次、钟点和教室。缺失信息保持待定，确认前不会保存。'),
                 for (final warning in [
                   ...widget.warnings,
                   ..._preparation.warnings,
@@ -911,12 +914,15 @@ class _ImportReviewViewState extends State<ImportReviewView> {
                 ])
                   Padding(
                     padding: const EdgeInsets.only(top: 8),
-                    child: Text(warning),
+                    child: ScheduleNotice(warning),
                   ),
                 if (_courses.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 12),
-                    child: Text('已识别 ${_courses.length} 门课程，请对照原课表检查是否齐全。'),
+                    child: ScheduleSection(
+                      '课程清单 · ${_courses.length}',
+                      subtitle: '点按课程可修改识别结果与上课安排。',
+                    ),
                   ),
                 if (_offersOCR)
                   OutlinedButton(

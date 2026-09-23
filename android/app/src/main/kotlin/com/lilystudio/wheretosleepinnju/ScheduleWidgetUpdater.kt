@@ -3,6 +3,7 @@ package com.lilystudio.wheretosleepinnju
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.os.Build
@@ -16,51 +17,40 @@ object ScheduleWidgetUpdater {
     private const val REQUEST_OPEN = 0x5101
     private const val MEDIUM_WIDTH_DP = 250
 
-    fun refresh(context: Context?) {
-        val app = context?.applicationContext ?: return
-        try {
-            val ids = ScheduleWidgetSafety.widgetIds(app)
-            if (ids.isEmpty()) {
-                cancelRefresh(app)
-                return
-            }
-            val manager = AppWidgetManager.getInstance(app) ?: return
-            update(app, manager, ids)
-            schedule(app, load(app).nextRefreshMs)
-        } catch (_: Throwable) {
-            // Package replace on Xiaomi can deliver a null widget list. Keep the process alive.
+    fun refresh(context: Context) {
+        val app = context.applicationContext
+        val manager = AppWidgetManager.getInstance(app)
+        val ids = manager.getAppWidgetIds(ComponentName(app, ScheduleWidgetProvider::class.java))
+        if (ids.isEmpty()) {
+            cancelRefresh(app)
+            return
         }
+        update(app, manager, ids)
+        schedule(app, load(app).nextRefreshMs)
     }
 
     fun update(context: Context, manager: AppWidgetManager, ids: IntArray) {
         val app = context.applicationContext
         val presentation = load(app)
         for (id in ids) {
-            try {
-                val options = ScheduleWidgetSafety.options(manager, id)
-                val width = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, -1)
-                val height = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, -1)
-                val medium = width < 0 || width >= MEDIUM_WIDTH_DP
-                val layout = if (medium) R.layout.widget_schedule_medium else R.layout.widget_schedule_small
-                val views = RemoteViews(app.packageName, layout)
-                if (medium) bindMedium(views, presentation, if (height >= 180) 3 else 2)
-                else bindSmall(views, presentation)
-                views.setContentDescription(R.id.widget_root, presentation.description)
-                views.setOnClickPendingIntent(R.id.widget_root, openIntent(app))
-                manager.updateAppWidget(id, views)
-            } catch (_: Throwable) {
-                // One broken widget cell must not discard the rest or crash the app.
-            }
+            val options = manager.getAppWidgetOptions(id)
+            val width = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, -1)
+            val height = options.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, -1)
+            val medium = width < 0 || width >= MEDIUM_WIDTH_DP
+            val layout = if (medium) R.layout.widget_schedule_medium else R.layout.widget_schedule_small
+            val views = RemoteViews(app.packageName, layout)
+            if (medium) bindMedium(views, presentation, if (height >= 180) 3 else 2)
+            else bindSmall(views, presentation)
+            views.setContentDescription(R.id.widget_root, presentation.description)
+            views.setOnClickPendingIntent(R.id.widget_root, openIntent(app))
+            manager.updateAppWidget(id, views)
         }
     }
 
-    fun cancelRefresh(context: Context?) {
-        val app = context?.applicationContext ?: return
-        try {
-            val alarmManager = app.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
-            alarmManager.cancel(refreshIntent(app))
-        } catch (_: Throwable) {
-        }
+    fun cancelRefresh(context: Context) {
+        val app = context.applicationContext
+        val alarmManager = app.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        alarmManager.cancel(refreshIntent(app))
     }
 
     private fun load(context: Context): WidgetPresentation {
@@ -80,7 +70,7 @@ object ScheduleWidgetUpdater {
     }
 
     private fun schedule(context: Context, atMs: Long) {
-        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val pending = refreshIntent(context)
         // Inexact by design: targetSdk 36 does not grant exact alarms. Doze can delay this.
         if (Build.VERSION.SDK_INT >= 23) {

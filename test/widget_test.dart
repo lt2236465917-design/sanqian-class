@@ -315,7 +315,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('手动添加课程'), findsOneWidget);
       expect(find.textContaining('捐赠'), findsNothing);
-      await tester.ensureVisible(find.text('外观'));
+      await tester.scrollUntilVisible(find.text('外观'), 200);
       await tester.pumpAndSettle();
       await tester.tap(find.text('外观'));
       await tester.pumpAndSettle();

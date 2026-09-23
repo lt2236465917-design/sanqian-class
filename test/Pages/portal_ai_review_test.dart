@@ -938,6 +938,16 @@ void main() {
       await tester.tap(find.text('完成核对'));
       await tester.pumpAndSettle();
       expect(find.byType(ImportReviewView), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.textContaining('[2, 4, 6, 8, 10, 12, 14, 16, 18, 20]'),
+        200,
+        scrollable: find
+            .descendant(
+              of: find.byType(ListView).first,
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
       expect(
         find.textContaining('[2, 4, 6, 8, 10, 12, 14, 16, 18, 20]'),
         findsOneWidget,
@@ -1023,7 +1033,7 @@ void main() {
         'openPortal',
       ]);
       expect(tester.widget<TextField>(fields.at(1)).controller!.text, isEmpty);
-      expect(find.textContaining('已在本机记住账号'), findsOneWidget);
+      expect(find.textContaining('本机已记住账号 fixture-account'), findsOneWidget);
     },
   );
 }

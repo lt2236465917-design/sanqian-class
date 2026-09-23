@@ -117,6 +117,67 @@ struct SchoolPortalParserTests {
         check(!SchoolScheduleParser.parse(message: clipped).canReview, "clipped raw timetable is not sent as complete input")
         let oversized = table([unsupported.rows[0], [SchoolPortalTableCell(text: String(repeating: "课", count: 24000)), SchoolPortalTableCell(text: "待定")]])
         check(SchoolScheduleParser.parse(message: oversized).timetableText == nil, "oversized source rejected without prefix truncation")
+        let portalHosts: Set<String> = ["iam.zgysyjy.org.cn"]
+        func navigation(_ raw: String) -> PortalNavigation {
+            SchoolPortalSecurity.navigation(for: URL(string: raw)!, allowedHosts: portalHosts)
+        }
+        if case .upgrade(let url) = navigation("http://iam.zgysyjy.org.cn/am/UI/Login?ticket=1#frag") {
+            check(url.scheme == "https" && url.host == "iam.zgysyjy.org.cn" && url.port == nil && url.path == "/am/UI/Login" && url.query == "ticket=1" && url.fragment == "frag", "default HTTP port upgrades and keeps query and fragment")
+        } else { check(false, "default HTTP port upgrades") }
+        if case .upgrade(let url) = navigation("http://iam.zgysyjy.org.cn:443/path") {
+            check(url.scheme == "https" && url.port == 443 && url.path == "/path", "explicit 443 upgrades to HTTPS")
+        } else { check(false, "explicit 443 upgrades") }
+        if case .upgrade(let url) = navigation("http://iam.zgysyjy.org.cn/a%2Fb?service=https%3A%2F%2Fexample.com%2Fx%3Fa%3D1%26b%3D2#x%2Fy") {
+            let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+            check(url.absoluteString == "https://iam.zgysyjy.org.cn/a%2Fb?service=https%3A%2F%2Fexample.com%2Fx%3Fa%3D1%26b%3D2#x%2Fy" && items.count == 1 && items.first?.name == "service", "encoded return URL stays one service parameter")
+        } else { check(false, "encoded return URL upgrades") }
+        if case .upgrade(let url) = navigation("http://iam.zgysyjy.org.cn/a%25b?q=%25&x=%26#f%2F") {
+            check(url.absoluteString == "https://iam.zgysyjy.org.cn/a%25b?q=%25&x=%26#f%2F", "percent, ampersand and slash encodings survive upgrade")
+        } else { check(false, "percent encodings upgrade") }
+        if case .upgrade(let url) = navigation("http://iam.zgysyjy.org.cn:80/a%2Fb?q=%26#x%2Fy") {
+            check(url.absoluteString == "https://iam.zgysyjy.org.cn/a%2Fb?q=%26#x%2Fy" && url.port == nil, "explicit port 80 drops and keeps encodings")
+        } else { check(false, "explicit port 80 encoded upgrade") }
+        if case .upgrade(let url) = navigation("http://iam.zgysyjy.org.cn:443/a%2Fb?q=%3D") {
+            check(url.absoluteString == "https://iam.zgysyjy.org.cn:443/a%2Fb?q=%3D" && url.port == 443, "explicit 443 keeps encodings")
+        } else { check(false, "explicit 443 encoded upgrade") }
+        check(navigation("http://evil.example/path") == .block, "unlisted host is not upgraded")
+        check(navigation("http://user:pass@iam.zgysyjy.org.cn/path?ticket=1#frag") == .block, "user info is not upgraded")
+        check(navigation("https://iam.zgysyjy.org.cn/am/UI/Login?ticket=1#frag") == .allow, "allowed HTTPS stays allowed")
+        let single = PortalPresenterResolver.choose([
+            PortalSceneSnapshot(activation: "foregroundActive", windows: [PortalWindowSnapshot(isKey: true, hasRoot: true, presentedDepth: 0)])
+        ])
+        check(single == PortalPresenterChoice(sceneIndex: 0, windowIndex: 0, presentedDepth: 0), "single scene key window")
+        let multi = PortalPresenterResolver.choose([
+            PortalSceneSnapshot(activation: "background", windows: [PortalWindowSnapshot(isKey: true, hasRoot: true, presentedDepth: 0)]),
+            PortalSceneSnapshot(activation: "foregroundActive", windows: [PortalWindowSnapshot(isKey: true, hasRoot: true, presentedDepth: 2)])
+        ])
+        check(multi == PortalPresenterChoice(sceneIndex: 1, windowIndex: 0, presentedDepth: 2), "foreground scene wins and existing modal is the presenter")
+        check(PortalPresenterResolver.choose([
+            PortalSceneSnapshot(activation: "background", windows: [PortalWindowSnapshot(isKey: true, hasRoot: true, presentedDepth: 0)])
+        ]) == nil, "background scene cannot present")
+        check(PortalPresenterResolver.choose([
+            PortalSceneSnapshot(activation: "foregroundActive", windows: [PortalWindowSnapshot(isKey: true, hasRoot: true, presentedDepth: 0)])
+        ]) != nil, "returning to the foreground can present again")
+        let caller = PortalPresenterResolver.choose([
+            PortalSceneSnapshot(activation: "foregroundActive", windows: [PortalWindowSnapshot(isKey: true, hasRoot: true, presentedDepth: 0)]),
+            PortalSceneSnapshot(activation: "foregroundActive", windows: [PortalWindowSnapshot(isKey: true, hasRoot: true, presentedDepth: 1, ownsCaller: true)])
+        ])
+        check(caller == PortalPresenterChoice(sceneIndex: 1, windowIndex: 0, presentedDepth: 1), "caller scene presents instead of an earlier foreground scene")
+        check(PortalPresenterResolver.choose([
+            PortalSceneSnapshot(activation: "foregroundActive", windows: [PortalWindowSnapshot(isKey: true, hasRoot: true, presentedDepth: 0)]),
+            PortalSceneSnapshot(activation: "background", windows: [PortalWindowSnapshot(isKey: true, hasRoot: true, presentedDepth: 0, ownsCaller: true)])
+        ]) == nil, "a background caller scene is not replaced by another scene")
+        let callerWindow = PortalPresenterResolver.choose([
+            PortalSceneSnapshot(activation: "foregroundActive", windows: [
+                PortalWindowSnapshot(isKey: true, hasRoot: true, presentedDepth: 4),
+                PortalWindowSnapshot(isKey: false, hasRoot: true, presentedDepth: 1, ownsCaller: true)
+            ])
+        ])
+        check(callerWindow == PortalPresenterChoice(sceneIndex: 0, windowIndex: 1, presentedDepth: 1), "caller window is preferred inside its scene")
+        check(ScheduleAppGroup.resolve("group.local.chaoxi.schedule") == "group.local.chaoxi.schedule", "plist app group is used")
+        check(ScheduleAppGroup.resolve(nil) == ScheduleAppGroup.fallback, "missing plist uses the current group")
+        check(ScheduleAppGroup.resolve("$(SCHEDULE_APP_GROUP)") == ScheduleAppGroup.fallback, "unsubstituted build setting is not an app group")
+        check(ScheduleAppGroup.fallback != "group.top.idealclover.wheretosleepinnju.group", "fallback is not the dormant app group")
         if CommandLine.arguments.count > 1 {
             let data: Data
             if CommandLine.arguments[1].hasSuffix(".swift") {

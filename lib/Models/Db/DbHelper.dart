@@ -81,6 +81,10 @@ class DbHelper {
           COURSETABLE_COLUMN_DATA + TEXT_TYPE +
           " )";
 
+  static const String SQL_UPDATE_COURSES_FROM_VERSION_1 =
+      "ALTER TABLE " + COURSE_TABLE_NAME +
+          " ADD COLUMN " + COURSE_COLUMN_COURSE_ID + INTEGER_TYPE;
+
   static const String SQL_UPDATE_COURSES_FROM_Version_2_PART_1 =
       "ALTER TABLE " + COURSE_TABLE_NAME +
           " ADD COLUMN " + COURSE_COLUMN_INFO + TEXT_TYPE;
@@ -93,30 +97,56 @@ class DbHelper {
       "ALTER TABLE " + COURSETABLE_TABLE_NAME +
           " ADD COLUMN " + COURSETABLE_COLUMN_DATA + TEXT_TYPE;
 
+  /// Version 2 added `course_id`. Version 3 added `info` / `data`.
+  /// Each step checks PRAGMA table_info so a version-1 database that already
+  /// has the tables still receives the missing columns, and a repeated upgrade
+  /// does not fail when the column is already present.
+  static Future<void> upgrade(
+      Database db, int oldVersion, int newVersion) async {
+    if (!await _tableExists(db, COURSETABLE_TABLE_NAME)) {
+      await db.execute(SQL_CREATE_COURSETABLE);
+    }
+    if (!await _tableExists(db, COURSE_TABLE_NAME)) {
+      await db.execute(SQL_CREATE_COURSES);
+    }
+    if (oldVersion < 2) {
+      await _addColumnIfMissing(db, COURSE_TABLE_NAME, COURSE_COLUMN_COURSE_ID,
+          SQL_UPDATE_COURSES_FROM_VERSION_1);
+    }
+    if (oldVersion < 3) {
+      await _addColumnIfMissing(db, COURSE_TABLE_NAME, COURSE_COLUMN_INFO,
+          SQL_UPDATE_COURSES_FROM_Version_2_PART_1);
+      await _addColumnIfMissing(db, COURSE_TABLE_NAME, COURSE_COLUMN_DATA,
+          SQL_UPDATE_COURSES_FROM_Version_2_PART_2);
+      await _addColumnIfMissing(db, COURSETABLE_TABLE_NAME,
+          COURSETABLE_COLUMN_DATA, SQL_UPDATE_COURSETABLE_FROM_Version_2);
+    }
+  }
+
+  static Future<bool> _tableExists(Database db, String table) async {
+    final rows = await db.rawQuery(
+        "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ? LIMIT 1",
+        [table]);
+    return rows.isNotEmpty;
+  }
+
+  static Future<void> _addColumnIfMissing(
+      Database db, String table, String column, String statement) async {
+    if (!await _tableExists(db, table)) return;
+    final rows = await db.rawQuery('PRAGMA table_info($table)');
+    final exists = rows.any((row) => row['name'] == column);
+    if (exists) return;
+    await db.execute(statement);
+  }
+
   Future<Database> open() async {
     var databasesPath = await getDatabasesPath();
     String path = join(databasesPath, DATABASE_NAME);
     Database db = await openDatabase(path, version: DATABASE_VERSION,
-        onUpgrade: (Database db, int oldVersion, int newVersion) async {
-          if(oldVersion == 2) {
-            await db.execute(SQL_UPDATE_COURSES_FROM_Version_2_PART_1);
-            await db.execute(SQL_UPDATE_COURSES_FROM_Version_2_PART_2);
-            await db.execute(SQL_UPDATE_COURSETABLE_FROM_Version_2);
-            // print('From upgrade version 2 or other.');
-          } else {
-            try{
-              await db.query(COURSETABLE_TABLE_NAME);
-            } catch(e){
-              await db.execute(SQL_CREATE_COURSETABLE);
-              await db.execute(SQL_CREATE_COURSES);
-            }
-            // print('SQLite upgraded from version 1 or other.');
-          }
-        },
+        onUpgrade: upgrade,
         onCreate: (Database db, int version) async {
           await db.execute(SQL_CREATE_COURSETABLE);
           await db.execute(SQL_CREATE_COURSES);
-          // print('SQLite created.');
         });
     return db;
   }

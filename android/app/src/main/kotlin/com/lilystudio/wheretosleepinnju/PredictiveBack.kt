@@ -12,9 +12,10 @@ object PredictiveBack {
             val callback = Proxy.newProxyInstance(
                 callbackClass.classLoader,
                 arrayOf(callbackClass),
-            ) { _, method, _ ->
-                if (method.name == "onBackInvoked") onBack()
-                null
+            ) { proxy, method, args ->
+                // The framework stores this callback in a HashMap. hashCode and
+                // equals must return real values; a null int crashes on attach.
+                predictiveBackResult(proxy, method.name, args, onBack)
             }
             val dispatcher = Activity::class.java.getMethod("getOnBackInvokedDispatcher").invoke(activity)
             dispatcher.javaClass.getMethod(
@@ -40,5 +41,23 @@ object PredictiveBack {
         } catch (_: Exception) {
             // The cancel button still leaves the portal.
         }
+    }
+}
+
+internal fun predictiveBackResult(
+    proxy: Any,
+    methodName: String,
+    args: Array<Any?>?,
+    onBack: () -> Unit,
+): Any? {
+    return when (methodName) {
+        "onBackInvoked" -> {
+            onBack()
+            null
+        }
+        "hashCode" -> System.identityHashCode(proxy)
+        "equals" -> proxy === args?.firstOrNull()
+        "toString" -> "OnBackInvokedCallback"
+        else -> null
     }
 }

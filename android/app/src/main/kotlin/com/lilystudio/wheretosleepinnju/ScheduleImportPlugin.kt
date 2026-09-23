@@ -41,10 +41,7 @@ class ScheduleImportPlugin :
     private val generation = java.util.concurrent.atomic.AtomicInteger(0)
     private val connection = AtomicReference<HttpURLConnection?>(null)
     private var running: Future<*>? = null
-    private var portalResult: MethodChannel.Result? = null
-    private var permissionResult: MethodChannel.Result? = null
-    internal var timetableOcrFactory: () -> TimetableOcr = { MlKitChineseTimetableOcr() }
-    private var timetableOcr: TimetableOcr? = null
+    private val bridge = PendingBridgeResults()
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         appContext = binding.applicationContext
@@ -54,7 +51,8 @@ class ScheduleImportPlugin :
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
-        channel.setMethodCallHandler(null)
+        abandonPending("插件已卸载")
+        if (this::channel.isInitialized) channel.setMethodCallHandler(null)
         appContext = null
         executor.shutdownNow()
     }
@@ -67,6 +65,7 @@ class ScheduleImportPlugin :
     }
 
     override fun onDetachedFromActivityForConfigChanges() {
+        abandonPending("界面已销毁")
         activityBinding?.removeActivityResultListener(this)
         activityBinding?.removeRequestPermissionsResultListener(this)
         activityBinding = null
@@ -108,6 +107,21 @@ class ScheduleImportPlugin :
                     store.deleteSchoolCredentials()
                     result.success(true)
                 }
+                "loadLegacyJwCredentials" -> {
+                    val saved = store.loadLegacyJw()
+                    result.success(saved?.let { mapOf("username" to it.first, "password" to it.second) })
+                }
+                "saveLegacyJwCredentials" -> {
+                    store.saveLegacyJw(
+                        call.argument<String>("username") ?: "",
+                        call.argument<String>("password") ?: ""
+                    )
+                    result.success(true)
+                }
+                "deleteLegacyJwCredentials" -> {
+                    store.deleteLegacyJw()
+                    result.success(true)
+                }
                 "openPortal" -> openPortal(result)
                 "cancelRecognition" -> {
                     cancelRecognition()
@@ -117,14 +131,13 @@ class ScheduleImportPlugin :
                     client.recognizeText(call.argument<String>("text") ?: "")
                 }
                 "recognizePhotos" -> recognize(result) { client ->
-                    client.recognizeImages(loadImages(call))
-                }
-                "recognizePhotosWithOCR" -> recognize(result) { client ->
-                    val images = loadImages(call)
-                    if (cancelled.get()) throw DeepSeekTimetableClientError.Cancelled
-                    val pages = ocr().recognize(images, cancelled)
-                    if (cancelled.get()) throw DeepSeekTimetableClientError.Cancelled
-                    client.recognizeImages(images, pages)
+                    val paths = call.argument<List<String>>("paths") ?: emptyList()
+                    if (paths.isEmpty() || paths.size > 20) throw ImportBridgeError.images
+                    val images = paths.mapIndexed { index, path ->
+                        if (cancelled.get()) throw DeepSeekTimetableClientError.Cancelled
+                        DeepSeekTimetableClient.jpegFromPath(path, index)
+                    }
+                    client.recognizeImages(images)
                 }
                 "requestReminderPermission" -> requestReminderPermission(result)
                 "clearLegacyReminders" -> {
@@ -143,27 +156,18 @@ class ScheduleImportPlugin :
         }
     }
 
-    private fun loadImages(call: MethodCall): List<AIImportImage> {
-        val paths = call.argument<List<String>>("paths") ?: emptyList()
-        if (paths.isEmpty() || paths.size > 20) throw ImportBridgeError.images
-        return paths.mapIndexed { index, path ->
-            if (cancelled.get()) throw DeepSeekTimetableClientError.Cancelled
-            DeepSeekTimetableClient.jpegFromPath(path, index)
-        }
-    }
-
-    private fun ocr(): TimetableOcr {
-        return timetableOcr ?: timetableOcrFactory().also { timetableOcr = it }
-    }
-
     private fun openPortal(result: MethodChannel.Result) {
         val current = activity
-        if (current == null || portalResult != null) {
+        if (current == null || bridge.contains("portal")) {
             result.error("schedule_import", ImportBridgeError.unavailable.message, null)
             return
         }
-        portalResult = result
-        current.startActivityForResult(Intent(current, SchoolPortalActivity::class.java), REQUEST_PORTAL)
+        val reply = bridge.track("portal", replyOf(result))
+        try {
+            current.startActivityForResult(Intent(current, SchoolPortalActivity::class.java), REQUEST_PORTAL)
+        } catch (error: Exception) {
+            reply.error("schedule_import", error.message)
+        }
     }
 
     private fun recognize(result: MethodChannel.Result, work: (DeepSeekTimetableClient) -> DeepSeekTimetableResult) {
@@ -173,22 +177,17 @@ class ScheduleImportPlugin :
         }
         cancelled.set(false)
         val ticket = generation.incrementAndGet()
+        val reply = bridge.track("recognize", replyOf(result))
         running = executor.submit {
             try {
                 val key = store.loadDeepSeekAPIKey() ?: throw DeepSeekTimetableClientError.MissingAPIKey
                 val client = DeepSeekTimetableClient(key, cancelled) { connection.set(it) }
                 val output = work(client)
-                if (!recognitionStillCurrent(ticket, generation.get(), cancelled.get())) {
-                    throw DeepSeekTimetableClientError.Cancelled
-                }
+                if (cancelled.get() || generation.get() != ticket) throw DeepSeekTimetableClientError.Cancelled
                 val parsed = DeepSeekTimetableClient.jsonToAny(JSONObject(output.jsonText))
-                if (recognitionStillCurrent(ticket, generation.get(), cancelled.get())) {
-                    complete(result, success = parsed, error = null)
-                } else if (generation.get() == ticket) {
-                    complete(result, success = null, error = DeepSeekTimetableClientError.Cancelled)
-                }
+                if (generation.get() == ticket) finish(reply, parsed, null)
             } catch (error: Exception) {
-                if (generation.get() == ticket) complete(result, success = null, error = error)
+                if (generation.get() == ticket) finish(reply, null, error)
             } finally {
                 if (generation.get() == ticket) {
                     connection.set(null)
@@ -198,10 +197,29 @@ class ScheduleImportPlugin :
         }
     }
 
-    private fun complete(result: MethodChannel.Result, success: Any?, error: Exception?) {
+    private fun finish(reply: OnceBridgeResult, success: Any?, error: Exception?) {
         mainHandler.post {
-            if (error != null) result.error(code(error), error.message, null)
-            else result.success(success)
+            if (error != null) reply.error(code(error), error.message)
+            else reply.success(success)
+        }
+    }
+
+    private fun abandonPending(message: String) {
+        generation.incrementAndGet()
+        cancelRecognition()
+        running?.cancel(true)
+        running = null
+        bridge.cancelAll("cancelled", message)
+        busy.set(false)
+    }
+
+    private fun replyOf(result: MethodChannel.Result) = object : BridgeReply {
+        override fun success(value: Any?) {
+            result.success(value)
+        }
+
+        override fun error(code: String, message: String?) {
+            result.error(code, message, null)
         }
     }
 
@@ -226,11 +244,11 @@ class ScheduleImportPlugin :
             result.success(true)
             return
         }
-        if (permissionResult != null) {
+        if (bridge.contains("permission")) {
             result.error("notification_permission", "正在请求通知权限", null)
             return
         }
-        permissionResult = result
+        bridge.track("permission", replyOf(result))
         ActivityCompat.requestPermissions(current, arrayOf(Manifest.permission.POST_NOTIFICATIONS), REQUEST_NOTIFY)
     }
 
@@ -251,8 +269,7 @@ class ScheduleImportPlugin :
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?): Boolean {
         if (requestCode != REQUEST_PORTAL) return false
-        val pending = portalResult ?: return true
-        portalResult = null
+        val pending = bridge.take("portal") ?: return true
         if (resultCode != Activity.RESULT_OK) {
             pending.success(null)
             return true
@@ -265,15 +282,14 @@ class ScheduleImportPlugin :
         try {
             pending.success(DeepSeekTimetableClient.jsonToAny(JSONObject(json)))
         } catch (error: Exception) {
-            pending.error("schedule_import", error.message, null)
+            pending.error("schedule_import", error.message)
         }
         return true
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray): Boolean {
         if (requestCode != REQUEST_NOTIFY) return false
-        val pending = permissionResult ?: return true
-        permissionResult = null
+        val pending = bridge.take("permission") ?: return true
         pending.success(grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED)
         return true
     }
@@ -290,10 +306,6 @@ class ScheduleImportPlugin :
         private const val REQUEST_PORTAL = 0x51A1
         private const val REQUEST_NOTIFY = 0x51A2
     }
-}
-
-internal fun recognitionStillCurrent(ticket: Int, generation: Int, cancelled: Boolean): Boolean {
-    return ticket == generation && !cancelled
 }
 
 private object NotificationReady {
