@@ -12,7 +12,7 @@ from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
 SOURCE = ROOT / 'res/personal-icon.png'
-APPROVED_SHA256 = '9369a373a814361e636690631d2545b333ee82b6f0e6cc4ad427e29ab5d49663'
+APPROVED_SHA256 = 'd0cc8538b590b58a6b22c276477d248eb192fbca06578ecec04b70cdbb7a65be'
 
 
 def main():

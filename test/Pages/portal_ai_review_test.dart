@@ -964,6 +964,7 @@ void main() {
         .setMockMethodCallHandler(channel, (call) async {
           calls.add(call);
           if (call.method == 'schoolAccount') return null;
+          if (call.method == 'hasAPIKey') return false;
           if (call.method == 'saveSchoolAccount') {
             throw PlatformException(
               code: 'schedule_import',
@@ -1004,6 +1005,7 @@ void main() {
           .setMockMethodCallHandler(channel, (call) async {
             calls.add(call);
             if (call.method == 'schoolAccount') return null;
+            if (call.method == 'hasAPIKey') return false;
             if (call.method == 'saveSchoolAccount') return saved.future;
             if (call.method == 'openPortal') return null;
             throw StateError('Unexpected method ${call.method}');
@@ -1027,11 +1029,10 @@ void main() {
         'accountLocalId': 'local-fixture',
       });
       await tester.pumpAndSettle();
-      expect(calls.map((c) => c.method), [
-        'schoolAccount',
-        'saveSchoolAccount',
-        'openPortal',
-      ]);
+      expect(
+        calls.map((c) => c.method).where((method) => method != 'hasAPIKey'),
+        ['schoolAccount', 'saveSchoolAccount', 'openPortal'],
+      );
       expect(tester.widget<TextField>(fields.at(1)).controller!.text, isEmpty);
       expect(find.textContaining('本机已记住账号 fixture-account'), findsOneWidget);
     },

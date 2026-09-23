@@ -72,7 +72,7 @@ tool/flutterw analyze
 - 真机准备阶段 Release **无签名构建通过**（27.0 秒、22.3 MB）。主程序和 13 个嵌入 Framework 均为 arm64、最低 iOS 13；配置覆盖 iPhone 12 起的系统范围，不代表全机型全系统实测。
 - 当时没有有效签名或连接真机；此限制已解除。当前 `build/ios/iphoneos/Runner.app` 已签名并安装，详见 [DEVICE_INSTALL.md](DEVICE_INSTALL.md)。
 
-边牧定稿原图保存在 `res/personal-icon.png`，SHA-256 为 `9369a373a814361e636690631d2545b333ee82b6f0e6cc4ad427e29ab5d49663`。`python3 tool/create_personal_icon.py`（需要 Pillow）仅从这张已批准原图派生 iOS 尺寸，校验原图哈希后再写入资产，不再绘制旧的日历图标。1024 像素图标与启动页品牌图按原文件复制；其余规格只等比例缩放，不裁切、调色或添加圆角。系统负责桌面图标圆角。
+边牧定稿原图保存在 `res/personal-icon.png`，SHA-256 为 `d0cc8538b590b58a6b22c276477d248eb192fbca06578ecec04b70cdbb7a65be`。`python3 tool/create_personal_icon.py`（需要 Pillow）仅从这张已批准原图派生 iOS 尺寸，校验原图哈希后再写入资产，不再绘制旧的日历图标。1024 像素图标与启动页品牌图按原文件复制；其余规格只等比例缩放，不裁切、调色或添加圆角。系统负责桌面图标圆角。
 
 定稿接入后的 Simulator 构建 11.2 秒、iphoneos Release 构建 7.8 秒通过（真机产物 26.2 MB，仍未签名）。iPhone 16 桌面与关于页均已实际核对，已有原生导航 smoke 1/1 通过，课程数据库全字段不变；证据为任务目录 `logo-asset-audit.json`、`logo-build-audit.json`、`logo-native-smoke.xcresult`、`logo-data-verification.json`、`logo-iphone16-home.png` 和 `logo-iphone16-about.png`。启动页仅确认资源替换和编译，未单独录制启动动画。
 

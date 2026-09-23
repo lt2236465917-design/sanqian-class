@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../Utils/ScheduleDerivedDataService.dart';
 import '../Settings/DeepSeekSettingsView.dart';
 import 'ImportReviewView.dart';
+import 'Widgets/AIKeyStatus.dart';
 
 class SchoolAccountView extends StatefulWidget {
   const SchoolAccountView({super.key});
@@ -16,6 +17,7 @@ class _SchoolAccountViewState extends State<SchoolAccountView> {
   String? _localId;
   String _savedAccount = '';
   bool _busy = false;
+  int _keyRevision = 0;
   String _message = '';
   @override
   void initState() {
@@ -52,7 +54,7 @@ class _SchoolAccountViewState extends State<SchoolAccountView> {
       context,
       MaterialPageRoute(builder: (_) => const DeepSeekSettingsView()),
     );
-    if (mounted) setState(() {});
+    if (mounted) setState(() => _keyRevision++);
   }
 
   Future<void> _open() async {
@@ -157,7 +159,7 @@ class _SchoolAccountViewState extends State<SchoolAccountView> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('学校账号与导入')),
+    appBar: AppBar(title: const Text('学校账号导入课表')),
     body: SafeArea(
       child: ListView(
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
@@ -171,10 +173,6 @@ class _SchoolAccountViewState extends State<SchoolAccountView> {
           ),
           const ImportJourney(step: 0),
           const ScheduleSection('学校账号', subtitle: '可以留空，在学校网页中自行登录。'),
-          TextButton(
-            onPressed: _busy ? null : _openSettings,
-            child: const Text('DeepSeek 设置'),
-          ),
           if (_localId != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 16),
@@ -214,6 +212,19 @@ class _SchoolAccountViewState extends State<SchoolAccountView> {
           const ScheduleSection('打开网页后'),
           const ScheduleNotice(
             '1. 填写验证码，点击学校网页里的“登录”\n2. 进入“研究生综合管理 → 我的课表”\n3. 看到课表后，点右上角“读取并识别”',
+          ),
+          const ScheduleSection('识别课表'),
+          AIKeyStatus(revision: _keyRevision),
+          const ScheduleNotice(
+            '读取到课表后，用本机保存的 API Key 让 DeepSeek 识别课程、周次、时间和教室。只有你确认发送才会联网，并可能消耗账户余额。学校账号、密码和验证码不会一起发送。',
+          ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton(
+              onPressed: _busy ? null : _openSettings,
+              child: const Text('DeepSeek 设置'),
+            ),
           ),
         ],
       ),

@@ -9,6 +9,7 @@ import 'package:wheretosleepinnju/Models/Db/DbHelper.dart';
 import 'package:wheretosleepinnju/Pages/Settings/DeepSeekSettingsView.dart';
 import 'package:wheretosleepinnju/Pages/Settings/ReminderSettingsView.dart';
 import 'package:wheretosleepinnju/Pages/Import/PhotoScheduleImportView.dart';
+import 'package:wheretosleepinnju/Pages/Import/SchoolAccountView.dart';
 import 'package:wheretosleepinnju/Resources/PersonalTheme.dart';
 
 void main() {
@@ -248,4 +249,49 @@ void main() {
       );
     },
   );
+
+  testWidgets('deepseek settings explain key creation and local storage', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(430, 2200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: personalTheme(Brightness.light),
+        home: const DeepSeekSettingsView(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('怎么创建'), findsOneWidget);
+    expect(find.text('打开 DeepSeek 开放平台'), findsOneWidget);
+    expect(find.textContaining('不要把 Key 告诉他人'), findsOneWidget);
+    expect(find.textContaining('学校账号、密码和验证码不会随识别发送'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('school import keeps the key shortcut below the login steps', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(430, 2200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: personalTheme(Brightness.light),
+        home: const SchoolAccountView(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('学校账号导入课表'), findsOneWidget);
+    expect(find.text('学校账号与导入'), findsNothing);
+    expect(find.text('尚未配置 DeepSeek Key，请先打开下方设置。'), findsOneWidget);
+    expect(find.textContaining('只有你确认发送才会联网'), findsOneWidget);
+    final open = tester.getTopLeft(
+      find.widgetWithText(FilledButton, '打开学校网页'),
+    );
+    final shortcut = tester.getTopLeft(
+      find.widgetWithText(TextButton, 'DeepSeek 设置'),
+    );
+    expect(shortcut.dy, greaterThan(open.dy));
+    expect(tester.takeException(), isNull);
+  });
 }

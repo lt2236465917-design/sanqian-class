@@ -63,7 +63,6 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
-    - res/icon.png
     - res/personal-icon.png
     - LICENSE
     - res/schedules/zgysyjy_2026_fall.json

@@ -1,5 +1,6 @@
 import '../../Components/ScheduleDesign.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../Utils/ScheduleDerivedDataService.dart';
 import '../../Utils/ScheduleFeedback.dart';
 
@@ -10,6 +11,7 @@ class DeepSeekSettingsView extends StatefulWidget {
 }
 
 class _DeepSeekSettingsViewState extends State<DeepSeekSettingsView> {
+  static final _createKey = Uri.parse('https://platform.deepseek.com/api_keys');
   final _key = TextEditingController();
   bool? _saved;
   bool _busy = false, _loading = true, _invalidKey = false, _isError = false;
@@ -99,6 +101,18 @@ class _DeepSeekSettingsViewState extends State<DeepSeekSettingsView> {
     }
   }
 
+  Future<void> _openCreatePage() async {
+    final opened = await launchUrl(
+      _createKey,
+      mode: LaunchMode.externalApplication,
+    );
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('暂时无法打开 DeepSeek 开放平台，请稍后重试。')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('DeepSeek 设置')),
@@ -168,9 +182,26 @@ class _DeepSeekSettingsViewState extends State<DeepSeekSettingsView> {
               onPressed: _busy || _loading ? null : _retry,
               child: const Text('重试'),
             ),
-          const SizedBox(height: 16),
-          const Text(
-            '多图课表与学校网页课表均使用 DeepSeek 识别。确认发送后，所选图片或课表文字会发送到 DeepSeek，并可能消耗账户余额。',
+          const ScheduleSection('怎么创建'),
+          const ScheduleNotice(
+            '1. 打开 DeepSeek 开放平台并登录\n'
+            '2. 进入 API keys，新建一把 Key\n'
+            '3. 创建后立即复制，页面通常只完整显示一次\n'
+            '4. 回到本页，粘贴到上方并保存',
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: _busy ? null : _openCreatePage,
+            icon: const Icon(Icons.open_in_new_rounded),
+            label: const Text('打开 DeepSeek 开放平台'),
+          ),
+          const ScheduleSection('安全提醒'),
+          const ScheduleNotice(
+            'Key 只写入本机安全存储。保存之后，这里不再显示原文。\n'
+            '不要把 Key 告诉他人，也不要放进截图、聊天或邮件。\n'
+            '只有你在导入页确认识别后，课表图片或网页课表原文才会发给 DeepSeek，费用从你的 DeepSeek 账户扣除。\n'
+            '学校账号、密码和验证码不会随识别发送。\n'
+            '删除 Key 后，下次识别前需要重新保存。',
           ),
         ],
       ),
