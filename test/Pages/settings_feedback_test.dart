@@ -99,15 +99,25 @@ void main() {
 
   Future<void> settleReminders(WidgetTester tester) async {
     // SQLite can finish between frames without scheduling an animation.
-    // Wait for the visible operation to finish, not just for animation quiescence.
+    // Switches stay disabled until the reminder write finishes.
     for (var attempt = 0; attempt < 100; attempt++) {
       await tester.pumpAndSettle();
-      if (find.text('正在更新提醒设置…').evaluate().isEmpty) return;
+      final tiles = tester.widgetList<SwitchListTile>(
+        find.byType(SwitchListTile),
+      );
+      if (tiles.isNotEmpty && tiles.every((tile) => tile.onChanged != null)) {
+        return;
+      }
       await tester.runAsync(
         () => Future<void>.delayed(const Duration(milliseconds: 10)),
       );
     }
-    expect(find.text('正在更新提醒设置…'), findsNothing);
+    expect(
+      tester
+          .widgetList<SwitchListTile>(find.byType(SwitchListTile))
+          .every((tile) => tile.onChanged != null),
+      isTrue,
+    );
   }
 
   testWidgets(
@@ -237,7 +247,13 @@ void main() {
       failSync = false;
       await tester.runAsync(() => tester.tap(find.text('重试提醒设置')));
       await settleReminders(tester);
-      expect(find.text('已同步，当前没有待提醒的课程。'), findsOneWidget);
+      expect(find.text('已同步，当前没有待提醒的课程。'), findsNothing);
+      expect(find.text('系统日历提醒已开启。'), findsNothing);
+      expect(find.text('上课提醒已关闭。'), findsNothing);
+      expect(
+        find.text('课程会同步到系统日历，按你选择的时间提醒，无需打开 App。'),
+        findsOneWidget,
+      );
       expect(
         calls.where((c) => c.method == 'requestPermissions'),
         hasLength(1),

@@ -96,26 +96,16 @@ class _ReminderSettingsViewState extends State<ReminderSettingsView>
       _widgetError = widgetError is String && widgetError.isNotEmpty
           ? widgetError
           : null;
-      _permissionDenied = result['permission'] == 'denied';
-      _isError =
-          _permissionDenied ||
-          (result['failed'] as num? ?? 0) > 0 ||
-          result.isEmpty ||
-          result['mode'] != 'calendar' ||
-          result['synced'] != true;
-      _status = result.isEmpty
-          ? '当前设备暂时无法安排系统提醒，请稍后重试。'
-          : _describeStatus(result);
+      final failure = _failureCopy(result);
+      _isError = failure != null;
+      _status = failure ?? '';
       _retry = _isError ? _resync : null;
     });
   }
 
   Future<void> _resync() async {
     if (_busy) return;
-    setState(() {
-      _busy = true;
-      _status = '正在重新安排提醒…';
-    });
+    setState(() => _busy = true);
     try {
       final result = await ScheduleDerivedDataService.sync(
         await loadPersonalSchedule(),
@@ -190,17 +180,15 @@ class _ReminderSettingsViewState extends State<ReminderSettingsView>
     }
   }
 
-  String _describeStatus(Map<String, dynamic> result) {
+  String? _failureCopy(Map<String, dynamic> result) {
+    _permissionDenied = result['permission'] == 'denied';
+    if (result.isEmpty) return '当前设备暂时无法安排系统提醒，请稍后重试。';
+    if (_permissionDenied) return '日历权限未开启，请在系统设置中允许访问日历后重试。';
     if (result['mode'] != 'calendar') return '请同步到系统日历，继续接收上课提醒。';
-    if (result['synced'] != true) {
+    if (result['synced'] != true || (result['failed'] as num? ?? 0) > 0) {
       return result['message'] as String? ?? '提醒未同步，请重试。';
     }
-    final count = result['count'] as num? ?? 0;
-    if (count == 0) {
-      return _enabled.values.any((v) => v) ? '已同步，当前没有待提醒的课程。' : '上课提醒已关闭。';
-    }
-    final extras = result['supplements'] as num? ?? 0;
-    return extras > 0 ? '提醒已开启，部分课程会在日历中显示补充提醒日程。' : '系统日历提醒已开启。';
+    return null;
   }
 
   @override
@@ -232,8 +220,6 @@ class _ReminderSettingsViewState extends State<ReminderSettingsView>
               value: _enabled[item.key]!,
               onChanged: _busy ? null : (v) => _change(item.key, v),
             ),
-          if (_busy)
-            Semantics(liveRegion: true, child: const Text('正在更新提醒设置…')),
           if (_status.isNotEmpty)
             Padding(
               padding: const EdgeInsets.all(16),
