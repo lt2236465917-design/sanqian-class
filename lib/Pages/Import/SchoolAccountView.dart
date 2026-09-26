@@ -211,7 +211,7 @@ class _SchoolAccountViewState extends State<SchoolAccountView> {
           if (_message.isNotEmpty) ScheduleNotice(_message),
           const ScheduleSection('打开网页后'),
           const ScheduleNotice(
-            '1. 填写验证码，点击学校网页里的“登录”\n2. 进入“研究生综合管理 → 我的课表”\n3. 看到课表后，点右上角“读取并识别”',
+            '1. 填写验证码，点击学校网页里的“登录”\n2. 进入“研究生综合管理 → 我的课表”\n3. 看到课表后，点页面底部“读取并识别”',
           ),
           const ScheduleSection('识别课表'),
           AIKeyStatus(revision: _keyRevision),

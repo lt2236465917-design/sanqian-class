@@ -42,19 +42,8 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  Finder field(String label) => find.byWidgetPredicate(
-    (w) => w is DropdownButtonFormField<int> && w.decoration.labelText == label,
-  );
-  Future<void> choose(WidgetTester tester, String label, String option) async {
-    await tester.ensureVisible(field(label));
-    await tester.tap(field(label));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text(option).last);
-    await tester.pumpAndSettle();
-  }
-
   testWidgets(
-    'actual clock endpoints stay ordered and match the saved course range',
+    'free minute wheels map onto the timetable period that contains them',
     (tester) async {
       final original = {'weekTime': 0, 'startTime': 0, 'endTime': 0};
       Map? result;
@@ -63,28 +52,25 @@ void main() {
         WeekTimeNodeDialog(node: original, periods: periods),
         (v) => result = v,
       );
+      expect(find.byType(DropdownButtonFormField<int>), findsNothing);
       expect(find.text('周一 09:00–12:00'), findsOneWidget);
-      await choose(tester, '星期', '周日');
-      await choose(tester, '开始时间', '19:00');
-      expect(find.text('周日 19:00–21:30'), findsOneWidget);
-      await tester.tap(field('结束时间'));
-      await tester.pumpAndSettle();
-      expect(find.text('12:00'), findsNothing);
-      await tester.tap(find.text('21:30').last);
-      await tester.pumpAndSettle();
-      expect(original['startTime'], 0);
+      expect(
+        ClassTimeUtil.periodSpan(periods, 19 * 60, 21 * 60 + 30),
+        (start: 2, end: 2),
+      );
+      expect(
+        ClassTimeUtil.periodSpan(periods, 10 * 60, 14 * 60),
+        (start: 0, end: 1),
+      );
       await tester.ensureVisible(find.text('确认'));
       await tester.tap(find.text('确认'));
       await tester.pumpAndSettle();
-      expect(result, {'weekTime': 6, 'startTime': 2, 'endTime': 2});
-      expect(
-        ClassTimeUtil.clockRange(
-          periods,
-          result!['startTime'] + 1,
-          result!['endTime'] - result!['startTime'],
-        ),
-        '19:00–21:30',
-      );
+      expect(result?['weekTime'], 0);
+      expect(result?['startTime'], 0);
+      expect(result?['endTime'], 0);
+      expect(result?['startClock'], '09:00');
+      expect(result?['endClock'], '12:00');
+      expect(original['startTime'], 0);
       expect(tester.takeException(), isNull);
     },
   );
@@ -95,9 +81,20 @@ void main() {
       Map? result;
       await show(tester, WeekNodeDialog(node: original), (v) => result = v);
       expect(find.text('选择上课周'), findsOneWidget);
+      expect(find.text('自定义'), findsNothing);
+      expect(find.byIcon(Icons.check), findsNothing);
+      final before = tester.getSize(find.byType(AlertDialog));
+      final weekly = tester.getSize(find.byKey(const ValueKey('week-mode-0')));
+      final odd = tester.getSize(find.byKey(const ValueKey('week-mode-1')));
+      final even = tester.getSize(find.byKey(const ValueKey('week-mode-2')));
+      expect(weekly, odd);
+      expect(odd, even);
       await tester.tap(find.text('单周'));
       await tester.pumpAndSettle();
       expect(find.text('所选范围没有单周，请调整周次。'), findsOneWidget);
+      expect(tester.getSize(find.byType(AlertDialog)), before);
+      expect(tester.getSize(find.byKey(const ValueKey('week-mode-1'))), odd);
+      expect(find.byIcon(Icons.check), findsNothing);
       expect(
         tester
             .widget<FilledButton>(find.widgetWithText(FilledButton, '确认'))

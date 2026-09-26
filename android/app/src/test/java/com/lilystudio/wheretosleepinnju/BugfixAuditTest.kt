@@ -108,7 +108,7 @@ class BugfixAuditTest {
             onFailure = { storageFailure += it }
         )
         assertFalse(cookiesCalled)
-        assertEquals(listOf("无法清除网页存储，门户未打开。请点「读取并识别」重试。"), storageFailure)
+        assertEquals(listOf("无法清除网页存储，门户未打开。请点底部「重试」。"), storageFailure)
 
         val cookieFailure = mutableListOf<String>()
         PortalStorageReset.reset(
@@ -117,7 +117,7 @@ class BugfixAuditTest {
             onReady = { cookieFailure += "ready" },
             onFailure = { cookieFailure += it }
         )
-        assertEquals(listOf("无法清除登录 Cookie，门户未打开。请点「读取并识别」重试。"), cookieFailure)
+        assertEquals(listOf("无法清除登录 Cookie，门户未打开。请点底部「重试」。"), cookieFailure)
 
         val waiting = mutableListOf<String>()
         PortalStorageReset.reset(

@@ -16,7 +16,7 @@ object PortalStorageReset {
         try {
             deleteWebStorage()
         } catch (_: Exception) {
-            onFailure("无法清除网页存储，门户未打开。请点「读取并识别」重试。")
+            onFailure("无法清除网页存储，门户未打开。请点底部「重试」。")
             return
         }
         try {
@@ -24,7 +24,7 @@ object PortalStorageReset {
                 onReady()
             }
         } catch (_: Exception) {
-            onFailure("无法清除登录 Cookie，门户未打开。请点「读取并识别」重试。")
+            onFailure("无法清除登录 Cookie，门户未打开。请点底部「重试」。")
         }
     }
 }

@@ -66,10 +66,14 @@ class _ImportReviewViewState extends State<ImportReviewView> {
   bool _triedSave = false;
   late ScheduleRecognitionPreparation _preparation;
   List<String> _replacementWarnings = [];
-  bool _gateAcknowledged = false;
   bool _ocrAttempted = false;
-  bool get _requiresGateReview =>
-      _preparation.hasStructuralAnomaly || _replacementWarnings.isNotEmpty;
+  int get _pendingCourseCount => _courses.where((course) {
+    try {
+      return ScheduleImportCourseDraft.fromJson(course).isPending;
+    } catch (_) {
+      return false;
+    }
+  }).length;
   bool get _offersOCR =>
       _preparation.shouldOfferOCR &&
       widget.imagePaths.isNotEmpty &&
@@ -228,7 +232,6 @@ class _ImportReviewViewState extends State<ImportReviewView> {
       _portalAICompleted = _beforeAICompleted;
       _beforeAI = null;
       _replacementWarnings = [];
-      _gateAcknowledged = false;
       _error = null;
     });
     ScheduleFeedback.success(context, '已恢复本次 AI 处理前的内容');
@@ -264,7 +267,6 @@ class _ImportReviewViewState extends State<ImportReviewView> {
               : widget.expectedCourseNames,
         );
         _courses = _copyCourses(_preparation.courses);
-        _gateAcknowledged = false;
       });
     }
   }
@@ -276,14 +278,14 @@ class _ImportReviewViewState extends State<ImportReviewView> {
       builder: (c) => AlertDialog(
         title: Text(
           withOCR
-              ? '使用 OCR 复核'
+              ? 'AI自动复核课程'
               : _hasPortalText
               ? 'AI 识别网页课表'
               : 'AI 辅助核对',
         ),
         content: Text(
           withOCR
-              ? '将原课表图片与本机识别出的文字一同发送到 DeepSeek，再核对一次，可能再次消耗账户余额。文字识别也可能出错，复核结果需要你确认后才会替换当前内容。'
+              ? '如果发现有课程没有写上，可以把原课表图片和本机识别出的文字发给 DeepSeek 再检查一次，可能再次消耗账户余额。文字识别也可能出错。'
               : _hasPortalText
               ? '将网页中读取到的原始课表单元格发送到 DeepSeek，包含尚未解析出的课程行，可能消耗账户余额。不会发送账号、密码或网页会话。识别后仍需核对和确认保存。'
               : '将当前课程名称、教师和课表安排发送到 DeepSeek，可能消耗账户余额。不会发送账号、密码或网页会话。',
@@ -365,11 +367,31 @@ class _ImportReviewViewState extends State<ImportReviewView> {
       final reviewed = prepared.courses;
       // A follow-up must not silently replace corrections or drop meetings.
       if (_courses.isNotEmpty) {
+        final existingNames = _courses
+            .map((course) => '${course['name'] ?? ''}'.trim())
+            .where((name) => name.isNotEmpty)
+            .toSet();
+        final addedNames = <String>[];
+        for (final course in reviewed) {
+          final name = '${course['name'] ?? ''}'.trim();
+          if (name.isEmpty ||
+              existingNames.contains(name) ||
+              addedNames.contains(name)) {
+            continue;
+          }
+          addedNames.add(name);
+        }
         final useResult = await showDialog<bool>(
           context: context,
           builder: (c) => AlertDialog(
-            title: const Text('核对 AI 识别结果'),
-            content: SizedBox(
+            title: Text(withOCR ? '复核结果' : '核对 AI 识别结果'),
+            content: withOCR
+                ? Text(
+                    addedNames.isEmpty
+                        ? '课程课表已经很完整了，不需要再次添加了。'
+                        : '多添加了 ${addedNames.length} 门课程：${addedNames.join('、')}。',
+                  )
+                : SizedBox(
               width: 420,
               child: SingleChildScrollView(
                 child: Column(
@@ -402,11 +424,11 @@ class _ImportReviewViewState extends State<ImportReviewView> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(c, false),
-                child: const Text('保留当前内容'),
+                child: Text(withOCR ? '取消' : '保留当前内容'),
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(c, true),
-                child: const Text('采用并继续核对'),
+                child: Text(withOCR ? '采用' : '采用并继续核对'),
               ),
             ],
           ),
@@ -421,7 +443,6 @@ class _ImportReviewViewState extends State<ImportReviewView> {
         _preparation = prepared;
         _courses = _copyCourses(prepared.courses);
         _replacementWarnings = changes;
-        _gateAcknowledged = false;
         if (!withOCR) _portalAICompleted = true;
       });
       ScheduleFeedback.success(context, 'AI 结果已采用，请继续核对');
@@ -710,8 +731,7 @@ class _ImportReviewViewState extends State<ImportReviewView> {
     if (_needsPortalAI ||
         _busy ||
         _loadingTables ||
-        _courses.isEmpty ||
-        (_requiresGateReview && !_gateAcknowledged)) {
+        _courses.isEmpty) {
       return;
     }
     final model = MainStateModel.of(context);
@@ -879,12 +899,11 @@ class _ImportReviewViewState extends State<ImportReviewView> {
                       _busy ||
                           _loadingTables ||
                           _courses.isEmpty ||
-                          _needsPortalAI ||
-                          (_requiresGateReview && !_gateAcknowledged)
+                          _needsPortalAI
                       ? null
                       : _save,
                   child: Text(switch (_stage) {
-                    _ImportStage.idle => '查看变化并保存',
+                    _ImportStage.idle => '保存课表',
                     _ImportStage.recognizing => 'AI 正在识别…',
                     _ImportStage.reviewingAI => '等待核对 AI 结果',
                     _ImportStage.comparing => '正在比较导入变化…',
@@ -906,15 +925,9 @@ class _ImportReviewViewState extends State<ImportReviewView> {
               padding: const EdgeInsets.all(20),
               children: [
                 const ImportJourney(step: 2),
-                const ScheduleNotice('请核对课程、周次、钟点和教室。缺失信息保持待定，确认前不会保存。'),
-                for (final warning in [
-                  ...widget.warnings,
-                  ..._preparation.warnings,
-                  ..._replacementWarnings,
-                ])
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: ScheduleNotice(warning),
+                if (_pendingCourseCount > 0)
+                  ScheduleNotice(
+                    '有 $_pendingCourseCount 门课程包含待定安排，缺失信息未自动补全，请核对。',
                   ),
                 if (_courses.isNotEmpty)
                   Padding(
@@ -924,22 +937,16 @@ class _ImportReviewViewState extends State<ImportReviewView> {
                       subtitle: '点按课程可修改识别结果与上课安排。',
                     ),
                   ),
-                if (_offersOCR)
+                if (_offersOCR) ...[
                   OutlinedButton(
                     onPressed: _busy ? null : () => _assist(withOCR: true),
-                    child: const Text('使用 OCR 复核'),
+                    child: const Text('AI自动复核课程'),
                   ),
-                if (_requiresGateReview)
-                  CheckboxListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('我已对照原课表核对以上差异和待定信息'),
-                    value: _gateAcknowledged,
-                    onChanged: _busy
-                        ? null
-                        : (value) => setState(
-                            () => _gateAcknowledged = value ?? false,
-                          ),
+                  const Padding(
+                    padding: EdgeInsets.only(top: 8),
+                    child: Text('如果核对时发现有课程没有写上，可以用这个按钮再检查一次原图。'),
                   ),
+                ],
                 if (_courses.isEmpty && _hasPortalText)
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 12),

@@ -6,51 +6,27 @@
     android:orientation="vertical"
     android:padding="12dp">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
-
-        <Button
-            android:id="@+id/portal_cancel"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_marginEnd="6dp"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:insetTop="0dp"
-            android:insetBottom="0dp"
-            android:maxLines="1"
-            android:minWidth="0dp"
-            android:minHeight="0dp"
-            android:text="取消" />
-
-        <Button
-            android:id="@+id/portal_extract"
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_marginStart="6dp"
-            android:layout_weight="1"
-            android:gravity="center"
-            android:insetTop="0dp"
-            android:insetBottom="0dp"
-            android:maxLines="1"
-            android:minWidth="0dp"
-            android:minHeight="0dp"
-            android:text="读取并识别" />
-    </LinearLayout>
+    <Button
+        android:id="@+id/portal_cancel"
+        style="?android:attr/borderlessButtonStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="40dp"
+        android:gravity="center_vertical|start"
+        android:minWidth="0dp"
+        android:minHeight="0dp"
+        android:paddingStart="0dp"
+        android:paddingEnd="12dp"
+        android:text="取消" />
 
     <TextView
         android:id="@+id/portal_guide"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:lineSpacingMultiplier="1.35"
-        android:paddingTop="12dp"
+        android:lineSpacingMultiplier="1.25"
         android:paddingBottom="8dp"
-        android:text="请按顺序完成：\n1. 若已保存账号，网页会自动填入；请填写验证码后点「登录」\n2. 进入「研究生综合管理 → 我的课表」\n3. 看到课表后，点右上角「读取并识别」"
+        android:text="填写验证码并登录。看到课表后，点底部「读取并识别」。"
         android:textColor="#1A1A1A"
-        android:textSize="16sp" />
+        android:textSize="14sp" />
 
     <TextView
         android:id="@+id/portal_status"
@@ -67,4 +43,14 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1" />
+
+    <Button
+        android:id="@+id/portal_extract"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="8dp"
+        android:insetTop="0dp"
+        android:insetBottom="0dp"
+        android:minHeight="0dp"
+        android:text="读取并识别" />
 </LinearLayout>

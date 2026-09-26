@@ -1,5 +1,205 @@
 import UIKit
 import Flutter
+import AVFoundation
+
+/// Full-screen aspect-fit player. The view owns the layer geometry; assigning
+/// `playerLayer.frame` here shifts the picture into the bottom-right corner.
+private final class MascotSplashPlayerView: UIView {
+  override class var layerClass: AnyClass { AVPlayerLayer.self }
+  var playerLayer: AVPlayerLayer { layer as! AVPlayerLayer }
+
+  init(player: AVPlayer) {
+    super.init(frame: .zero)
+    backgroundColor = .clear
+    isOpaque = false
+    isUserInteractionEnabled = false
+    playerLayer.player = player
+    playerLayer.videoGravity = .resizeAspect
+    playerLayer.backgroundColor = UIColor.white.cgColor
+  }
+
+  required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+}
+
+/// Close-up poster stays above the player for 0.5s after it is actually
+/// visible, then the clip continues underneath. The player layer is black
+/// until its first frame, so the poster also covers that gap.
+private final class MascotSplashOverlay: UIView {
+  let playerView: MascotSplashPlayerView
+  private let posterView: UIImageView
+  private let skipButton = UIButton(type: .system)
+  private let player: AVPlayer
+  private var didRevealVideo = false
+  private var revealCheckScheduled = false
+  private var didLogMisaligned = false
+  private var visibleAt: Date?
+  private var readyObservation: NSKeyValueObservation?
+  private var playbackObservation: NSKeyValueObservation?
+  var onSkip: (() -> Void)?
+  var onReveal: (() -> Void)?
+  var onFadeFinished: (() -> Void)?
+
+  init(frame: CGRect, player: AVPlayer) {
+    self.player = player
+    playerView = MascotSplashPlayerView(player: player)
+    posterView = UIImageView(image: UIImage(named: "MascotSplashPoster"))
+    super.init(frame: frame)
+    backgroundColor = .white
+    isOpaque = true
+    clipsToBounds = true
+    autoresizingMask = [.flexibleWidth, .flexibleHeight]
+    overrideUserInterfaceStyle = .light
+
+    playerView.frame = bounds
+    posterView.frame = bounds
+    posterView.contentMode = .scaleAspectFit
+    posterView.backgroundColor = .white
+    posterView.isOpaque = true
+    posterView.clipsToBounds = true
+    posterView.isUserInteractionEnabled = false
+    posterView.overrideUserInterfaceStyle = .light
+
+    skipButton.setTitle("跳过", for: .normal)
+    skipButton.setTitleColor(.darkGray, for: .normal)
+    skipButton.titleLabel?.font = .systemFont(ofSize: 15)
+    skipButton.backgroundColor = UIColor.white.withAlphaComponent(0.9)
+    skipButton.layer.cornerRadius = 8
+    skipButton.accessibilityLabel = "跳过开屏动画"
+    skipButton.addTarget(self, action: #selector(skipTapped), for: .touchUpInside)
+
+    addSubview(posterView)
+    addSubview(skipButton)
+
+    readyObservation = playerView.playerLayer.observe(\.isReadyForDisplay, options: [.new]) {
+      [weak self] layer, _ in
+      guard layer.isReadyForDisplay else { return }
+      DispatchQueue.main.async { self?.scheduleRevealCheck() }
+    }
+    playbackObservation = player.observe(\.timeControlStatus, options: [.new]) { [weak self] _, _ in
+      DispatchQueue.main.async { self?.scheduleRevealCheck() }
+    }
+  }
+
+  required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+  deinit {
+    readyObservation?.invalidate()
+    playbackObservation?.invalidate()
+  }
+
+  override func layoutSubviews() {
+    super.layoutSubviews()
+    playerView.frame = bounds
+    posterView.frame = bounds
+    skipButton.frame = CGRect(
+      x: bounds.width - 76,
+      y: max(16, safeAreaInsets.top + 6),
+      width: 64,
+      height: 40
+    )
+  }
+
+  /// Starts the 0.5s hold. Call this when the poster is on screen, not while
+  /// the system launch card is still covering it.
+  func noteBecameVisible() {
+    guard visibleAt == nil else { return }
+    visibleAt = Date()
+    NSLog("[MascotSplash] Poster hold started")
+    scheduleRevealCheck()
+  }
+
+  func play() {
+    if playerView.superview == nil {
+      insertSubview(playerView, at: 0)
+      playerView.frame = bounds
+      playerView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+    }
+    let mediaTime = player.currentTime().seconds
+    if mediaTime.isFinite, mediaTime > 0.05 {
+      player.seek(to: .zero, toleranceBefore: .zero, toleranceAfter: .zero) { [weak self] _ in
+        self?.player.play()
+        self?.scheduleRevealCheck()
+      }
+    } else {
+      player.play()
+      scheduleRevealCheck()
+    }
+  }
+
+  private func scheduleRevealCheck() {
+    guard !didRevealVideo, !revealCheckScheduled else { return }
+    revealCheckScheduled = true
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+      self?.revealCheckScheduled = false
+      self?.revealVideoIfAdvancing()
+    }
+  }
+
+  /// Poster and square aspect-fit video share this rectangle.
+  private func centeredVideoRect() -> CGRect {
+    let side = min(bounds.width, bounds.height)
+    return CGRect(
+      x: (bounds.width - side) / 2,
+      y: (bounds.height - side) / 2,
+      width: side,
+      height: side
+    )
+  }
+
+  private func videoIsCentered() -> Bool {
+    guard playerView.playerLayer.isReadyForDisplay else { return false }
+    let actual = playerView.playerLayer.videoRect
+    let expected = centeredVideoRect()
+    guard actual.width > 2, actual.height > 2 else { return false }
+    return abs(actual.minX - expected.minX) < 8
+      && abs(actual.minY - expected.minY) < 8
+      && abs(actual.width - expected.width) < 8
+      && abs(actual.height - expected.height) < 8
+  }
+
+  private func revealVideoIfAdvancing() {
+    guard !didRevealVideo else { return }
+    let mediaTime = player.currentTime().seconds
+    let heldLongEnough = visibleAt.map { Date().timeIntervalSince($0) >= 0.5 } ?? false
+    let advancing = player.timeControlStatus == .playing
+      && player.rate > 0
+      && mediaTime.isFinite
+      && mediaTime >= 0.08
+    guard heldLongEnough, advancing, videoIsCentered() else {
+      if advancing, !didLogMisaligned {
+        didLogMisaligned = true
+        NSLog(
+          "[MascotSplash] holding poster; videoRect=%@ expected=%@",
+          NSCoder.string(for: playerView.playerLayer.videoRect),
+          NSCoder.string(for: centeredVideoRect())
+        )
+      }
+      scheduleRevealCheck()
+      return
+    }
+    NSLog(
+      "[MascotSplash] reveal at %.3fs videoRect=%@ bounds=%@",
+      mediaTime,
+      NSCoder.string(for: playerView.playerLayer.videoRect),
+      NSCoder.string(for: bounds)
+    )
+    didRevealVideo = true
+    fadePoster()
+  }
+
+  private func fadePoster() {
+    onReveal?()
+    UIView.animate(withDuration: 0.12, delay: 0, options: [.beginFromCurrentState, .curveEaseInOut]) {
+      self.posterView.alpha = 0
+    } completion: { [weak self] _ in
+      self?.posterView.isHidden = true
+      self?.onFadeFinished?()
+    }
+  }
+
+  @objc private func skipTapped() { onSkip?() }
+}
+
 import WidgetKit
 import ActivityKit
 import EventKit
@@ -9,6 +209,19 @@ import EventKit
   private var widgetDataChannel: FlutterMethodChannel?
   private var scheduleNavigationChannel: FlutterMethodChannel?
   private var settingsChannel: FlutterMethodChannel?
+  private var mascotSplashPosterHost: UIView?
+  private var mascotSplashChannel: FlutterMethodChannel?
+  private var didReleaseFlutterFrame = false
+  private weak var mascotFlutterController: FlutterViewController?
+  private var mascotSplashWindow: UIWindow?
+  private var mascotSplashOverlay: MascotSplashOverlay?
+  private var mascotSplashPlayer: AVPlayer?
+  private var mascotSplashEndObserver: NSObjectProtocol?
+  private var mascotSplashStatusObservation: NSKeyValueObservation?
+  private var mascotSplashTimeout: DispatchWorkItem?
+  private var mascotSplashItemReady = false
+  private var mascotSplashPlaybackRequested = false
+  private var mascotSplashPlaybackStarted = false
   private let calendarPermissionStore = EKEventStore()
   private let widgetSharingEnabled =
     Bundle.main.object(forInfoDictionaryKey: "ChaoxiWidgetsEnabled") as? Bool ?? false
@@ -72,7 +285,203 @@ import EventKit
     setupWidgetDataChannel()
     if widgetSharingEnabled { setupSystemTimeChangeObserver() }
 
-    return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+    let didFinishLaunching = super.application(application, didFinishLaunchingWithOptions: launchOptions)
+    setupMascotSplashChannel()
+    showMascotLaunchAnimationIfAvailable()
+    return didFinishLaunching
+  }
+
+  private func setupMascotSplashChannel() {
+    guard let registrar = registrar(forPlugin: "MascotSplash") else { return }
+    let channel = FlutterMethodChannel(
+      name: "sanqian/mascot_splash", binaryMessenger: registrar.messenger()
+    )
+    mascotSplashChannel = channel
+    channel.setMethodCallHandler { [weak self] call, result in
+      guard call.method == "startPlayback" else {
+        result(FlutterMethodNotImplemented)
+        return
+      }
+      self?.requestMascotLaunchPlayback()
+      result(nil)
+    }
+  }
+
+  override func applicationDidBecomeActive(_ application: UIApplication) {
+    super.applicationDidBecomeActive(application)
+    NSLog("[MascotSplash] didBecomeActive")
+    // Hand Flutter a frame now so iOS can drop the white launch card.
+    releaseFlutterFrame()
+    mascotSplashOverlay?.noteBecameVisible()
+  }
+
+  override func applicationDidEnterBackground(_ application: UIApplication) {
+    dismissMascotLaunchAnimation()
+    super.applicationDidEnterBackground(application)
+  }
+
+  private func showMascotLaunchAnimationIfAvailable() {
+    guard mascotSplashWindow == nil, let appWindow = window else { return }
+    let flutterAssets = Bundle.main.bundleURL
+      .appendingPathComponent("Frameworks/App.framework/flutter_assets", isDirectory: true)
+    let videoURL = flutterAssets.appendingPathComponent("res/mascot/cold-start-splash.mp4")
+    guard FileManager.default.fileExists(atPath: videoURL.path) else {
+      releaseFlutterFrame()
+      return
+    }
+
+    appWindow.backgroundColor = .white
+    if let flutterController = appWindow.rootViewController as? FlutterViewController {
+      mascotFlutterController = flutterController
+      flutterController.isViewOpaque = false
+      flutterController.view.backgroundColor = .white
+    }
+
+    let scene = appWindow.windowScene
+      ?? UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first
+    let screenBounds = scene?.screen.bounds ?? appWindow.bounds
+    let splashWindow: UIWindow
+    if let scene {
+      splashWindow = UIWindow(windowScene: scene)
+    } else {
+      splashWindow = UIWindow(frame: screenBounds)
+    }
+    splashWindow.frame = screenBounds
+    splashWindow.windowLevel = .alert + 1
+    splashWindow.backgroundColor = .white
+    splashWindow.overrideUserInterfaceStyle = .light
+
+    let item = AVPlayerItem(url: videoURL)
+    item.preferredForwardBufferDuration = 0
+    let player = AVPlayer(playerItem: item)
+    player.isMuted = true
+    player.automaticallyWaitsToMinimizeStalling = false
+    mascotSplashPlayer = player
+    // Buffer under the poster. The poster itself stays 0.5s after it is visible.
+    requestMascotLaunchPlayback()
+    mascotSplashEndObserver = NotificationCenter.default.addObserver(
+      forName: .AVPlayerItemDidPlayToEndTime,
+      object: item,
+      queue: .main
+    ) { [weak self] _ in
+      self?.dismissMascotLaunchAnimation()
+    }
+    mascotSplashStatusObservation = item.observe(\.status, options: [.initial, .new]) { [weak self] item, _ in
+      DispatchQueue.main.async {
+        guard let self = self else { return }
+        switch item.status {
+        case .readyToPlay:
+          self.mascotSplashItemReady = true
+          self.startMascotLaunchPlaybackIfRequested()
+        case .failed:
+          NSLog("[MascotSplash] Video failed: %@", item.error?.localizedDescription ?? "unknown")
+          self.dismissMascotLaunchAnimation()
+        case .unknown:
+          break
+        @unknown default:
+          break
+        }
+      }
+    }
+
+    let timeout = DispatchWorkItem { [weak self] in
+      NSLog("[MascotSplash] Timeout, dismissing")
+      self?.dismissMascotLaunchAnimation()
+    }
+    mascotSplashTimeout = timeout
+    DispatchQueue.main.asyncAfter(deadline: .now() + 10, execute: timeout)
+
+    // Poster on a screen-sized window. A player inside the Flutter view is cropped.
+    let host = UIViewController()
+    host.view.backgroundColor = .white
+    host.overrideUserInterfaceStyle = .light
+    let overlay = MascotSplashOverlay(frame: screenBounds, player: player)
+    overlay.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+    overlay.onSkip = { [weak self] in self?.dismissMascotLaunchAnimation() }
+    overlay.onReveal = { [weak self] in
+      self?.releaseFlutterFrame()
+    }
+    overlay.onFadeFinished = { [weak self] in
+      self?.mascotSplashPosterHost?.removeFromSuperview()
+      self?.mascotSplashPosterHost = nil
+    }
+    host.view.addSubview(overlay)
+    splashWindow.rootViewController = host
+    splashWindow.isHidden = false
+    mascotSplashWindow = splashWindow
+    mascotSplashOverlay = overlay
+    overlay.layoutIfNeeded()
+    // The system white card stays up until the key window commits a frame.
+    splashWindow.makeKeyAndVisible()
+    CATransaction.flush()
+    releaseFlutterFrame()
+    if UIApplication.shared.applicationState == .active {
+      overlay.noteBecameVisible()
+    }
+    NSLog(
+      "[MascotSplash] Splash window %@ hidden=%d",
+      NSCoder.string(for: overlay.bounds),
+      splashWindow.isHidden
+    )
+  }
+
+  @objc private func skipMascotLaunchAnimation() {
+    dismissMascotLaunchAnimation()
+  }
+
+  private func startMascotLaunchPlayback() {
+    guard !mascotSplashPlaybackStarted, mascotSplashOverlay != nil else { return }
+    mascotSplashPlaybackStarted = true
+    mascotSplashWindow?.isHidden = false
+    mascotSplashOverlay?.play()
+  }
+
+  private func requestMascotLaunchPlayback() {
+    mascotSplashPlaybackRequested = true
+    startMascotLaunchPlaybackIfRequested()
+  }
+
+  private func startMascotLaunchPlaybackIfRequested() {
+    guard mascotSplashItemReady, mascotSplashPlaybackRequested else { return }
+    startMascotLaunchPlayback()
+  }
+
+  /// Lets Flutter draw the home screen. Waits until the app is active so the
+  /// Dart side is listening, then repeats once in case the first call was early.
+  private func releaseFlutterFrame() {
+    guard UIApplication.shared.applicationState == .active else { return }
+    guard !didReleaseFlutterFrame else { return }
+    didReleaseFlutterFrame = true
+    mascotFlutterController?.isViewOpaque = true
+    mascotSplashChannel?.invokeMethod("releaseFirstFrame", arguments: nil)
+    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+      self?.mascotSplashChannel?.invokeMethod("releaseFirstFrame", arguments: nil)
+    }
+  }
+
+  private func dismissMascotLaunchAnimation() {
+    releaseFlutterFrame()
+    guard mascotSplashOverlay != nil || mascotSplashPlayer != nil || mascotSplashPosterHost != nil else { return }
+    mascotSplashTimeout?.cancel()
+    mascotSplashTimeout = nil
+    mascotSplashStatusObservation?.invalidate()
+    mascotSplashStatusObservation = nil
+    if let observer = mascotSplashEndObserver {
+      NotificationCenter.default.removeObserver(observer)
+      mascotSplashEndObserver = nil
+    }
+    mascotSplashPlayer?.pause()
+    mascotSplashOverlay?.removeFromSuperview()
+    mascotSplashOverlay = nil
+    mascotSplashPlayer = nil
+    mascotSplashPosterHost?.removeFromSuperview()
+    mascotSplashPosterHost = nil
+    mascotSplashWindow?.isHidden = true
+    mascotSplashWindow = nil
+    window?.makeKeyAndVisible()
+    mascotSplashItemReady = false
+    mascotSplashPlaybackRequested = false
+    mascotSplashPlaybackStarted = false
   }
 
   private var hasCalendarAccess: Bool {

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../Components/ScheduleDesign.dart';
 import '../../Models/ScheduleImportDraft.dart';
 import '../../Utils/ScheduleDerivedDataService.dart';
 import '../../Utils/ScheduleFeedback.dart';
@@ -221,14 +222,12 @@ class _PhotoScheduleImportViewState extends State<PhotoScheduleImportView> {
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         padding: const EdgeInsets.all(20),
         children: [
-          const Text(
-            '选择同一学期的多张课表截图，由 AI 联合识别。保留星期、周次与时间表头；核对课程后再保存。',
-            style: TextStyle(height: 1.6),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            '为了让课程录入更准确、更完整，请尽量选择展示完整课表内容的截图，包含星期、周次和时间表头。',
-            style: TextStyle(height: 1.6),
+          const ScheduleIntro(
+            icon: Icons.photo_library_outlined,
+            eyebrow: '多张截图 · AI 识别',
+            title: '从截图带入课表',
+            description:
+                '选择同一学期的课表截图。尽量包含星期、周次和时间表头，识别后先核对，再保存。',
           ),
           const SizedBox(height: 16),
           TextButton.icon(

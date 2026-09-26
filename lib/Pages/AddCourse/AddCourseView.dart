@@ -73,8 +73,13 @@ class _AddViewState extends State<AddView> {
     super.dispose();
   }
 
-  String _periodSummary() =>
-      ClassTimeUtil.clockRange(
+  String _periodSummary() {
+    final start = _node['startClock'];
+    final end = _node['endClock'];
+    if (start is String && end is String && start.isNotEmpty && end.isNotEmpty) {
+      return '$start–$end';
+    }
+    return ClassTimeUtil.clockRange(
         _periods ?? [],
         _node['startTime'] + 1,
         _node['endTime'] - _node['startTime'],
@@ -90,6 +95,7 @@ class _AddViewState extends State<AddView> {
             '${_node['startTime'] + 1}',
             '${_node['endTime'] + 1}',
           );
+  }
 
   // TODO: add multi node in one Widget
   Map _node = {

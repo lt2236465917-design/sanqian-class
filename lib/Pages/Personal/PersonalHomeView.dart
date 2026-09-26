@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 import '../../Components/ScheduleDesign.dart';
 import '../../Models/CourseModel.dart';
@@ -60,9 +59,6 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
     WidgetsBinding.instance.addObserver(this);
     _load();
     _timer = Timer.periodic(const Duration(minutes: 1), (_) => _tick());
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) => FlutterNativeSplash.remove(),
-    );
   }
 
   void _tick() {

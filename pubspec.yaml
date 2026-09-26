@@ -38,6 +38,7 @@ dependencies:
   qr_flutter: ^4.0.0
   zxing2: ^0.2.3
   archive: ^3.4.10
+  video_player: ^2.10.1
   # flutter_html 3.0.0 uses querySelector.matches, removed in html 0.15.7.
   html: 0.15.6
   dio: ^5.9.0
@@ -64,6 +65,8 @@ flutter:
   uses-material-design: true
   assets:
     - res/personal-icon.png
+    - res/mascot/cold-start-splash.mp4
+    - res/mascot/cold-start-splash-poster.png
     - LICENSE
     - res/schedules/zgysyjy_2026_fall.json
 

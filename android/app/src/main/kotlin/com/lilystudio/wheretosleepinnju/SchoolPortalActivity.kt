@@ -16,6 +16,7 @@ import android.webkit.CookieManager
 import android.webkit.JsPromptResult
 import android.webkit.JsResult
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebStorage
@@ -33,6 +34,8 @@ import java.util.UUID
 
 class SchoolPortalActivity : Activity() {
     private lateinit var status: TextView
+    private lateinit var guide: TextView
+    private lateinit var extractButton: Button
     private lateinit var container: FrameLayout
     private lateinit var mainWebView: WebView
     private val childWebViews = mutableListOf<WebView>()
@@ -55,11 +58,14 @@ class SchoolPortalActivity : Activity() {
         backHandle = PredictiveBack.register(this) { goBack() }
         setContentView(R.layout.activity_school_portal)
         status = findViewById(R.id.portal_status)
+        guide = findViewById(R.id.portal_guide)
+        extractButton = findViewById(R.id.portal_extract)
         container = findViewById(R.id.portal_web_container)
         findViewById<Button>(R.id.portal_cancel).setOnClickListener { cancel() }
-        findViewById<Button>(R.id.portal_extract).setOnClickListener {
+        extractButton.setOnClickListener {
             if (!started) preparePortal() else requestExtraction()
         }
+        refreshChrome()
 
         if (!WebViewFeature.isFeatureSupported(WebViewFeature.WEB_MESSAGE_LISTENER) ||
             !WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)
@@ -96,10 +102,12 @@ class SchoolPortalActivity : Activity() {
                     bootstrapping = true
                     started = true
                     showStatus("")
+                    refreshChrome()
                     mainWebView.loadUrl(BOOTSTRAP_URL)
                 } catch (_: Exception) {
                     started = false
-                    showStatus("门户未能打开。请点「读取并识别」重试。")
+                    showStatus("门户未能打开。请点底部「重试」。")
+                    refreshChrome()
                 }
             },
             onFailure = { message ->
@@ -109,6 +117,7 @@ class SchoolPortalActivity : Activity() {
                 }
                 started = false
                 showStatus(message)
+                refreshChrome()
             }
         )
     }
@@ -142,6 +151,11 @@ class SchoolPortalActivity : Activity() {
         webView.settings.javaScriptCanOpenWindowsAutomatically = true
         webView.settings.setSupportMultipleWindows(true)
         webView.settings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
+        webView.settings.useWideViewPort = true
+        webView.settings.setSupportZoom(true)
+        webView.settings.builtInZoomControls = true
+        webView.settings.displayZoomControls = false
+        webView.settings.userAgentString = webView.settings.userAgentString.replace("; wv", "")
         webView.settings.allowFileAccess = false
         webView.settings.allowContentAccess = false
         webView.settings.cacheMode = WebSettings.LOAD_NO_CACHE
@@ -175,12 +189,20 @@ class SchoolPortalActivity : Activity() {
                     view.loadUrl(LOGIN_URL)
                     return
                 }
+                refreshChrome()
                 scheduleCredentialFill(view, url)
             }
 
-            override fun onReceivedError(view: WebView, errorCode: Int, description: String?, failingUrl: String?) {
+            override fun onReceivedError(
+                view: WebView,
+                request: WebResourceRequest,
+                error: WebResourceError
+            ) {
+                if (!request.isForMainFrame) return
+                started = false
                 cancelExtraction()
-                showStatus("网页没打开。请确认手机能上网后点取消，再重新打开学校网页；也可以改用多图课表导入。")
+                showStatus("网页没打开。请确认手机能上网后点底部「重试」；也可以改用多图课表导入。")
+                refreshChrome()
             }
         }
         webView.webChromeClient = object : WebChromeClient() {
@@ -381,7 +403,7 @@ class SchoolPortalActivity : Activity() {
         val result = parsed.copy(warnings = parsed.warnings + warning)
         cancelExtraction()
         if (!result.canReview) {
-            showStatus(parsed.warnings.lastOrNull() ?: "当前页面没有可识别课表。请先进入「研究生综合管理 → 我的课表」，看到课表后再点「读取并识别」。")
+            showStatus(parsed.warnings.lastOrNull() ?: "当前页面没有可识别课表。请先进入「研究生综合管理 → 我的课表」，看到课表后再点底部「读取并识别」。")
             return
         }
         val payload = toJsonValue(result.toChannelMap()) as JSONObject
@@ -392,6 +414,20 @@ class SchoolPortalActivity : Activity() {
     private fun showStatus(message: String) {
         status.visibility = if (message.isEmpty()) View.GONE else View.VISIBLE
         status.text = message
+    }
+
+    private fun refreshChrome() {
+        val login = this::mainWebView.isInitialized && isLoginPage(activeWebView.url?.let { Uri.parse(it) })
+        if (!started) {
+            extractButton.text = "重试"
+            guide.text = "学校网页还没打开。确认手机能上网后，点底部「重试」。"
+        } else if (login) {
+            extractButton.text = "读取并识别"
+            guide.text = "填写验证码，再点网页里的「登录」。"
+        } else {
+            extractButton.text = "读取并识别"
+            guide.text = "进入「我的课表」，看到课程后点底部「读取并识别」。"
+        }
     }
 
     private fun scheduleCredentialFill(view: WebView, url: String?) {
@@ -428,7 +464,7 @@ class SchoolPortalActivity : Activity() {
                 view.evaluateJavascript(script) { raw ->
                     when (raw?.trim('"')) {
                         "filled" -> showStatus("已填入本机保存的账号和密码。请填写验证码，再点网页里的「登录」。")
-                        "missing" -> { }
+                        "missing" -> showStatus("没有自动填入密码。请在网页里手动输入账号和密码。")
                         "blocked" -> { }
                     }
                 }
