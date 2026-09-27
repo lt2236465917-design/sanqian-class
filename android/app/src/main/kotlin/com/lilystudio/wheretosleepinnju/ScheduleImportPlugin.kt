@@ -65,11 +65,7 @@ class ScheduleImportPlugin :
     }
 
     override fun onDetachedFromActivityForConfigChanges() {
-        abandonPending("界面已销毁")
-        activityBinding?.removeActivityResultListener(this)
-        activityBinding?.removeRequestPermissionsResultListener(this)
-        activityBinding = null
-        activity = null
+        detachHostKeepingPortal()
     }
 
     override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
@@ -77,7 +73,23 @@ class ScheduleImportPlugin :
     }
 
     override fun onDetachedFromActivity() {
-        onDetachedFromActivityForConfigChanges()
+        // The school portal is a second Activity. Android destroys this stopped
+        // host while that page is still open. The openPortal call has to stay
+        // pending so the timetable can be delivered to the same Dart isolate.
+        detachHostKeepingPortal()
+    }
+
+    private fun detachHostKeepingPortal() {
+        generation.incrementAndGet()
+        cancelRecognition()
+        running?.cancel(true)
+        running = null
+        busy.set(false)
+        bridge.cancelAllExcept(setOf("portal"), "cancelled", "界面已销毁")
+        activityBinding?.removeActivityResultListener(this)
+        activityBinding?.removeRequestPermissionsResultListener(this)
+        activityBinding = null
+        activity = null
     }
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
@@ -271,11 +283,13 @@ class ScheduleImportPlugin :
         if (requestCode != REQUEST_PORTAL) return false
         val pending = bridge.take("portal") ?: return true
         if (resultCode != Activity.RESULT_OK) {
+            PortalResultBus.clear()
             pending.success(null)
             return true
         }
-        val json = data?.getStringExtra(SchoolPortalActivity.EXTRA_RESULT)
-        if (json.isNullOrEmpty()) {
+        val token = data?.getStringExtra(SchoolPortalActivity.EXTRA_RESULT)
+        val json = if (token == PortalResultBus.TOKEN) PortalResultBus.consume() else token
+        if (json.isNullOrEmpty() || json == PortalResultBus.TOKEN) {
             pending.success(null)
             return true
         }

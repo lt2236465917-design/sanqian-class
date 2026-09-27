@@ -220,6 +220,11 @@ final class SchoolPortalSession: NSObject, WKNavigationDelegate, WKUIDelegate {
         }
         publish(.ready)
     }
+    func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+        cancelExtraction()
+        fail("学校网页已中断。请返回后重新打开。")
+    }
+
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) { cancelExtraction(); fail("门户页面加载失败，请重试或改用截图导入。") }
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) { cancelExtraction(); fail("门户页面加载失败，请重试或改用截图导入。") }
 
@@ -299,53 +304,95 @@ final class SchoolPortalSession: NSObject, WKNavigationDelegate, WKUIDelegate {
           window.__sanqianScheduleHooked = true;
           const completed = new Set();
           const clean = value => String(value || '').replace(/\u00a0/g, ' ').trim();
-          const safeText = cell => {
-            if (cell.hidden || cell.getAttribute('aria-hidden') === 'true') return '';
-            const style = window.getComputedStyle ? window.getComputedStyle(cell) : null;
-            if (style && (style.display === 'none' || style.visibility === 'hidden')) return '';
-            const copy = cell.cloneNode(true);
-            copy.querySelectorAll('input,textarea,select,button,script,style,[hidden],[aria-hidden="true"],form,[style*="display:none"],[style*="display: none"],[style*="visibility:hidden"],[style*="visibility: hidden"]').forEach(node => node.remove());
-            copy.querySelectorAll('br').forEach(node => node.replaceWith('\n'));
-            return clean(copy.textContent);
+          const safeText = (cell, view) => {
+            try {
+              if (!cell) return '';
+              if (cell.hidden || cell.getAttribute('aria-hidden') === 'true') return '';
+              const owner = view || window;
+              const style = owner.getComputedStyle ? owner.getComputedStyle(cell) : null;
+              if (style && (style.display === 'none' || style.visibility === 'hidden')) return '';
+              const copy = cell.cloneNode(true);
+              copy.querySelectorAll('input,textarea,select,button,script,style,[hidden],[aria-hidden="true"],form,[style*="display:none"],[style*="display: none"],[style*="visibility:hidden"],[style*="visibility: hidden"]').forEach(node => node.remove());
+              copy.querySelectorAll('br').forEach(node => node.replaceWith('\n'));
+              return clean(copy.textContent);
+            } catch (_) { return ''; }
           };
           const span = (cell, name, limit) => Math.min(limit, Math.max(1, parseInt(cell.getAttribute(name) || '1', 10) || 1));
-          const send = (requestID, rows, truncated = false) => window.webkit.messageHandlers[sanqianHandler].postMessage({
-            version:1, kind:'scheduleTables', requestID, title:'', html:'', innerText:'', rows, truncated,
-            frame:{url:location.origin + location.pathname, securityOrigin:location.origin, isMainFrame:window === window.top}
-          });
-          window.addEventListener('message', event => {
-            const value = event.data;
-            let sender;
-            try { sender = new URL(event.origin); } catch (_) { return; }
-            if (sender.protocol !== 'https:' || !sanqianAllowedHosts.includes(sender.hostname.toLowerCase())) return;
-            if (!value || value.sanqianSchedule !== 'extract' || typeof value.requestID !== 'string' || !/^[A-Fa-f0-9-]{36}$/.test(value.requestID)) return;
-            if (completed.has(value.requestID)) return;
-            completed.add(value.requestID);
-            if (completed.size > 32) completed.delete(completed.values().next().value);
-            // Access to a direct child WindowProxy does not require access to its DOM.
-            for (let i = 0; i < window.frames.length; i++) {
-              try { window.frames[i].postMessage(value, '*'); } catch (_) {}
+          const weight = list => list.reduce((n, row) => n + row.reduce((m, cell) => m + String(cell.text || '').length + 24, 48), 0);
+          const send = (requestID, rows, truncated = false) => {
+            let payloadRows = rows;
+            let flag = !!truncated;
+            while (weight(payloadRows) > 48000 && payloadRows.length > 1) {
+              flag = true;
+              payloadRows = payloadRows.slice(0, Math.max(1, Math.floor(payloadRows.length / 2)));
             }
+            if (weight(payloadRows) > 48000) {
+              flag = true;
+              payloadRows = payloadRows.slice(0, 1).map(row => row.slice(0, 8).map(cell => ({text: String(cell.text || '').slice(0, 400), rowSpan: cell.rowSpan, colSpan: cell.colSpan})));
+            }
+            window.webkit.messageHandlers[sanqianHandler].postMessage({
+              version:1, kind:'scheduleTables', requestID, title:'', html:'', innerText:'', rows: payloadRows, truncated: flag,
+              frame:{url:location.origin + location.pathname, securityOrigin:location.origin, isMainFrame:window === window.top}
+            });
+          };
+          const publishDocument = (doc, view, requestID) => {
             let count = 0;
-            const pageTables = Array.from(document.querySelectorAll('table'));
+            const pageTables = Array.from(doc.querySelectorAll('table'));
             for (const table of pageTables.slice(0, 32)) {
               if (table.querySelector('input[type="password"]')) continue;
               let truncated = pageTables.length > 32 || table.rows.length > 128;
               const rows = Array.from(table.rows || []).slice(0,128).map(row => {
                 if (row.cells.length > 32) truncated = true;
                 return Array.from(row.cells || []).slice(0,32).map(cell => {
-                  const text = safeText(cell);
+                  const text = safeText(cell, view);
                   if (text.length > 2000) truncated = true;
                   return {text:text.slice(0,2000), rowSpan:span(cell,'rowspan',128), colSpan:span(cell,'colspan',32)};
                 });
               });
               const text = rows.flat().map(cell => cell.text).join(' ');
               if (rows.length >= 2 && ((/课程名称|课程名|科目|教学科目/.test(text) && /上课|时间|地点|安排|周次/.test(text)) || /周一|星期一/.test(text) && /周二|星期二/.test(text))) {
-                send(value.requestID, rows, truncated); count++;
+                send(requestID, rows, truncated); count++;
               }
             }
-            // A zero-table frame still acknowledges extraction, ending empty pages.
-            if (!count) send(value.requestID, []);
+            return count;
+          };
+          window.addEventListener('message', event => {
+            try {
+              const value = event.data;
+              let sender;
+              try { sender = new URL(event.origin); } catch (_) { return; }
+              if (sender.protocol !== 'https:' || !sanqianAllowedHosts.includes(sender.hostname.toLowerCase())) return;
+              if (!value || value.sanqianSchedule !== 'extract' || typeof value.requestID !== 'string' || !/^[A-Fa-f0-9-]{36}$/.test(value.requestID)) return;
+              const depth = Number(value.depth) || 0;
+              if (depth > 6) return;
+              if (completed.has(value.requestID)) return;
+              completed.add(value.requestID);
+              if (completed.size > 32) completed.delete(completed.values().next().value);
+              const seen = new Set();
+              const visit = (win, level) => {
+                if (!win || level > 6 || seen.has(win)) return 0;
+                seen.add(win);
+                let count = 0;
+                const doc = win === window ? document : (() => { try { return win.document; } catch (_) { return null; } })();
+                if (doc && doc.querySelectorAll) count += publishDocument(doc, win, value.requestID);
+                let n = 0;
+                try { n = win.frames.length; } catch (_) { n = 0; }
+                for (let i = 0; i < n && i < 32; i++) {
+                  let child = null;
+                  try { child = win.frames[i]; } catch (_) { continue; }
+                  if (!child) continue;
+                  let readable = false;
+                  try { readable = child !== window && !!(child.document && child.document.querySelectorAll); } catch (_) { readable = false; }
+                  let found = 0;
+                  if (readable) found = visit(child, level + 1);
+                  if (!readable || !found) { try { child.postMessage({sanqianSchedule:'extract', requestID: value.requestID, depth: level + 1}, '*'); } catch (_) {} }
+                  count += found;
+                }
+                return count;
+              };
+              const count = visit(window, depth);
+              if (!count) send(value.requestID, []);
+            } catch (_) {}
           });
         })();
         """#

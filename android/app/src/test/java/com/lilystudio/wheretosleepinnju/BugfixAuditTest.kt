@@ -130,6 +130,32 @@ class BugfixAuditTest {
     }
 
     @Test
+    fun portalRequestSurvivesHostDetachAndResultStaysOutOfTheBinderIntent() {
+        val bridge = PendingBridgeResults()
+        val portal = FakeReply()
+        val recognize = FakeReply()
+        bridge.track("portal", portal)
+        bridge.track("recognize", recognize)
+        assertEquals(1, bridge.cancelAllExcept(setOf("portal"), "cancelled", "界面已销毁"))
+        assertNull(portal.code)
+        assertEquals("cancelled", recognize.code)
+        assertTrue(bridge.contains("portal"))
+
+        PortalResultBus.clear()
+        val json = """{"courses":[],"warnings":[],"timetableText":"课"}"""
+        assertTrue(PortalResultBus.offer(json))
+        assertTrue(PortalResultBus.TOKEN.length < 32)
+        assertEquals(json, PortalResultBus.consume())
+        assertNull(PortalResultBus.consume())
+        assertFalse(PortalResultBus.offer("x".repeat(PortalResultBus.MAX_CHARS + 1)))
+        assertNull(PortalResultBus.consume())
+
+        val taken = bridge.take("portal")
+        assertTrue(taken!!.success(mapOf("timetableText" to "课")))
+        assertEquals(1, portal.calls)
+    }
+
+    @Test
     fun pendingResultsCompleteOnceWhenTheHostDetaches() {
         val bridge = PendingBridgeResults()
         val portal = FakeReply()

@@ -1,5 +1,6 @@
 package com.lilystudio.wheretosleepinnju;
 
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -17,12 +18,18 @@ import android.widget.ImageView;
 import androidx.annotation.NonNull;
 import io.flutter.embedding.android.FlutterActivity;
 import io.flutter.embedding.engine.FlutterEngine;
+import io.flutter.embedding.engine.FlutterEngineCache;
 import io.flutter.plugin.common.MethodChannel;
 
 
 public class MainActivity extends FlutterActivity {
+    private static final String ENGINE_ID = "sanqian.main";
     private static final String MASCOT_BRIDGE_CHANNEL = "sanqian/mascot_bridge";
+    /** Set once the opening poster has been removed. A later Activity recreate must not cover the UI with it. */
+    private static boolean openingPosterDismissed;
+    private MethodChannel mascotBridgeChannel;
     private MethodChannel scheduleWidgetChannel;
+    private MethodChannel settingsChannel;
     private View mascotBridge;
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
@@ -34,7 +41,37 @@ public class MainActivity extends FlutterActivity {
             getSplashScreen().setOnExitAnimationListener(view -> view.remove());
         }
         super.onCreate(savedInstanceState);
-        installMascotBridge();
+        if (!openingPosterDismissed) installMascotBridge();
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (mascotBridgeChannel != null) mascotBridgeChannel.setMethodCallHandler(null);
+        if (scheduleWidgetChannel != null) scheduleWidgetChannel.setMethodCallHandler(null);
+        if (settingsChannel != null) settingsChannel.setMethodCallHandler(null);
+        super.onDestroy();
+    }
+
+    /**
+     * The school portal sits on top of this Activity. Android can destroy the
+     * stopped host while that page is open. Reuse the engine so returning from
+     * 「读取并识别」does not rerun Dart and replay the opening animation.
+     */
+    @Override
+    public FlutterEngine provideFlutterEngine(@NonNull Context context) {
+        return FlutterEngineCache.getInstance().get(ENGINE_ID);
+    }
+
+    @Override
+    public boolean shouldDestroyEngineWithHost() {
+        return false;
+    }
+
+    @Override
+    public boolean shouldRestoreAndSaveState() {
+        // Restoration would push the saved snapshot into the still-running
+        // isolate and replace the page that is waiting for the timetable.
+        return false;
     }
 
     @Override
@@ -78,6 +115,7 @@ public class MainActivity extends FlutterActivity {
     }
 
     private void removeMascotBridge() {
+        openingPosterDismissed = true;
         mainHandler.removeCallbacksAndMessages(null);
         if (mascotBridge == null) return;
         ViewGroup parent = (ViewGroup) mascotBridge.getParent();
@@ -88,30 +126,33 @@ public class MainActivity extends FlutterActivity {
     @Override
     public void configureFlutterEngine(@NonNull FlutterEngine flutterEngine) {
         super.configureFlutterEngine(flutterEngine);
-        new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), MASCOT_BRIDGE_CHANNEL)
-                .setMethodCallHandler((call, result) -> {
-                    if ("flutterPosterReady".equals(call.method)) {
-                        removeMascotBridge();
-                        result.success(null);
-                    } else {
-                        result.notImplemented();
-                    }
-                });
-        flutterEngine.getPlugins().add(new ScheduleImportPlugin());
+        FlutterEngineCache.getInstance().put(ENGINE_ID, flutterEngine);
+        mascotBridgeChannel = new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), MASCOT_BRIDGE_CHANNEL);
+        mascotBridgeChannel.setMethodCallHandler((call, result) -> {
+            if ("flutterPosterReady".equals(call.method)) {
+                removeMascotBridge();
+                result.success(null);
+            } else {
+                result.notImplemented();
+            }
+        });
+        if (!flutterEngine.getPlugins().has(ScheduleImportPlugin.class)) {
+            flutterEngine.getPlugins().add(new ScheduleImportPlugin());
+        }
         scheduleWidgetChannel = new MethodChannel(
             flutterEngine.getDartExecutor().getBinaryMessenger(),
             "sanqian/widget"
         );
-        new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), "sanqian/settings")
-            .setMethodCallHandler((call, result) -> {
-                if (call.method.equals("openAppSettings")) {
-                    try {
-                        startActivity(new android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
-                            android.net.Uri.parse("package:" + getPackageName())));
-                        result.success(true);
-                    } catch (Exception error) { result.success(false); }
-                } else { result.notImplemented(); }
-            });
+        settingsChannel = new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), "sanqian/settings");
+        settingsChannel.setMethodCallHandler((call, result) -> {
+            if (call.method.equals("openAppSettings")) {
+                try {
+                    startActivity(new android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                        android.net.Uri.parse("package:" + getPackageName())));
+                    result.success(true);
+                } catch (Exception error) { result.success(false); }
+            } else { result.notImplemented(); }
+        });
     }
 
 //    @Override

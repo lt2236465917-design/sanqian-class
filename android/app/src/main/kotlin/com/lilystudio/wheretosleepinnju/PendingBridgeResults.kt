@@ -60,4 +60,15 @@ class PendingBridgeResults {
         }
         return count
     }
+
+    /** Leaves [keep] pending. Used when the host Activity is destroyed underneath the portal. */
+    fun cancelAllExcept(keep: Set<String>, code: String, message: String): Int {
+        val keys = pending.keys.filter { it !in keep }
+        var count = 0
+        for (key in keys) {
+            val item = pending.remove(key) ?: continue
+            if (item.error(code, message)) count += 1
+        }
+        return count
+    }
 }

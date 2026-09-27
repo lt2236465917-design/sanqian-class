@@ -16,6 +16,7 @@ import android.webkit.CookieManager
 import android.webkit.JsPromptResult
 import android.webkit.JsResult
 import android.webkit.WebChromeClient
+import android.webkit.RenderProcessGoneDetail
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
@@ -132,14 +133,25 @@ class SchoolPortalActivity : Activity() {
         PredictiveBack.unregister(this, backHandle)
         backHandle = null
         cancelExtraction()
-        (childWebViews + if (this::mainWebView.isInitialized) listOf(mainWebView) else emptyList()).forEach {
-            it.stopLoading()
-            (it.parent as? ViewGroup)?.removeView(it)
-            it.destroy()
-        }
-        childWebViews.clear()
-        CookieManager.getInstance().removeAllCookies(null)
+        // Cookie wiping after WebView.destroy crashes some system WebViews and
+        // takes the whole process down. The next open clears storage first.
+        destroyWebViews()
         super.onDestroy()
+    }
+
+    private fun destroyWebViews() {
+        val views = (childWebViews + if (this::mainWebView.isInitialized) listOf(mainWebView) else emptyList()).distinct()
+        childWebViews.clear()
+        for (view in views) {
+            try {
+                view.stopLoading()
+                view.webChromeClient = null
+                view.webViewClient = WebViewClient()
+                (view.parent as? ViewGroup)?.removeView(view)
+                view.destroy()
+            } catch (_: Throwable) {
+            }
+        }
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -203,6 +215,13 @@ class SchoolPortalActivity : Activity() {
                 cancelExtraction()
                 showStatus("网页没打开。请确认手机能上网后点底部「重试」；也可以改用多图课表导入。")
                 refreshChrome()
+            }
+
+            override fun onRenderProcessGone(view: WebView, detail: RenderProcessGoneDetail): Boolean {
+                // The default return kills the app process. The system then
+                // relaunches into the opening animation.
+                handler.post { recoverFromRendererLoss(view) }
+                return true
             }
         }
         webView.webChromeClient = object : WebChromeClient() {
@@ -327,7 +346,28 @@ class SchoolPortalActivity : Activity() {
         observedFrames.clear()
     }
 
+    private fun recoverFromRendererLoss(view: WebView) {
+        if (isFinishing || isDestroyed) return
+        cancelExtraction()
+        started = false
+        bootstrapping = false
+        try {
+            (view.parent as? ViewGroup)?.removeView(view)
+            childWebViews.remove(view)
+        } catch (_: Throwable) {
+        }
+        showStatus("学校网页已中断。请点底部「重试」。")
+        refreshChrome()
+    }
+
     private fun receive(message: WebMessageCompat, sourceOrigin: Uri, isMainFrame: Boolean) {
+        try {
+            receiveMessage(message, sourceOrigin, isMainFrame)
+        } catch (_: Throwable) {
+        }
+    }
+
+    private fun receiveMessage(message: WebMessageCompat, sourceOrigin: Uri, isMainFrame: Boolean) {
         val data = message.data ?: return
         val payload = try {
             JSONObject(data)
@@ -390,25 +430,43 @@ class SchoolPortalActivity : Activity() {
 
     private fun finishExtraction(requestID: String, timedOut: Boolean) {
         if (extractionID != requestID) return
-        val parsed = SchoolScheduleParser.parse(
-            tables.toList(),
-            frameCount = observedFrames.size,
-            sourceURL = SchoolPortalSecurity.sanitizedURL(activeWebView.url)
-        )
-        val warning = if (timedOut) {
-            "读取窗口已结束；未响应或仍在加载的页面需重新读取。"
-        } else {
-            "已汇总本次响应的表格；仍在加载的页面需重新读取。"
+        val pageUrl = try {
+            SchoolPortalSecurity.sanitizedURL(activeWebView.url)
+        } catch (_: Throwable) {
+            null
         }
-        val result = parsed.copy(warnings = parsed.warnings + warning)
-        cancelExtraction()
-        if (!result.canReview) {
-            showStatus(parsed.warnings.lastOrNull() ?: "当前页面没有可识别课表。请先进入「研究生综合管理 → 我的课表」，看到课表后再点底部「读取并识别」。")
-            return
+        try {
+            val parsed = SchoolScheduleParser.parse(
+                tables.toList(),
+                frameCount = observedFrames.size,
+                sourceURL = pageUrl
+            )
+            val warning = if (timedOut) {
+                "读取窗口已结束；未响应或仍在加载的页面需重新读取。"
+            } else {
+                "已汇总本次响应的表格；仍在加载的页面需重新读取。"
+            }
+            val result = parsed.copy(warnings = parsed.warnings + warning)
+            cancelExtraction()
+            if (!result.canReview) {
+                showStatus(parsed.warnings.lastOrNull() ?: "当前页面没有可识别课表。请先进入「研究生综合管理 → 我的课表」，看到课表后再点底部「读取并识别」。")
+                return
+            }
+            val payload = toJsonValue(result.toChannelMap()) as JSONObject
+            val json = payload.toString()
+            if (!PortalResultBus.offer(json)) {
+                showStatus("这次读到的课表太长，没有带回。请分页面读取，或改用多图课表导入。")
+                return
+            }
+            setResult(RESULT_OK, Intent().putExtra(EXTRA_RESULT, PortalResultBus.TOKEN))
+            finish()
+        } catch (_: Throwable) {
+            PortalResultBus.clear()
+            cancelExtraction()
+            if (!isFinishing && !isDestroyed) {
+                showStatus("读取课表失败。请留在此页，点底部「读取并识别」再试一次。")
+            }
         }
-        val payload = toJsonValue(result.toChannelMap()) as JSONObject
-        setResult(RESULT_OK, Intent().putExtra(EXTRA_RESULT, payload.toString()))
-        finish()
     }
 
     private fun showStatus(message: String) {
@@ -417,7 +475,12 @@ class SchoolPortalActivity : Activity() {
     }
 
     private fun refreshChrome() {
-        val login = this::mainWebView.isInitialized && isLoginPage(activeWebView.url?.let { Uri.parse(it) })
+        val url = try {
+            if (started && this::mainWebView.isInitialized) activeWebView.url else null
+        } catch (_: Throwable) {
+            null
+        }
+        val login = isLoginPage(url?.let { Uri.parse(it) })
         if (!started) {
             extractButton.text = "重试"
             guide.text = "学校网页还没打开。确认手机能上网后，点底部「重试」。"
@@ -486,6 +549,7 @@ class SchoolPortalActivity : Activity() {
     private fun loginPortOk(uri: Uri): Boolean = uri.port == -1 || uri.port == 443
 
     private fun cancel() {
+        PortalResultBus.clear()
         setResult(RESULT_CANCELED)
         finish()
     }
@@ -575,55 +639,97 @@ class SchoolPortalActivity : Activity() {
               window.__sanqianScheduleHooked = true;
               const completed = new Set();
               const clean = value => String(value || '').replace(/\u00a0/g, ' ').trim();
-              const safeText = cell => {
-                if (cell.hidden || cell.getAttribute('aria-hidden') === 'true') return '';
-                const style = window.getComputedStyle ? window.getComputedStyle(cell) : null;
-                if (style && (style.display === 'none' || style.visibility === 'hidden')) return '';
-                const copy = cell.cloneNode(true);
-                copy.querySelectorAll('input,textarea,select,button,script,style,[hidden],[aria-hidden="true"],form,[style*="display:none"],[style*="display: none"],[style*="visibility:hidden"],[style*="visibility: hidden"]').forEach(node => node.remove());
-                copy.querySelectorAll('br').forEach(node => node.replaceWith('\n'));
-                return clean(copy.textContent);
+              const safeText = (cell, view) => {
+                try {
+                  if (!cell) return '';
+                  if (cell.hidden || cell.getAttribute('aria-hidden') === 'true') return '';
+                  const owner = view || window;
+                  const style = owner.getComputedStyle ? owner.getComputedStyle(cell) : null;
+                  if (style && (style.display === 'none' || style.visibility === 'hidden')) return '';
+                  const copy = cell.cloneNode(true);
+                  copy.querySelectorAll('input,textarea,select,button,script,style,[hidden],[aria-hidden="true"],form,[style*="display:none"],[style*="display: none"],[style*="visibility:hidden"],[style*="visibility: hidden"]').forEach(node => node.remove());
+                  copy.querySelectorAll('br').forEach(node => node.replaceWith('\n'));
+                  return clean(copy.textContent);
+                } catch (_) { return ''; }
               };
               const span = (cell, name, limit) => Math.min(limit, Math.max(1, parseInt(cell.getAttribute(name) || '1', 10) || 1));
+              const weight = list => list.reduce((n, row) => n + row.reduce((m, cell) => m + String(cell.text || '').length + 24, 48), 0);
               const send = (requestID, rows, truncated = false) => {
+                let payloadRows = rows;
+                let flag = !!truncated;
+                while (weight(payloadRows) > 48000 && payloadRows.length > 1) {
+                  flag = true;
+                  payloadRows = payloadRows.slice(0, Math.max(1, Math.floor(payloadRows.length / 2)));
+                }
+                if (weight(payloadRows) > 48000) {
+                  flag = true;
+                  payloadRows = payloadRows.slice(0, 1).map(row => row.slice(0, 8).map(cell => ({text: String(cell.text || '').slice(0, 400), rowSpan: cell.rowSpan, colSpan: cell.colSpan})));
+                }
                 if (window.sanqianSchoolSchedule && window.sanqianSchoolSchedule.postMessage) {
                   window.sanqianSchoolSchedule.postMessage(JSON.stringify({
-                    version:1, kind:'scheduleTables', requestID, title:'', html:'', innerText:'', rows, truncated,
+                    version:1, kind:'scheduleTables', requestID, title:'', html:'', innerText:'', rows: payloadRows, truncated: flag,
                     frame:{url:location.origin + location.pathname, securityOrigin:location.origin, isMainFrame:window === window.top}
                   }));
                 }
               };
-              window.addEventListener('message', event => {
-                const value = event.data;
-                let sender;
-                try { sender = new URL(event.origin); } catch (_) { return; }
-                if (sender.protocol !== 'https:' || !sanqianAllowedHosts.includes(sender.hostname.toLowerCase())) return;
-                if (!value || value.sanqianSchedule !== 'extract' || typeof value.requestID !== 'string' || !/^[A-Fa-f0-9-]{36}$/.test(value.requestID)) return;
-                if (completed.has(value.requestID)) return;
-                completed.add(value.requestID);
-                if (completed.size > 32) completed.delete(completed.values().next().value);
-                for (let i = 0; i < window.frames.length; i++) {
-                  try { window.frames[i].postMessage(value, '*'); } catch (_) {}
-                }
+              const publishDocument = (doc, view, requestID) => {
                 let count = 0;
-                const pageTables = Array.from(document.querySelectorAll('table'));
+                const pageTables = Array.from(doc.querySelectorAll('table'));
                 for (const table of pageTables.slice(0, 32)) {
                   if (table.querySelector('input[type="password"]')) continue;
                   let truncated = pageTables.length > 32 || table.rows.length > 128;
                   const rows = Array.from(table.rows || []).slice(0,128).map(row => {
                     if (row.cells.length > 32) truncated = true;
                     return Array.from(row.cells || []).slice(0,32).map(cell => {
-                      const text = safeText(cell);
+                      const text = safeText(cell, view);
                       if (text.length > 2000) truncated = true;
                       return {text:text.slice(0,2000), rowSpan:span(cell,'rowspan',128), colSpan:span(cell,'colspan',32)};
                     });
                   });
                   const text = rows.flat().map(cell => cell.text).join(' ');
                   if (rows.length >= 2 && ((/课程名称|课程名|科目|教学科目/.test(text) && /上课|时间|地点|安排|周次/.test(text)) || /周一|星期一/.test(text) && /周二|星期二/.test(text))) {
-                    send(value.requestID, rows, truncated); count++;
+                    send(requestID, rows, truncated); count++;
                   }
                 }
-                if (!count) send(value.requestID, []);
+                return count;
+              };
+              window.addEventListener('message', event => {
+                try {
+                  const value = event.data;
+                  let sender;
+                  try { sender = new URL(event.origin); } catch (_) { return; }
+                  if (sender.protocol !== 'https:' || !sanqianAllowedHosts.includes(sender.hostname.toLowerCase())) return;
+                  if (!value || value.sanqianSchedule !== 'extract' || typeof value.requestID !== 'string' || !/^[A-Fa-f0-9-]{36}$/.test(value.requestID)) return;
+                  const depth = Number(value.depth) || 0;
+                  if (depth > 6) return;
+                  if (completed.has(value.requestID)) return;
+                  completed.add(value.requestID);
+                  if (completed.size > 32) completed.delete(completed.values().next().value);
+                  const seen = new Set();
+                  const visit = (win, level) => {
+                    if (!win || level > 6 || seen.has(win)) return 0;
+                    seen.add(win);
+                    let count = 0;
+                    const doc = win === window ? document : (() => { try { return win.document; } catch (_) { return null; } })();
+                    if (doc && doc.querySelectorAll) count += publishDocument(doc, win, value.requestID);
+                    let n = 0;
+                    try { n = win.frames.length; } catch (_) { n = 0; }
+                    for (let i = 0; i < n && i < 32; i++) {
+                      let child = null;
+                      try { child = win.frames[i]; } catch (_) { continue; }
+                      if (!child) continue;
+                      let readable = false;
+                      try { readable = child !== window && !!(child.document && child.document.querySelectorAll); } catch (_) { readable = false; }
+                      let found = 0;
+                      if (readable) found = visit(child, level + 1);
+                      if (!readable || !found) { try { child.postMessage({sanqianSchedule:'extract', requestID: value.requestID, depth: level + 1}, '*'); } catch (_) {} }
+                      count += found;
+                    }
+                    return count;
+                  };
+                  const count = visit(window, depth);
+                  if (!count) send(value.requestID, []);
+                } catch (_) {}
               });
             })();
         """.trimIndent()

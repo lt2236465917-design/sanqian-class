@@ -208,6 +208,10 @@ class DeepSeekOcrReviewTest {
         assertEquals(0.1, flipped.height, 1e-9)
     }
 
+    private fun recognitionStillCurrent(ticket: Int, generation: Int, cancelled: Boolean): Boolean {
+        return !cancelled && ticket == generation
+    }
+
     @Test
     fun lateSuccessIsNotDeliveredAfterCancel() {
         assertFalse(recognitionStillCurrent(ticket = 4, generation = 4, cancelled = true))
