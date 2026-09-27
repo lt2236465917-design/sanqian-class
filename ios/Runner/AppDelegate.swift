@@ -354,8 +354,9 @@ import EventKit
     let item = AVPlayerItem(url: videoURL)
     item.preferredForwardBufferDuration = 0
     let player = AVPlayer(playerItem: item)
-    player.isMuted = true
+    player.volume = 1
     player.automaticallyWaitsToMinimizeStalling = false
+    activateMascotSplashAudio()
     mascotSplashPlayer = player
     // Buffer under the poster. The poster itself stays 0.5s after it is visible.
     requestMascotLaunchPlayback()
@@ -429,6 +430,22 @@ import EventKit
     dismissMascotLaunchAnimation()
   }
 
+  /// The clip has its own soundtrack. Playback category makes that audible
+  /// during the short launch window, including when the ringer switch is off.
+  private func activateMascotSplashAudio() {
+    let session = AVAudioSession.sharedInstance()
+    do {
+      try session.setCategory(.playback, mode: .moviePlayback)
+      try session.setActive(true)
+    } catch {
+      NSLog("[MascotSplash] Audio session failed: %@", error.localizedDescription)
+    }
+  }
+
+  private func deactivateMascotSplashAudio() {
+    try? AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
+  }
+
   private func startMascotLaunchPlayback() {
     guard !mascotSplashPlaybackStarted, mascotSplashOverlay != nil else { return }
     mascotSplashPlaybackStarted = true
@@ -471,6 +488,7 @@ import EventKit
       mascotSplashEndObserver = nil
     }
     mascotSplashPlayer?.pause()
+    deactivateMascotSplashAudio()
     mascotSplashOverlay?.removeFromSuperview()
     mascotSplashOverlay = nil
     mascotSplashPlayer = nil
