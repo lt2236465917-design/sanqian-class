@@ -185,8 +185,12 @@ class _ColdStartMascotSplashState extends State<ColdStartMascotSplash>
     super.dispose();
   }
 
-  Widget _poster() => Positioned.fill(
-    child: Image.asset(
+  Widget _square(Widget child) => Positioned.fill(
+    child: Center(child: AspectRatio(aspectRatio: 1, child: child)),
+  );
+
+  Widget _poster() => _square(
+    Image.asset(
       _posterAsset,
       key: const ValueKey('cold-start-mascot-poster'),
       fit: BoxFit.contain,
@@ -194,15 +198,10 @@ class _ColdStartMascotSplashState extends State<ColdStartMascotSplash>
     ),
   );
 
-  Widget _video() => Positioned.fill(
-    child: Center(
-      child: AspectRatio(
-        aspectRatio: _videoController.value.aspectRatio,
-        child: VideoPlayer(
-          _videoController,
-          key: const ValueKey('cold-start-mascot-video'),
-        ),
-      ),
+  Widget _video() => _square(
+    VideoPlayer(
+      _videoController,
+      key: const ValueKey('cold-start-mascot-video'),
     ),
   );
 

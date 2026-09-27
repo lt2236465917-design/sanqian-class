@@ -162,7 +162,11 @@ class _MyAppState extends State<MyApp> {
                     )
                   : const Center(child: CircularProgressIndicator.adaptive())
             : ColdStartMascotSplash(
-                onNativeSplashReady: FlutterNativeSplash.remove,
+                onNativeSplashReady: () {
+                  FlutterNativeSplash.remove();
+                  const MethodChannel('sanqian/mascot_bridge')
+                      .invokeMethod<void>('flutterPosterReady');
+                },
                 child: _startupReady
                     ? PersonalHomeView(
                         loader: widget.scheduleLoader,
