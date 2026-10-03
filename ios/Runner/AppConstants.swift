@@ -9,7 +9,7 @@ import Foundation
 
 /// The only App Group id is the `ScheduleAppGroup` build setting baked into Info.plist.
 enum ScheduleAppGroup {
-    static let fallback = "group.local.chaoxi.schedule"
+    static let fallback = "group.local.sanqian.schedule"
 
     static func resolve(_ infoValue: String?) -> String {
         let value = infoValue?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""

@@ -5868,7 +5868,7 @@
 			buildRules = (
 			);
 			dependencies = (
-                C92100000000000000020003,
+				C92100000000000000020003 /* PBXTargetDependency */,
 			);
 			name = Runner;
 			productName = Runner;
@@ -6149,7 +6149,7 @@
 					"$(PROJECT_DIR)/Flutter",
 				);
 				MARKETING_VERSION = 4.0.1;
-				SCHEDULE_APP_GROUP = group.local.chaoxi.schedule;
+				SCHEDULE_APP_GROUP = group.local.sanqian.schedule;
                 PRODUCT_BUNDLE_IDENTIFIER = top.idealclover.wheretosleepinnju;
 				"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = "$(SCHEDULE_DEVICE_BUNDLE_ID)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -6176,10 +6176,11 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "$(SCHEDULE_DEVELOPMENT_TEAM)";
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
 				INFOPLIST_FILE = ScheduleWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = ScheduleWidget;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -6190,10 +6191,9 @@
 					"@executable_path/../../Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 1.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
-				SCHEDULE_APP_GROUP = group.local.chaoxi.schedule;
+				SCHEDULE_APP_GROUP = group.local.sanqian.schedule;
                 PRODUCT_BUNDLE_IDENTIFIER = top.idealclover.wheretosleepinnju.ScheduleWidgetExtension;
                 "PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = "$(SCHEDULE_DEVICE_BUNDLE_ID).ScheduleWidgetExtension";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -6225,10 +6225,11 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "$(SCHEDULE_DEVELOPMENT_TEAM)";
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
 				INFOPLIST_FILE = ScheduleWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = ScheduleWidget;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -6239,9 +6240,8 @@
 					"@executable_path/../../Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 1.0;
 				MTL_FAST_MATH = YES;
-				SCHEDULE_APP_GROUP = group.local.chaoxi.schedule;
+				SCHEDULE_APP_GROUP = group.local.sanqian.schedule;
                 PRODUCT_BUNDLE_IDENTIFIER = top.idealclover.wheretosleepinnju.ScheduleWidgetExtension;
                 "PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = "$(SCHEDULE_DEVICE_BUNDLE_ID).ScheduleWidgetExtension";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -6271,10 +6271,11 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = "$(SCHEDULE_DEVELOPMENT_TEAM)";
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				MARKETING_VERSION = "$(FLUTTER_BUILD_NAME)";
 				INFOPLIST_FILE = ScheduleWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = ScheduleWidget;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
@@ -6285,9 +6286,8 @@
 					"@executable_path/../../Frameworks",
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MARKETING_VERSION = 1.0;
 				MTL_FAST_MATH = YES;
-				SCHEDULE_APP_GROUP = group.local.chaoxi.schedule;
+				SCHEDULE_APP_GROUP = group.local.sanqian.schedule;
                 PRODUCT_BUNDLE_IDENTIFIER = top.idealclover.wheretosleepinnju.ScheduleWidgetExtension;
                 "PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = "$(SCHEDULE_DEVICE_BUNDLE_ID).ScheduleWidgetExtension";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -6449,7 +6449,7 @@
 				);
 				MARKETING_VERSION = 4.0.1;
 				ONLY_ACTIVE_ARCH = YES;
-				SCHEDULE_APP_GROUP = group.local.chaoxi.schedule;
+				SCHEDULE_APP_GROUP = group.local.sanqian.schedule;
                 PRODUCT_BUNDLE_IDENTIFIER = top.idealclover.wheretosleepinnju;
 				"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = "$(SCHEDULE_DEVICE_BUNDLE_ID)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -6493,7 +6493,7 @@
 					"$(PROJECT_DIR)/Flutter",
 				);
 				MARKETING_VERSION = 4.0.1;
-				SCHEDULE_APP_GROUP = group.local.chaoxi.schedule;
+				SCHEDULE_APP_GROUP = group.local.sanqian.schedule;
                 PRODUCT_BUNDLE_IDENTIFIER = top.idealclover.wheretosleepinnju;
 				"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = "$(SCHEDULE_DEVICE_BUNDLE_ID)";
 				PRODUCT_NAME = "$(TARGET_NAME)";

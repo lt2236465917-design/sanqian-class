@@ -319,6 +319,17 @@ struct Provider: TimelineProvider {
     func getTimeline(in context: Context, completion: @escaping (Timeline<Entry>) -> Void) {
         print("🔄 [Widget] ========== Generating Timeline ==========")
         let currentEntry = loadEntry()
+        if #available(iOS 16.1, *) {
+            let nextCourse = currentEntry.nextCourse
+            let currentCourse = currentEntry.currentCourse
+            DispatchQueue.main.async {
+                LiveActivityManager.shared.scheduleLiveActivity(
+                    nextCourse: nextCourse,
+                    currentCourse: currentCourse,
+                    userConfig: LiveActivityConfig.load()
+                )
+            }
+        }
         var entries: [ScheduleEntry] = [currentEntry]
 
         // Generate entries for future state transitions

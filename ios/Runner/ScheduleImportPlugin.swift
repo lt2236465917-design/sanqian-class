@@ -93,6 +93,11 @@ final class ScheduleImportPlugin: NSObject, FlutterPlugin {
             case "clearLegacyReminders":
                 ScheduleReminderScheduler.shared.clearLegacy { result(true) }
             case "syncDerivedData":
+                let widgetsEnabled = Bundle.main.object(forInfoDictionaryKey: "ChaoxiWidgetsEnabled") as? Bool ?? false
+                guard widgetsEnabled else {
+                    result(["widgetError": NSNull()])
+                    return
+                }
                 var widgetError: String?
                 if let group = Bundle.main.object(forInfoDictionaryKey: "ScheduleAppGroup") as? String,
                    let folder = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: group) {

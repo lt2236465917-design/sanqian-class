@@ -67,7 +67,7 @@ class _WidgetSettingsViewState extends State<WidgetSettingsView> {
             const ScheduleSection('添加到桌面'),
             ScheduleNotice(
               ios
-                  ? 'iOS 17 及以上：长按桌面空白处 → 编辑 → 添加小组件，搜索“三千上课”，选择小尺寸或中尺寸。'
+                  ? 'iOS 17 及以上：长按桌面空白处 → 编辑 → 添加小组件。搜索“三千上课”可加小尺寸或中尺寸；搜索“课程表”还可加大尺寸和锁屏。临近上课时，锁屏和灵动岛会显示倒计时。'
                   : '长按桌面空白处 → 小组件，找到“三千上课”，选择小尺寸或中尺寸并拖到桌面。不同启动器的操作名称可能不同。',
             ),
             const ScheduleSection('与当前课表同步'),
