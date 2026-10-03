@@ -93,6 +93,10 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.byType(UiKitView), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('floating-tab-indicator')),
+        findsNothing,
+      );
       expect(nativeUpdates.last['selectedIndex'], 0);
       final initialId = viewId;
       await tester.tapAt(tester.getCenter(find.byType(UiKitView)));
@@ -147,6 +151,62 @@ void main() {
       expect(find.byType(UiKitView), findsNothing);
       await tester.tap(find.byKey(const ValueKey('tab-month')));
       expect(selected, 2);
+      final button = tester.widget<TextButton>(
+        find.descendant(
+          of: find.byKey(const ValueKey('tab-month')),
+          matching: find.byType(TextButton),
+        ),
+      );
+      expect(button.style?.splashFactory, InkSparkle.splashFactory);
+      expect(tester.takeException(), isNull);
+    },
+    variant: TargetPlatformVariant.only(TargetPlatform.iOS),
+  );
+
+  testWidgets(
+    'older iOS slides the frosted indicator continuously',
+    (tester) async {
+      tester.view.physicalSize = const Size(393, 852);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        capability,
+        (_) async => false,
+      );
+      var selected = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: StatefulBuilder(
+            builder: (context, setState) => Scaffold(
+              bottomNavigationBar: FloatingScheduleNavigation(
+                selectedIndex: selected,
+                onSelected: (value) => setState(() => selected = value),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final indicator = find.byKey(const ValueKey('floating-tab-indicator'));
+      final start = tester.getCenter(indicator).dx;
+      await tester.tap(find.byKey(const ValueKey('tab-month')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 120));
+      final during = tester.getCenter(indicator).dx;
+      await tester.pumpAndSettle();
+      final end = tester.getCenter(indicator).dx;
+      expect(during, greaterThan(start));
+      expect(during, lessThan(end));
+      expect(
+        end,
+        closeTo(
+          tester.getCenter(find.byKey(const ValueKey('tab-month'))).dx,
+          1,
+        ),
+      );
+      expect(selected, 2);
+      expect(find.byType(UiKitView), findsNothing);
       expect(tester.takeException(), isNull);
     },
     variant: TargetPlatformVariant.only(TargetPlatform.iOS),

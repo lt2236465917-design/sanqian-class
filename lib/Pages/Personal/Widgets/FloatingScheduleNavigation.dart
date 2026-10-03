@@ -112,124 +112,155 @@ class _FrostedScheduleNavigation extends StatelessWidget {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(40),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(
-                  sigmaX: highContrast ? 0 : 16,
-                  sigmaY: highContrast ? 0 : 16,
-                ),
-                child: Container(
-                  key: const ValueKey('floating-schedule-bar'),
-                  height: height,
-                  padding: const EdgeInsets.all(5),
-                  decoration: BoxDecoration(
-                    color: glass.withValues(
-                      alpha: highContrast
-                          ? .96
-                          : dark
-                          ? .76
-                          : .72,
-                    ),
-                    borderRadius: BorderRadius.circular(40),
-                    border: Border.all(color: rim, width: .8),
-                  ),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      // One moving lens keeps the transition continuous.
-                      AnimatedAlign(
-                        duration: duration,
-                        curve: Curves.easeOutCubic,
-                        alignment: Alignment(-1 + selectedIndex.toDouble(), 0),
-                        child: FractionallySizedBox(
-                          widthFactor: 1 / _items.length,
-                          heightFactor: 1,
-                          child: Container(
-                            key: const ValueKey('floating-tab-indicator'),
-                            margin: const EdgeInsets.symmetric(horizontal: 2),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(32),
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: dark
-                                    ? [
-                                        Colors.white.withValues(alpha: .17),
-                                        colors.primary.withValues(alpha: .12),
-                                      ]
-                                    : [
-                                        const Color(
-                                          0xFFECE7EE,
-                                        ).withValues(alpha: .86),
-                                        const Color(
-                                          0xFFE3DEE7,
-                                        ).withValues(alpha: .64),
-                                      ],
-                              ),
-                              border: Border.all(
-                                color: Colors.white.withValues(
-                                  alpha: dark ? .22 : .8,
-                                ),
-                                width: .8,
-                              ),
-                            ),
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(
+                        sigmaX: highContrast ? 0 : 16,
+                        sigmaY: highContrast ? 0 : 16,
+                      ),
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: glass.withValues(
+                            alpha: highContrast
+                                ? .96
+                                : dark
+                                ? .76
+                                : .72,
                           ),
+                          borderRadius: BorderRadius.circular(40),
+                          border: Border.all(color: rim, width: .8),
                         ),
                       ),
-                      Row(
+                    ),
+                  ),
+                  // Keep the lens above the blur. Inside BackdropFilter, iOS
+                  // drops the in-between frames and the pill jumps.
+                  SizedBox(
+                    key: const ValueKey('floating-schedule-bar'),
+                    height: height,
+                    child: Padding(
+                      padding: const EdgeInsets.all(5),
+                      child: Stack(
+                        fit: StackFit.expand,
                         children: [
-                          for (var index = 0; index < _items.length; index++)
-                            Expanded(
-                              child: Semantics(
-                                key: ValueKey('tab-${_items[index].key}'),
-                                container: true,
-                                button: true,
-                                selected: index == selectedIndex,
-                                inMutuallyExclusiveGroup: true,
-                                label: _items[index].label,
-                                onTap: () => onSelected(index),
-                                child: ExcludeSemantics(
-                                  child: TextButton(
-                                    onPressed: () => onSelected(index),
-                                    style: TextButton.styleFrom(
-                                      minimumSize: const Size(44, 44),
-                                      padding: const EdgeInsets.symmetric(
-                                        vertical: 5,
-                                      ),
-                                      shape: const StadiumBorder(),
-                                      foregroundColor: index == selectedIndex
-                                          ? colors.primary
-                                          : colors.onSurface,
-                                      overlayColor: colors.primary.withValues(
-                                        alpha: .08,
-                                      ),
+                          // One moving lens keeps the transition continuous.
+                          AnimatedAlign(
+                            duration: duration,
+                            curve: Curves.easeOutCubic,
+                            alignment: Alignment(
+                              -1 + selectedIndex.toDouble(),
+                              0,
+                            ),
+                            child: FractionallySizedBox(
+                              widthFactor: 1 / _items.length,
+                              heightFactor: 1,
+                              child: Container(
+                                key: const ValueKey('floating-tab-indicator'),
+                                margin: const EdgeInsets.symmetric(
+                                  horizontal: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(32),
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: dark
+                                        ? [
+                                            Colors.white.withValues(alpha: .17),
+                                            colors.primary.withValues(
+                                              alpha: .12,
+                                            ),
+                                          ]
+                                        : [
+                                            const Color(
+                                              0xFFECE7EE,
+                                            ).withValues(alpha: .86),
+                                            const Color(
+                                              0xFFE3DEE7,
+                                            ).withValues(alpha: .64),
+                                          ],
+                                  ),
+                                  border: Border.all(
+                                    color: Colors.white.withValues(
+                                      alpha: dark ? .22 : .8,
                                     ),
-                                    child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Icon(_items[index].icon, size: 23),
-                                        const SizedBox(height: 3),
-                                        Text(
-                                          _items[index].label,
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            height: 1.1,
-                                            fontWeight: index == selectedIndex
-                                                ? FontWeight.w600
-                                                : FontWeight.w400,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
+                                    width: .8,
                                   ),
                                 ),
                               ),
                             ),
+                          ),
+                          Row(
+                            children: [
+                              for (
+                                var index = 0;
+                                index < _items.length;
+                                index++
+                              )
+                                Expanded(
+                                  child: Semantics(
+                                    key: ValueKey('tab-${_items[index].key}'),
+                                    container: true,
+                                    button: true,
+                                    selected: index == selectedIndex,
+                                    inMutuallyExclusiveGroup: true,
+                                    label: _items[index].label,
+                                    onTap: () => onSelected(index),
+                                    child: ExcludeSemantics(
+                                      child: TextButton(
+                                        onPressed: () => onSelected(index),
+                                        style: TextButton.styleFrom(
+                                          minimumSize: const Size(44, 44),
+                                          padding: const EdgeInsets.symmetric(
+                                            vertical: 5,
+                                          ),
+                                          shape: const StadiumBorder(),
+                                          foregroundColor:
+                                              index == selectedIndex
+                                              ? colors.primary
+                                              : colors.onSurface,
+                                          overlayColor: colors.primary
+                                              .withValues(alpha: .08),
+                                          // iOS otherwise uses a spreading ripple.
+                                          // Android's press is InkSparkle.
+                                          splashFactory:
+                                              defaultTargetPlatform ==
+                                                  TargetPlatform.iOS
+                                              ? InkSparkle.splashFactory
+                                              : null,
+                                        ),
+                                        child: Column(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            Icon(_items[index].icon, size: 23),
+                                            const SizedBox(height: 3),
+                                            Text(
+                                              _items[index].label,
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                height: 1.1,
+                                                fontWeight:
+                                                    index == selectedIndex
+                                                    ? FontWeight.w600
+                                                    : FontWeight.w400,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
                         ],
                       ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
           ),
