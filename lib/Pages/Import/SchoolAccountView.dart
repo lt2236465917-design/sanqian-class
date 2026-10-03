@@ -220,7 +220,7 @@ class _SchoolAccountViewState extends State<SchoolAccountView> {
           ),
           const SizedBox(height: 8),
           Align(
-            alignment: Alignment.centerLeft,
+            alignment: Alignment.center,
             child: TextButton(
               onPressed: _busy ? null : _openSettings,
               child: const Text('DeepSeek 设置'),
