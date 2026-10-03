@@ -88,9 +88,7 @@ class IosCalendar implements ReminderCalendarClient {
       }, (v) => v == true);
 }
 
-abstract class ReminderCalendarClient implements CalendarClient {
-  Future<Result<bool>> deleteOwnedEvent(Event event);
-}
+abstract class ReminderCalendarClient implements CalendarClient {}
 
 abstract class CalendarClient {
   Future<Result<bool>> hasPermissions();
@@ -106,6 +104,7 @@ abstract class CalendarClient {
     RetrieveEventsParams? retrieveEventsParams,
   );
   Future<Result<String>?> createOrUpdateEvent(Event? event);
+  Future<Result<bool>> deleteOwnedEvent(Event event);
 }
 
 class PluginCalendar implements ReminderCalendarClient {

@@ -266,6 +266,40 @@ void main() {
     },
   );
 
+  testWidgets('revoking imported reminders turns every lead off', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({
+      'reminder_15': true,
+      'reminder_180': true,
+    });
+    await show(tester, const ReminderSettingsView());
+    await tester.scrollUntilVisible(find.text('撤销已导入的日历提醒'), 200);
+    await tester.tap(find.text('撤销已导入的日历提醒'));
+    await tester.pumpAndSettle();
+    expect(find.text('将关闭全部提前提醒，并删除三千上课已经写入系统日历的上课提醒。你自己添加的其他日程会保留。'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, '撤销'));
+    await settleReminders(tester);
+    for (final label in ['提前 15 分钟', '提前 3 小时']) {
+      expect(
+        tester
+            .widget<SwitchListTile>(find.widgetWithText(SwitchListTile, label))
+            .value,
+        isFalse,
+      );
+    }
+    final preferences = await SharedPreferences.getInstance();
+    expect(preferences.getBool('reminder_15'), isFalse);
+    expect(preferences.getBool('reminder_180'), isFalse);
+    expect(find.text('撤销已导入的日历提醒'), findsNothing);
+    expect(find.text('上课提醒已关闭。'), findsNothing);
+    expect(
+      find.text('课程会同步到系统日历，按你选择的时间提醒，无需打开 App。'),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('deepseek settings explain key creation and local storage', (
     tester,
   ) async {
@@ -301,13 +335,14 @@ void main() {
     expect(find.text('学校账号与导入'), findsNothing);
     expect(find.text('尚未配置 DeepSeek Key，请先打开下方设置。'), findsOneWidget);
     expect(find.textContaining('只有你确认发送才会联网'), findsOneWidget);
-    final open = tester.getTopLeft(
+    final open = tester.getRect(
       find.widgetWithText(FilledButton, '打开学校网页'),
     );
-    final shortcut = tester.getTopLeft(
+    final shortcut = tester.getRect(
       find.widgetWithText(TextButton, 'DeepSeek 设置'),
     );
-    expect(shortcut.dy, greaterThan(open.dy));
+    expect(shortcut.top, greaterThan(open.bottom));
+    expect((shortcut.center.dx - open.center.dx).abs(), lessThan(1));
     expect(tester.takeException(), isNull);
   });
 }

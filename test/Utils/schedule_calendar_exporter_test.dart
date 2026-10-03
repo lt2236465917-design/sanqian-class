@@ -3,6 +3,7 @@ import 'package:flutter/material.dart' show Color;
 import 'package:device_calendar/device_calendar.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:wheretosleepinnju/Models/PersonalSchedule.dart';
 import 'package:wheretosleepinnju/Utils/ScheduleCalendarExporter.dart';
 import 'package:wheretosleepinnju/Utils/IosCalendar.dart';
 import '../Models/personal_schedule_test.dart' show reviewedSchedule;
@@ -43,6 +44,12 @@ class TestCalendar implements CalendarClient {
     String? id,
     RetrieveEventsParams? params,
   ) async => ok(UnmodifiableListView(events.values));
+  @override
+  Future<Result<bool>> deleteOwnedEvent(Event event) async {
+    events.remove(event.eventId);
+    return ok(true);
+  }
+
   @override
   Future<Result<String>?> createOrUpdateEvent(Event? event) async {
     writes++;
@@ -132,4 +139,45 @@ void main() {
       expect(calendar.events, hasLength(73));
     },
   );
+  test('a removed course is deleted from the calendar instead of left behind', () async {
+    final calendar = TestCalendar();
+    final exporter = ScheduleCalendarExporter(calendar: calendar);
+    final schedule = reviewedSchedule();
+    expect(await exporter.export(schedule), 73);
+    final trimmed = PersonalSchedule(
+      tableId: schedule.tableId,
+      name: schedule.name,
+      firstMonday: schedule.firstMonday,
+      periods: schedule.periods,
+      courses: schedule.courses
+          .where((course) => course.name?.contains('英语') != true)
+          .toList(),
+    );
+    final remaining = ScheduleCalendarExporter.exportable(trimmed).length;
+    expect(remaining, lessThan(73));
+    expect(await exporter.export(trimmed), remaining);
+    expect(calendar.events, hasLength(remaining));
+    expect(
+      calendar.events.values.any((event) => event.title!.contains('英语')),
+      isFalse,
+    );
+  });
+  test('revoke removes only exported courses and can export again', () async {
+    final calendar = TestCalendar();
+    final exporter = ScheduleCalendarExporter(calendar: calendar);
+    final schedule = reviewedSchedule();
+    await exporter.export(schedule);
+    calendar.events['user'] = Event(
+      'owned',
+      eventId: 'user',
+      title: '私人日程',
+      description: '自己添加的日程',
+    );
+    expect(await exporter.revoke(schedule), 73);
+    expect(calendar.events.keys.toSet(), {'user'});
+    expect(await exporter.revoke(schedule), 0);
+    expect(await exporter.export(schedule), 73);
+    expect(calendar.events.length, 74);
+    expect(calendar.created, 1);
+  });
 }

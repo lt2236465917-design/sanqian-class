@@ -68,8 +68,14 @@ class _ShareViewState extends State<ShareView> {
           ScheduleActionTile(
             icon: Icons.event_available_outlined,
             title: '导出到系统日历',
-            subtitle: '按课表日期导出，重复导出会更新已写入的课程',
+            subtitle: '按课表日期导出。再次导出会更新课程，并移除已经不在课表里的日程',
             onTap: _busy ? null : () => _run(_exportToSystemCalendar),
+          ),
+          ScheduleActionTile(
+            icon: Icons.event_busy_outlined,
+            title: '撤销系统日历中的课程',
+            subtitle: '删除本应用导出的课程日程，不影响你自己添加的日程',
+            onTap: _busy ? null : () => _run(_revokeCalendarExport),
           ),
         ],
       ),
@@ -136,6 +142,35 @@ class _ShareViewState extends State<ShareView> {
     _message('已导入并切换到 $name，返回首页即可查看。');
   }
 
+  Future<void> _revokeCalendarExport() async {
+    final schedule = await loadPersonalSchedule();
+    if (!mounted) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('撤销系统日历中的课程'),
+        content: const Text('将删除本应用导出到系统日历的课程日程。你自己添加的其他日程会保留。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('撤销'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    try {
+      final count = await ScheduleCalendarExporter().revoke(schedule);
+      _message(count == 0 ? '系统日历里没有本应用导出的课程。' : '已从系统日历移除 $count 次课程。');
+    } on CalendarExportException catch (error) {
+      _message(error.message);
+    }
+  }
+
   Future<void> _exportToSystemCalendar() async {
     final schedule = await loadPersonalSchedule();
     final entries = ScheduleCalendarExporter.exportable(schedule);
@@ -153,7 +188,7 @@ class _ShareViewState extends State<ShareView> {
         content: Text(
           '将写入 ${entries.length} 次课程，使用独立的“三千上课”课程日历。'
           '${skipped > 0 ? '\n$skipped 条时间待定的安排会跳过。' : ''}'
-          '\n再次导出会更新本次已记录的课程；在 App 中删除课程不会自动删除系统日历中的日程。',
+          '\n再次导出会更新这些课程，并移除已经不在课表中的导出日程。',
         ),
         actions: [
           TextButton(

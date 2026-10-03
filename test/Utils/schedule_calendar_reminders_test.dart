@@ -318,4 +318,117 @@ void main() {
       );
     },
   );
+  test(
+    'a writable reminder calendar stays in use after Android relabels it',
+    () async {
+      final first = await reminders.sync(occurrences, [15]);
+      expect(first['synced'], true);
+      expect(first['message'], isNull);
+      calendar.calendars.single.accountType = 'com.xiaomi';
+      final again = await reminders.sync(occurrences, [15]);
+      expect(again['synced'], true);
+      expect(again['message'], isNull);
+      expect(calendar.calendars, hasLength(1));
+      expect(calendar.events, hasLength(73));
+      expect(calendar.writes, 73);
+    },
+  );
+  test(
+    'a read-only remembered calendar does not block a new writable calendar',
+    () async {
+      const owner = 'abababababababababababababababab';
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        ScheduleCalendarReminders.stateKey,
+        jsonEncode({
+          'owner': owner,
+          'calendarId': 'locked',
+          'events': <String, String>{},
+        }),
+      );
+      calendar.calendars.add(
+        Calendar(
+          id: 'locked',
+          name: '三千上课 · 上课提醒 · abababab',
+          isReadOnly: true,
+          accountType: 'com.xiaomi',
+        ),
+      );
+      final start = occurrences.first['startMs'] as int;
+      final zone = timeZoneDatabase.get('Asia/Shanghai');
+      calendar.events['ghost'] = Event(
+        'locked',
+        eventId: 'ghost',
+        title: '旧课',
+        description: '旧提醒\n[sanqian-reminder:$owner:ghost]',
+        start: TZDateTime.fromMillisecondsSinceEpoch(zone, start),
+        end: TZDateTime.fromMillisecondsSinceEpoch(zone, start + 3600000),
+      );
+      final result = await reminders.sync(occurrences, [15]);
+      expect(result['synced'], true);
+      expect(result['message'], isNull);
+      expect(result['notice'], contains('只读'));
+      expect(calendar.events.containsKey('ghost'), isTrue);
+      expect(
+        calendar.events.values
+            .where((event) => event.eventId != 'ghost')
+            .every((event) => event.calendarId != 'locked'),
+        isTrue,
+      );
+    },
+  );
+  test(
+    'reminders move off an unrelated calendar without deleting personal events',
+    () async {
+      const owner = 'cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd';
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        ScheduleCalendarReminders.stateKey,
+        jsonEncode({
+          'owner': owner,
+          'calendarId': 'personal',
+          'calendarMode': 'dedicated',
+          'events': {'old': 'old-event'},
+        }),
+      );
+      calendar.calendars.add(
+        Calendar(
+          id: 'personal',
+          name: '我的日历',
+          isReadOnly: false,
+          accountType: 'com.google',
+          isDefault: true,
+        ),
+      );
+      final start = occurrences.first['startMs'] as int;
+      final zone = timeZoneDatabase.get('Asia/Shanghai');
+      calendar.events['old-event'] = Event(
+        'personal',
+        eventId: 'old-event',
+        title: '旧课',
+        description: '由三千上课自动维护\n[sanqian-reminder:$owner:old]',
+        start: TZDateTime.fromMillisecondsSinceEpoch(zone, start),
+        end: TZDateTime.fromMillisecondsSinceEpoch(zone, start + 3600000),
+      );
+      calendar.events['mine'] = Event(
+        'personal',
+        eventId: 'mine',
+        title: '私人日程',
+        description: '自己的日程',
+        start: TZDateTime.fromMillisecondsSinceEpoch(zone, start),
+        end: TZDateTime.fromMillisecondsSinceEpoch(zone, start + 3600000),
+      );
+      final result = await reminders.sync([occurrences.first], [15]);
+      expect(result['synced'], true);
+      expect(calendar.events.containsKey('old-event'), isFalse);
+      expect(calendar.events.containsKey('mine'), isTrue);
+      expect(
+        calendar.events.values
+            .where((event) => event.calendarId == 'personal')
+            .map((event) => event.eventId)
+            .toSet(),
+        {'mine'},
+      );
+    },
+  );
 }

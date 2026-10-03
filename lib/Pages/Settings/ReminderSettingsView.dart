@@ -21,6 +21,7 @@ class _ReminderSettingsViewState extends State<ReminderSettingsView>
   String? _widgetError;
   bool _busy = true;
   bool _permissionDenied = false, _isError = false, _awaitingSettings = false;
+  bool _hasImportedReminders = false;
   VoidCallback? _retry;
   @override
   void initState() {
@@ -39,6 +40,7 @@ class _ReminderSettingsViewState extends State<ReminderSettingsView>
           _enabled[n] = p.getBool('reminder_$n') ?? false;
         }
       });
+      _readImportedReminders(p);
       final saved = p.getString('reminder_status');
       if (saved != null) {
         final result = jsonDecode(saved);
@@ -89,17 +91,35 @@ class _ReminderSettingsViewState extends State<ReminderSettingsView>
     }
   }
 
+  void _readImportedReminders(SharedPreferences preferences) {
+    final raw = preferences.getString(ScheduleCalendarReminders.stateKey);
+    var imported = false;
+    if (raw != null) {
+      try {
+        final state = jsonDecode(raw);
+        if (state is Map) {
+          final events = state['events'];
+          imported = events is Map && events.isNotEmpty;
+        }
+      } catch (_) {
+        imported = false;
+      }
+    }
+    _hasImportedReminders = imported;
+  }
+
   void _showResult(Map<String, dynamic> result) {
     if (!mounted) return;
     final widgetError = result['widgetError'];
+    final failure = _failureCopy(result);
+    final notice = result['notice'];
     setState(() {
       _widgetError = widgetError is String && widgetError.isNotEmpty
           ? widgetError
           : null;
-      final failure = _failureCopy(result);
-      _isError = failure != null;
-      _status = failure ?? '';
-      _retry = _isError ? _resync : null;
+      _isError = failure != null || (notice is String && notice.isNotEmpty);
+      _status = failure ?? (notice is String ? notice : '');
+      _retry = failure != null ? _resync : null;
     });
   }
 
@@ -110,6 +130,7 @@ class _ReminderSettingsViewState extends State<ReminderSettingsView>
       final result = await ScheduleDerivedDataService.sync(
         await loadPersonalSchedule(),
       );
+      _readImportedReminders(await SharedPreferences.getInstance());
       _showResult(result);
       if (mounted && !_isError) ScheduleFeedback.haptic();
     } catch (e) {
@@ -121,6 +142,68 @@ class _ReminderSettingsViewState extends State<ReminderSettingsView>
             fallback: '提醒尚未完成安排，请检查日历权限后重试。',
           );
           _retry = _resync;
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _revoke() async {
+    if (_busy) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('撤销日历提醒'),
+        content: const Text(
+          '将关闭全部提前提醒，并删除三千上课已经写入系统日历的上课提醒。你自己添加的其他日程会保留。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('撤销'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    var saved = false;
+    setState(() {
+      _busy = true;
+      _status = '';
+      _retry = null;
+      _isError = false;
+    });
+    try {
+      final p = await SharedPreferences.getInstance();
+      for (final n in _enabled.keys) {
+        if (!await p.setBool('reminder_$n', false)) {
+          throw StateError('reminder_save_failed');
+        }
+        _enabled[n] = false;
+      }
+      saved = true;
+      final result = await ScheduleDerivedDataService.sync(
+        await loadPersonalSchedule(),
+      );
+      _readImportedReminders(p);
+      _showResult(result);
+      if (mounted && !_isError) ScheduleFeedback.haptic();
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isError = true;
+          _status = ScheduleFeedback.message(
+            e,
+            fallback: saved
+                ? '提前提醒已关闭，但日历中的上课提醒尚未完全删除，请重试。'
+                : '撤销未完成，请重试。',
+          );
+          _retry = saved ? _resync : _revoke;
         });
       }
     } finally {
@@ -162,6 +245,7 @@ class _ReminderSettingsViewState extends State<ReminderSettingsView>
       final result = await ScheduleDerivedDataService.sync(
         await loadPersonalSchedule(),
       );
+      _readImportedReminders(p);
       _showResult(result);
       if (mounted && !_isError) ScheduleFeedback.haptic();
     } catch (e) {
@@ -253,6 +337,11 @@ class _ReminderSettingsViewState extends State<ReminderSettingsView>
             TextButton(
               onPressed: _busy ? null : _retry,
               child: const Text('重试提醒设置'),
+            ),
+          if (_enabled.containsValue(true) || _hasImportedReminders)
+            TextButton(
+              onPressed: _busy ? null : _revoke,
+              child: const Text('撤销已导入的日历提醒'),
             ),
           const SizedBox(height: 12),
           const Text('课程会同步到系统日历，按你选择的时间提醒，无需打开 App。'),

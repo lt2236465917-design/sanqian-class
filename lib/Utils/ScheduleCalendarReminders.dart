@@ -35,7 +35,11 @@ class ScheduleCalendarReminders {
     List<int> leads,
   ) async {
     var count = 0, supplements = 0;
-    Map<String, dynamic> status({String? message, bool denied = false}) => {
+    Map<String, dynamic> status({
+      String? message,
+      bool denied = false,
+      String? notice,
+    }) => {
       'mode': 'calendar',
       'synced': message == null,
       'count': count,
@@ -43,6 +47,7 @@ class ScheduleCalendarReminders {
       'failed': message == null ? 0 : 1,
       'permission': denied ? 'denied' : 'authorized',
       if (message != null) 'message': message,
+      if (notice != null) 'notice': notice,
     };
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -94,50 +99,102 @@ class ScheduleCalendarReminders {
       }
 
       final name = '三千上课 · 上课提醒 · ${owner.substring(0, 8)}';
-      final calendars = _require(
-        await calendar.retrieveCalendars(),
-        '无法读取系统日历，请重试。',
+      const localAccountName = '三千上课本机提醒';
+      var known = List<Calendar>.from(
+        _require(await calendar.retrieveCalendars(), '无法读取系统日历，请重试。'),
       );
+      bool writable(Calendar c) => c.id != null && c.isReadOnly != true;
+      bool dedicated(Calendar c) =>
+          c.name == name || c.accountName == localAccountName;
+      bool holiday(Calendar c) {
+        final label = '${c.name ?? ''} ${c.accountType ?? ''}'.toLowerCase();
+        return label.contains('节假日') ||
+            label.contains('生日') ||
+            label.contains('holiday') ||
+            label.contains('birthday');
+      }
+
+      Calendar? findId(List<Calendar> list, String? id) {
+        for (final c in list) {
+          if (id != null && c.id == id) return c;
+        }
+        return null;
+      }
+
+      Calendar? firstWritable(List<Calendar> list) {
+        final options = list.where((c) => writable(c) && !holiday(c)).toList();
+        for (final c in options) {
+          if (c.accountType == 'LOCAL') return c;
+        }
+        for (final c in options) {
+          if (c.isDefault == true) return c;
+        }
+        return options.isEmpty ? null : options.first;
+      }
+
+      final remembered = findId(known, state['calendarId'] as String?);
       Calendar? target;
-      for (final c in calendars) {
-        if (c.id == state['calendarId'] ||
-            (state['calendarId'] == null &&
-                c.name == name &&
-                c.accountType == 'LOCAL')) {
-          target = c;
-          break;
+      // Android may relabel the calendar this app created and still leave it writable.
+      if (remembered != null &&
+          writable(remembered) &&
+          (remembered.accountType == 'LOCAL' ||
+              dedicated(remembered) ||
+              state['calendarMode'] == 'fallback')) {
+        target = remembered;
+      }
+      for (final c in known) {
+        if (target == null && writable(c) && dedicated(c)) target = c;
+      }
+      if (target == null && desired.isNotEmpty) {
+        if (state['unwritableCalendarId'] == null) {
+          final id = _require(
+            await calendar.createCalendar(
+              name,
+              localAccountName: localAccountName,
+            ),
+            '无法创建本机提醒日历，请先检查系统日历是否可用。',
+          );
+          known = List<Calendar>.from(
+            _require(await calendar.retrieveCalendars(), '无法核对提醒日历，请重试。'),
+          );
+          final created = findId(known, id);
+          if (created != null && writable(created)) {
+            target = created;
+          } else {
+            state['unwritableCalendarId'] = id;
+            state.remove('calendarId');
+            await persist();
+            target = firstWritable(known);
+          }
+        } else {
+          target = firstWritable(known);
+        }
+        if (target == null) {
+          throw const _CalendarFailure('系统里没有可写入的日历，请在系统日历中添加日历后重试。');
         }
       }
-      if (target?.isReadOnly == true ||
-          (target != null && target.accountType != 'LOCAL')) {
-        throw const _CalendarFailure('提醒日历不再是可写入的本机日历，请检查系统日历后重试。');
-      }
-      if (target != null) state['calendarId'] = target.id;
-      if (target == null && desired.isEmpty) {
-        // The user deleted the dedicated calendar, so its events no longer exist.
+      if (target == null) {
+        final events = state['events'];
+        final locked = known.where(
+          (c) => !writable(c) && (dedicated(c) || c.id == remembered?.id),
+        );
+        if (locked.isNotEmpty && events is Map && events.isNotEmpty) {
+          return status(
+            message: '上课提醒日历已无法修改，请在系统日历中删除只读的“三千上课”日历里的旧提醒。',
+          );
+        }
         state.remove('calendarId');
         state['events'] = <String, String>{};
         await persist();
         return status();
       }
-      if (target == null) {
-        final id = _require(
-          await calendar.createCalendar(name, localAccountName: '三千上课本机提醒'),
-          '无法创建本机提醒日历，请先检查系统日历是否可用。',
-        );
-        state['calendarId'] = id;
-        state['events'] = <String, String>{};
-        await persist();
-        // Never silently fall back to a cloud account.
-        final check = _require(
-          await calendar.retrieveCalendars(),
-          '无法核对提醒日历，请重试。',
-        );
-        if (!check.any(
-          (c) => c.id == id && c.accountType == 'LOCAL' && c.isReadOnly != true,
-        )) {
-          throw const _CalendarFailure('系统未提供可用的本机日历，尚未写入课程提醒。');
-        }
+      state['calendarId'] = target.id;
+      state['calendarMode'] =
+          target.accountType == 'LOCAL' || dedicated(target)
+          ? 'dedicated'
+          : 'fallback';
+      if (dedicated(target) || target.accountType == 'LOCAL') {
+        state.remove('unwritableCalendarId');
       }
       final calendarId = state['calendarId'] as String;
       final journal = Map<String, dynamic>.from(state['events'] as Map? ?? {});
@@ -149,45 +206,72 @@ class ScheduleCalendarReminders {
       }
       await persist(); // The recovery range must exist before the first event save.
       final existing = <String, Event>{};
-      Future<void> collect(RetrieveEventsParams params) async {
-        for (final e in _require(
-          await calendar.retrieveEvents(calendarId, params),
-          '无法核对已写入的提醒，请重试。',
-        )) {
-          if (e.eventId != null &&
-              e.calendarId == calendarId &&
-              keyOf(e) != null) {
+      final lockedOwned = <Event>[];
+      Future<void> collect(
+        String id,
+        RetrieveEventsParams params,
+        bool required,
+      ) async {
+        final result = await calendar.retrieveEvents(id, params);
+        if (result == null || !result.isSuccess || result.data == null) {
+          if (required) {
+            throw const _CalendarFailure('无法核对已写入的提醒，请重试。');
+          }
+          return;
+        }
+        final host = findId(known, id);
+        for (final e in result.data!) {
+          if (e.eventId == null || e.calendarId != id || keyOf(e) == null) {
+            continue;
+          }
+          if (host != null && !writable(host)) {
+            lockedOwned.add(e);
+          } else {
             existing[e.eventId!] = e;
           }
         }
       }
 
-      if (state['from'] != null) {
-        // EventKit limits date-range queries; querying in yearly chunks also
-        // recovers writes interrupted before their returned ID was journaled.
-        var from = state['from'] as int;
-        final end = state['to'] as int;
-        while (from < end) {
-          final to = min(from + 365 * 86400000, end);
+      Future<void> collectCalendar(String id, bool required) async {
+        if (state['from'] != null && state['to'] != null) {
+          // EventKit limits date-range queries; querying in yearly chunks also
+          // recovers writes interrupted before their returned ID was journaled.
+          var from = state['from'] as int;
+          final end = state['to'] as int;
+          while (from < end) {
+            final to = min(from + 365 * 86400000, end);
+            await collect(
+              id,
+              RetrieveEventsParams(
+                startDate: DateTime.fromMillisecondsSinceEpoch(from),
+                endDate: DateTime.fromMillisecondsSinceEpoch(to),
+              ),
+              required,
+            );
+            from = to;
+          }
+        }
+        final ids = journal.values.cast<String>().toSet().toList();
+        for (var i = 0; i < ids.length; i += 100) {
           await collect(
+            id,
             RetrieveEventsParams(
-              startDate: DateTime.fromMillisecondsSinceEpoch(from),
-              endDate: DateTime.fromMillisecondsSinceEpoch(to),
+              eventIds: ids.sublist(i, min(i + 100, ids.length)),
             ),
+            required,
           );
-          from = to;
         }
       }
-      final ids = journal.values.cast<String>().toSet().toList();
-      for (var i = 0; i < ids.length; i += 100) {
-        await collect(
-          RetrieveEventsParams(
-            eventIds: ids.sublist(i, min(i + 100, ids.length)),
-          ),
-        );
+
+      await collectCalendar(calendarId, true);
+      for (final c in known) {
+        if (c.id != null && c.id != calendarId) {
+          await collectCalendar(c.id!, false);
+        }
       }
       final byKey = <String, Event>{};
       for (final e in existing.values) {
+        if (e.calendarId != calendarId) continue;
         byKey.putIfAbsent(keyOf(e)!, () => e);
       }
       final kept = <String>{};
@@ -299,7 +383,11 @@ class ScheduleCalendarReminders {
       }
       state['events'] = journal;
       await persist();
-      return status();
+      return status(
+        notice: lockedOwned.isEmpty
+            ? null
+            : '有一份上课提醒日历已经不能修改，旧提醒可能还在。请到系统日历删除只读的“三千上课”日历，避免和这次的提醒重复。',
+      );
     } on _CalendarFailure catch (e) {
       return status(message: e.message);
     } catch (_) {
