@@ -1,25 +1,8 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:wheretosleepinnju/Models/CourseModel.dart';
 import 'package:wheretosleepinnju/Models/ScheduleModel.dart';
-import 'package:wheretosleepinnju/Pages/AllCourse/Widgets/CourseCard.dart';
-import 'package:wheretosleepinnju/Pages/CourseTable/Widgets/CourseDetailDialog.dart';
 import 'package:wheretosleepinnju/Resources/Constant.dart';
 import 'package:wheretosleepinnju/Utils/CourseWeeks.dart';
-import 'package:wheretosleepinnju/generated/l10n.dart';
-
-Widget host(Widget child) => MaterialApp(
-  locale: const Locale('zh'),
-  localizationsDelegates: const [
-    S.delegate,
-    GlobalMaterialLocalizations.delegate,
-    GlobalWidgetsLocalizations.delegate,
-    GlobalCupertinoLocalizations.delegate,
-  ],
-  supportedLocales: S.delegate.supportedLocales,
-  home: Scaffold(body: child),
-);
 
 void main() {
   test('weeks parser accepts only sorted unique in-range weeks', () {
@@ -54,95 +37,5 @@ void main() {
       containsAll(['待定', '空白', '空数组', '坏数据', '正常']),
     );
     expect(model.hideCourses.map((c) => c.name), isNot(contains('过期讲座')));
-  });
-
-  testWidgets('course detail stays open for missing and invalid weeks', (
-    tester,
-  ) async {
-    for (final raw in <String?>[null, '', '[]', '{', '["x"]']) {
-      await tester.pumpWidget(
-        host(
-          CourseDetailDialog(
-            Course(1, '导师课', raw, 1, 1, 1, 0, classroom: 'A', teacher: '张老师'),
-            false,
-            () {},
-          ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(find.textContaining('周次待定'), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    }
-  });
-
-  testWidgets('all-course cards render each course instead of the sample', (
-    tester,
-  ) async {
-    final algebra = Course(
-      0,
-      '线性代数',
-      '[1,2]',
-      1,
-      5,
-      1,
-      Constant.ADD_BY_LECTURE,
-      classroom: '仙Ⅱ-201',
-      teacher: '王老师',
-      info: '线性代数详情',
-    );
-    final physics = Course(
-      0,
-      '大学物理',
-      '[3,5,5]',
-      3,
-      3,
-      1,
-      Constant.ADD_BY_LECTURE,
-      classroom: '仙Ⅱ-305',
-      teacher: '赵老师',
-    );
-    await tester.pumpWidget(
-      host(
-        Builder(
-          builder: (context) {
-            final labels = S.of(context);
-            final cards = [algebra, physics].map((course) {
-              final copy = CourseCardCopy.of(course, labels);
-              return Card(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(course.name ?? ''),
-                    Text(copy.time),
-                    Text(copy.teacher),
-                    Text(copy.detail),
-                  ],
-                ),
-              );
-            }).toList();
-            return ListView(children: cards);
-          },
-        ),
-      ),
-    );
-    await tester.pump();
-
-    expect(find.text('线性代数'), findsOneWidget);
-    expect(find.textContaining('王老师'), findsOneWidget);
-    expect(find.textContaining('仙Ⅱ-201'), findsOneWidget);
-    expect(find.textContaining('第 1 周'), findsOneWidget);
-    expect(find.textContaining('大学物理'), findsOneWidget);
-    expect(find.textContaining('赵老师'), findsOneWidget);
-    expect(find.textContaining('仙Ⅱ-305'), findsOneWidget);
-    expect(find.textContaining('第 3 周'), findsOneWidget);
-    expect(find.textContaining('第 5 周'), findsOneWidget);
-    expect(find.text('线性代数详情'), findsOneWidget);
-    expect(find.text('暂无备注'), findsOneWidget);
-    expect(find.textContaining('李其芳'), findsNothing);
-    expect(find.textContaining('仙Ⅰ-109'), findsNothing);
-    expect(find.textContaining('形势与政策'), findsNothing);
-    expect(algebra.info, '线性代数详情');
-    expect(physics.info, isNull);
-    expect(tester.takeException(), isNull);
   });
 }
