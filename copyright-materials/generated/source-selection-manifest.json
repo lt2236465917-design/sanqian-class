@@ -1,0 +1,908 @@
+{
+  "repository": "/Users/zhuanzmima0000/Desktop/NJU-Class-Shedule-Flutter-visual",
+  "head": "c69122325dc2e28dbabe650313b48f9fc43fe16b",
+  "versionHeader": "V1.0",
+  "eligibleSourceLines": 30393,
+  "selectedSourceLines": 3000,
+  "first30PageLines": 1500,
+  "last30PageLines": 1500,
+  "files": [
+    {
+      "path": "android/app/src/main/java/local/sanqian/schedule/MainActivity.java",
+      "lines": 182,
+      "start": 1,
+      "end": 183
+    },
+    {
+      "path": "android/app/src/main/java/local/sanqian/schedule/MainApplication.java",
+      "lines": 16,
+      "start": 184,
+      "end": 200
+    },
+    {
+      "path": "android/app/src/main/java/local/sanqian/schedule/ScheduleWidgetBootReceiver.java",
+      "lines": 20,
+      "start": 201,
+      "end": 221
+    },
+    {
+      "path": "android/app/src/main/java/local/sanqian/schedule/ScheduleWidgetProvider.java",
+      "lines": 37,
+      "start": 222,
+      "end": 259
+    },
+    {
+      "path": "android/app/src/main/java/local/sanqian/schedule/ScheduleWidgetRefreshReceiver.java",
+      "lines": 12,
+      "start": 260,
+      "end": 272
+    },
+    {
+      "path": "android/app/src/main/java/local/sanqian/schedule/ScheduleWidgetSafety.java",
+      "lines": 35,
+      "start": 273,
+      "end": 308
+    },
+    {
+      "path": "android/app/src/main/kotlin/local/sanqian/schedule/DeepSeekModels.kt",
+      "lines": 57,
+      "start": 309,
+      "end": 366
+    },
+    {
+      "path": "android/app/src/main/kotlin/local/sanqian/schedule/DeepSeekTimetableClient.kt",
+      "lines": 641,
+      "start": 367,
+      "end": 1008
+    },
+    {
+      "path": "android/app/src/main/kotlin/local/sanqian/schedule/MlKitChineseTimetableOcr.kt",
+      "lines": 115,
+      "start": 1009,
+      "end": 1124
+    },
+    {
+      "path": "android/app/src/main/kotlin/local/sanqian/schedule/OcrGeometry.kt",
+      "lines": 73,
+      "start": 1125,
+      "end": 1198
+    },
+    {
+      "path": "android/app/src/main/kotlin/local/sanqian/schedule/PendingBridgeResults.kt",
+      "lines": 74,
+      "start": 1199,
+      "end": 1273
+    },
+    {
+      "path": "android/app/src/main/kotlin/local/sanqian/schedule/PortalResultBus.kt",
+      "lines": 30,
+      "start": 1274,
+      "end": 1304
+    },
+    {
+      "path": "android/app/src/main/kotlin/local/sanqian/schedule/PortalStorageReset.kt",
+      "lines": 43,
+      "start": 1305,
+      "end": 1348
+    },
+    {
+      "path": "android/app/src/main/kotlin/local/sanqian/schedule/PredictiveBack.kt",
+      "lines": 63,
+      "start": 1349,
+      "end": 1412
+    },
+    {
+      "path": "android/app/src/main/kotlin/local/sanqian/schedule/ScheduleCredentialsStore.kt",
+      "lines": 219,
+      "start": 1413,
+      "end": 1632
+    },
+    {
+      "path": "android/app/src/main/kotlin/local/sanqian/schedule/ScheduleImportPlugin.kt",
+      "lines": 329,
+      "start": 1633,
+      "end": 1962
+    },
+    {
+      "path": "android/app/src/main/kotlin/local/sanqian/schedule/ScheduleReminderScheduler.kt",
+      "lines": 117,
+      "start": 1963,
+      "end": 2080
+    },
+    {
+      "path": "android/app/src/main/kotlin/local/sanqian/schedule/ScheduleWidgetLogic.kt",
+      "lines": 234,
+      "start": 2081,
+      "end": 2315
+    },
+    {
+      "path": "android/app/src/main/kotlin/local/sanqian/schedule/ScheduleWidgetStore.kt",
+      "lines": 34,
+      "start": 2316,
+      "end": 2350
+    },
+    {
+      "path": "android/app/src/main/kotlin/local/sanqian/schedule/ScheduleWidgetUpdater.kt",
+      "lines": 215,
+      "start": 2351,
+      "end": 2566
+    },
+    {
+      "path": "android/app/src/main/kotlin/local/sanqian/schedule/SchoolPortalActivity.kt",
+      "lines": 737,
+      "start": 2567,
+      "end": 3304
+    },
+    {
+      "path": "android/app/src/main/kotlin/local/sanqian/schedule/SchoolPortalModels.kt",
+      "lines": 280,
+      "start": 3305,
+      "end": 3585
+    },
+    {
+      "path": "android/app/src/main/kotlin/local/sanqian/schedule/SchoolScheduleParser.kt",
+      "lines": 468,
+      "start": 3586,
+      "end": 4054
+    },
+    {
+      "path": "ios/Runner/AIImportModels.swift",
+      "lines": 118,
+      "start": 4055,
+      "end": 4173
+    },
+    {
+      "path": "ios/Runner/AppConstants.swift",
+      "lines": 25,
+      "start": 4174,
+      "end": 4199
+    },
+    {
+      "path": "ios/Runner/AppDelegate.swift",
+      "lines": 980,
+      "start": 4200,
+      "end": 5180
+    },
+    {
+      "path": "ios/Runner/DeepSeekTimetableClient.swift",
+      "lines": 389,
+      "start": 5181,
+      "end": 5570
+    },
+    {
+      "path": "ios/Runner/ScheduleCredentialsStore.swift",
+      "lines": 155,
+      "start": 5571,
+      "end": 5726
+    },
+    {
+      "path": "ios/Runner/ScheduleImportPlugin.swift",
+      "lines": 304,
+      "start": 5727,
+      "end": 6031
+    },
+    {
+      "path": "ios/Runner/ScheduleReminderScheduler.swift",
+      "lines": 15,
+      "start": 6032,
+      "end": 6047
+    },
+    {
+      "path": "ios/Runner/ScheduleTabBar.swift",
+      "lines": 175,
+      "start": 6048,
+      "end": 6223
+    },
+    {
+      "path": "ios/Runner/SchoolPortalModels.swift",
+      "lines": 218,
+      "start": 6224,
+      "end": 6442
+    },
+    {
+      "path": "ios/Runner/SchoolPortalSession.swift",
+      "lines": 408,
+      "start": 6443,
+      "end": 6851
+    },
+    {
+      "path": "ios/Runner/SchoolScheduleParser.swift",
+      "lines": 416,
+      "start": 6852,
+      "end": 7268
+    },
+    {
+      "path": "ios/Runner/VisionScheduleDraftParser.swift",
+      "lines": 176,
+      "start": 7269,
+      "end": 7445
+    },
+    {
+      "path": "ios/Runner/VisionTimetableRecognizer.swift",
+      "lines": 120,
+      "start": 7446,
+      "end": 7566
+    },
+    {
+      "path": "ios/Runner/WidgetDataManager.swift",
+      "lines": 215,
+      "start": 7567,
+      "end": 7782
+    },
+    {
+      "path": "ios/Runner/WidgetDataModels.swift",
+      "lines": 183,
+      "start": 7783,
+      "end": 7966
+    },
+    {
+      "path": "ios/ScheduleWidget/Extensions/ColorExtensions.swift",
+      "lines": 63,
+      "start": 7967,
+      "end": 8030
+    },
+    {
+      "path": "ios/ScheduleWidget/LiveActivity/CourseActivityAttributes.swift",
+      "lines": 298,
+      "start": 8031,
+      "end": 8329
+    },
+    {
+      "path": "ios/ScheduleWidget/LiveActivity/LiveActivityManager.swift",
+      "lines": 256,
+      "start": 8330,
+      "end": 8586
+    },
+    {
+      "path": "ios/ScheduleWidget/PersonalScheduleWidget.swift",
+      "lines": 235,
+      "start": 8587,
+      "end": 8822
+    },
+    {
+      "path": "ios/ScheduleWidget/PreviewData.swift",
+      "lines": 512,
+      "start": 8823,
+      "end": 9335
+    },
+    {
+      "path": "ios/ScheduleWidget/ScheduleWidget.swift",
+      "lines": 796,
+      "start": 9336,
+      "end": 10132
+    },
+    {
+      "path": "ios/ScheduleWidget/ScheduleWidgetBundle.swift",
+      "lines": 13,
+      "start": 10133,
+      "end": 10146
+    },
+    {
+      "path": "ios/ScheduleWidget/Views/EmptyStateView.swift",
+      "lines": 45,
+      "start": 10147,
+      "end": 10192
+    },
+    {
+      "path": "ios/ScheduleWidget/Views/LargeWidgetView.swift",
+      "lines": 675,
+      "start": 10193,
+      "end": 10868
+    },
+    {
+      "path": "ios/ScheduleWidget/Views/LockScreenInlineWidgetView.swift",
+      "lines": 91,
+      "start": 10869,
+      "end": 10960
+    },
+    {
+      "path": "ios/ScheduleWidget/Views/LockScreenRectangularWidgetView.swift",
+      "lines": 219,
+      "start": 10961,
+      "end": 11180
+    },
+    {
+      "path": "ios/ScheduleWidget/Views/MediumWidgetView.swift",
+      "lines": 739,
+      "start": 11181,
+      "end": 11920
+    },
+    {
+      "path": "ios/ScheduleWidget/Views/NextCourseView.swift",
+      "lines": 66,
+      "start": 11921,
+      "end": 11987
+    },
+    {
+      "path": "ios/ScheduleWidget/Views/SmallWidgetView.swift",
+      "lines": 508,
+      "start": 11988,
+      "end": 12496
+    },
+    {
+      "path": "ios/ScheduleWidget/Views/TimelineView.swift",
+      "lines": 139,
+      "start": 12497,
+      "end": 12636
+    },
+    {
+      "path": "ios/ScheduleWidget/WidgetPreviews.swift",
+      "lines": 204,
+      "start": 12637,
+      "end": 12841
+    },
+    {
+      "path": "lib/Components/Dialog.dart",
+      "lines": 55,
+      "start": 12842,
+      "end": 12897
+    },
+    {
+      "path": "lib/Components/ScheduleDesign.dart",
+      "lines": 203,
+      "start": 12898,
+      "end": 13101
+    },
+    {
+      "path": "lib/Components/ScheduleWheel.dart",
+      "lines": 54,
+      "start": 13102,
+      "end": 13156
+    },
+    {
+      "path": "lib/Components/Separator.dart",
+      "lines": 34,
+      "start": 13157,
+      "end": 13191
+    },
+    {
+      "path": "lib/Components/Toast.dart",
+      "lines": 17,
+      "start": 13192,
+      "end": 13209
+    },
+    {
+      "path": "lib/Components/TransBgTextButton.dart",
+      "lines": 28,
+      "start": 13210,
+      "end": 13238
+    },
+    {
+      "path": "lib/Models/CourseModel.dart",
+      "lines": 219,
+      "start": 13239,
+      "end": 13458
+    },
+    {
+      "path": "lib/Models/CourseTableModel.dart",
+      "lines": 149,
+      "start": 13459,
+      "end": 13608
+    },
+    {
+      "path": "lib/Models/Db/DbHelper.dart",
+      "lines": 153,
+      "start": 13609,
+      "end": 13762
+    },
+    {
+      "path": "lib/Models/LectureModel.dart",
+      "lines": 42,
+      "start": 13763,
+      "end": 13805
+    },
+    {
+      "path": "lib/Models/PersonalSchedule.dart",
+      "lines": 193,
+      "start": 13806,
+      "end": 13999
+    },
+    {
+      "path": "lib/Models/ScheduleImportDraft.dart",
+      "lines": 681,
+      "start": 14000,
+      "end": 14681
+    },
+    {
+      "path": "lib/Models/ScheduleModel.dart",
+      "lines": 145,
+      "start": 14682,
+      "end": 14827
+    },
+    {
+      "path": "lib/Models/ScreenshotSchedule.dart",
+      "lines": 247,
+      "start": 14828,
+      "end": 15075
+    },
+    {
+      "path": "lib/Pages/About/AboutView.dart",
+      "lines": 104,
+      "start": 15076,
+      "end": 15180
+    },
+    {
+      "path": "lib/Pages/AddCourse/AddCoursePresenter.dart",
+      "lines": 48,
+      "start": 15181,
+      "end": 15229
+    },
+    {
+      "path": "lib/Pages/AddCourse/AddCourseView.dart",
+      "lines": 384,
+      "start": 15230,
+      "end": 15614
+    },
+    {
+      "path": "lib/Pages/AddCourse/EditCourseView.dart",
+      "lines": 246,
+      "start": 15615,
+      "end": 15861
+    },
+    {
+      "path": "lib/Pages/AddCourse/Widgets/WeekNodeDialog.dart",
+      "lines": 171,
+      "start": 15862,
+      "end": 16033
+    },
+    {
+      "path": "lib/Pages/AddCourse/Widgets/WeekTimeNodeDialog.dart",
+      "lines": 170,
+      "start": 16034,
+      "end": 16204
+    },
+    {
+      "path": "lib/Pages/Debug/WidgetDebugPage.dart",
+      "lines": 345,
+      "start": 16205,
+      "end": 16550
+    },
+    {
+      "path": "lib/Pages/Import/ImportReviewView.dart",
+      "lines": 1524,
+      "start": 16551,
+      "end": 18075
+    },
+    {
+      "path": "lib/Pages/Import/PhotoScheduleImportView.dart",
+      "lines": 338,
+      "start": 18076,
+      "end": 18414
+    },
+    {
+      "path": "lib/Pages/Import/SchoolAccountView.dart",
+      "lines": 233,
+      "start": 18415,
+      "end": 18648
+    },
+    {
+      "path": "lib/Pages/Import/ScreenshotImportView.dart",
+      "lines": 135,
+      "start": 18649,
+      "end": 18784
+    },
+    {
+      "path": "lib/Pages/Import/Widgets/AIKeyStatus.dart",
+      "lines": 77,
+      "start": 18785,
+      "end": 18862
+    },
+    {
+      "path": "lib/Pages/Import/Widgets/RecognitionProgress.dart",
+      "lines": 85,
+      "start": 18863,
+      "end": 18948
+    },
+    {
+      "path": "lib/Pages/ManageTable/ManageTableView.dart",
+      "lines": 294,
+      "start": 18949,
+      "end": 19243
+    },
+    {
+      "path": "lib/Pages/ManageTable/Widgets/AddDialog.dart",
+      "lines": 38,
+      "start": 19244,
+      "end": 19282
+    },
+    {
+      "path": "lib/Pages/Personal/PersonalHomeView.dart",
+      "lines": 1271,
+      "start": 19283,
+      "end": 20554
+    },
+    {
+      "path": "lib/Pages/Personal/Widgets/ColdStartMascotSplash.dart",
+      "lines": 252,
+      "start": 20555,
+      "end": 20807
+    },
+    {
+      "path": "lib/Pages/Personal/Widgets/FloatingScheduleNavigation.dart",
+      "lines": 271,
+      "start": 20808,
+      "end": 21079
+    },
+    {
+      "path": "lib/Pages/Personal/Widgets/NativeScheduleNavigation.dart",
+      "lines": 89,
+      "start": 21080,
+      "end": 21169
+    },
+    {
+      "path": "lib/Pages/Personal/Widgets/ScheduleStatusBadge.dart",
+      "lines": 32,
+      "start": 21170,
+      "end": 21202
+    },
+    {
+      "path": "lib/Pages/Personal/Widgets/WeekScheduleDetailPage.dart",
+      "lines": 634,
+      "start": 21203,
+      "end": 21837
+    },
+    {
+      "path": "lib/Pages/Settings/DeepSeekSettingsView.dart",
+      "lines": 210,
+      "start": 21838,
+      "end": 22048
+    },
+    {
+      "path": "lib/Pages/Settings/ReminderSettingsView.dart",
+      "lines": 352,
+      "start": 22049,
+      "end": 22401
+    },
+    {
+      "path": "lib/Pages/Settings/SettingsView.dart",
+      "lines": 229,
+      "start": 22402,
+      "end": 22631
+    },
+    {
+      "path": "lib/Pages/Settings/WidgetSettingsView.dart",
+      "lines": 94,
+      "start": 22632,
+      "end": 22726
+    },
+    {
+      "path": "lib/Pages/Share/QRScanView.dart",
+      "lines": 346,
+      "start": 22727,
+      "end": 23073
+    },
+    {
+      "path": "lib/Pages/Share/QRShareView.dart",
+      "lines": 106,
+      "start": 23074,
+      "end": 23180
+    },
+    {
+      "path": "lib/Pages/Share/ShareView.dart",
+      "lines": 237,
+      "start": 23181,
+      "end": 23418
+    },
+    {
+      "path": "lib/Pages/Share/qr_payload_codec.dart",
+      "lines": 340,
+      "start": 23419,
+      "end": 23759
+    },
+    {
+      "path": "lib/Resources/Colors.dart",
+      "lines": 16,
+      "start": 23760,
+      "end": 23776
+    },
+    {
+      "path": "lib/Resources/Config.dart",
+      "lines": 6,
+      "start": 23777,
+      "end": 23783
+    },
+    {
+      "path": "lib/Resources/Constant.dart",
+      "lines": 75,
+      "start": 23784,
+      "end": 23859
+    },
+    {
+      "path": "lib/Resources/PersonalTheme.dart",
+      "lines": 154,
+      "start": 23860,
+      "end": 24014
+    },
+    {
+      "path": "lib/Utils/ClassTimeUtil.dart",
+      "lines": 67,
+      "start": 24015,
+      "end": 24082
+    },
+    {
+      "path": "lib/Utils/ColorUtil.dart",
+      "lines": 83,
+      "start": 24083,
+      "end": 24166
+    },
+    {
+      "path": "lib/Utils/CourseImportCodec.dart",
+      "lines": 98,
+      "start": 24167,
+      "end": 24265
+    },
+    {
+      "path": "lib/Utils/CourseWeekSelection.dart",
+      "lines": 46,
+      "start": 24266,
+      "end": 24312
+    },
+    {
+      "path": "lib/Utils/CourseWeeks.dart",
+      "lines": 45,
+      "start": 24313,
+      "end": 24358
+    },
+    {
+      "path": "lib/Utils/InitUtil.dart",
+      "lines": 83,
+      "start": 24359,
+      "end": 24442
+    },
+    {
+      "path": "lib/Utils/IosCalendar.dart",
+      "lines": 158,
+      "start": 24443,
+      "end": 24601
+    },
+    {
+      "path": "lib/Utils/QrScheduleImporter.dart",
+      "lines": 45,
+      "start": 24602,
+      "end": 24647
+    },
+    {
+      "path": "lib/Utils/ScheduleCalendarExporter.dart",
+      "lines": 288,
+      "start": 24648,
+      "end": 24936
+    },
+    {
+      "path": "lib/Utils/ScheduleCalendarReminders.dart",
+      "lines": 409,
+      "start": 24937,
+      "end": 25346
+    },
+    {
+      "path": "lib/Utils/ScheduleDerivedDataService.dart",
+      "lines": 105,
+      "start": 25347,
+      "end": 25452
+    },
+    {
+      "path": "lib/Utils/ScheduleFeedback.dart",
+      "lines": 57,
+      "start": 25453,
+      "end": 25510
+    },
+    {
+      "path": "lib/Utils/ScheduleImportService.dart",
+      "lines": 754,
+      "start": 25511,
+      "end": 26265
+    },
+    {
+      "path": "lib/Utils/ScreenshotScheduleImporter.dart",
+      "lines": 71,
+      "start": 26266,
+      "end": 26337
+    },
+    {
+      "path": "lib/Utils/States/ClassTableState.dart",
+      "lines": 30,
+      "start": 26338,
+      "end": 26368
+    },
+    {
+      "path": "lib/Utils/States/ConfigState.dart",
+      "lines": 345,
+      "start": 26369,
+      "end": 26714
+    },
+    {
+      "path": "lib/Utils/States/FlagState.dart",
+      "lines": 7,
+      "start": 26715,
+      "end": 26722
+    },
+    {
+      "path": "lib/Utils/States/MainState.dart",
+      "lines": 17,
+      "start": 26723,
+      "end": 26740
+    },
+    {
+      "path": "lib/Utils/States/ThemeState.dart",
+      "lines": 193,
+      "start": 26741,
+      "end": 26934
+    },
+    {
+      "path": "lib/Utils/States/WeekState.dart",
+      "lines": 50,
+      "start": 26935,
+      "end": 26985
+    },
+    {
+      "path": "lib/Utils/ThemeUtil.dart",
+      "lines": 4,
+      "start": 26986,
+      "end": 26990
+    },
+    {
+      "path": "lib/Utils/WeekUtil.dart",
+      "lines": 155,
+      "start": 26991,
+      "end": 27146
+    },
+    {
+      "path": "lib/Utils/WidgetHelper.dart",
+      "lines": 280,
+      "start": 27147,
+      "end": 27427
+    },
+    {
+      "path": "lib/core/widget_data/communication/native_data_bridge.dart",
+      "lines": 263,
+      "start": 27428,
+      "end": 27691
+    },
+    {
+      "path": "lib/core/widget_data/exporters/unified_exporter.dart",
+      "lines": 320,
+      "start": 27692,
+      "end": 28012
+    },
+    {
+      "path": "lib/core/widget_data/models/class_period.dart",
+      "lines": 23,
+      "start": 28013,
+      "end": 28036
+    },
+    {
+      "path": "lib/core/widget_data/models/live_activity_data.dart",
+      "lines": 264,
+      "start": 28037,
+      "end": 28301
+    },
+    {
+      "path": "lib/core/widget_data/models/school_time_template.dart",
+      "lines": 106,
+      "start": 28302,
+      "end": 28408
+    },
+    {
+      "path": "lib/core/widget_data/models/widget_course.dart",
+      "lines": 160,
+      "start": 28409,
+      "end": 28569
+    },
+    {
+      "path": "lib/core/widget_data/models/widget_schedule_data.dart",
+      "lines": 177,
+      "start": 28570,
+      "end": 28747
+    },
+    {
+      "path": "lib/core/widget_data/services/unified_data_service.dart",
+      "lines": 468,
+      "start": 28748,
+      "end": 29216
+    },
+    {
+      "path": "lib/core/widget_data/services/widget_data_builder.dart",
+      "lines": 218,
+      "start": 29217,
+      "end": 29435
+    },
+    {
+      "path": "lib/core/widget_data/utils/widget_refresh_helper.dart",
+      "lines": 97,
+      "start": 29436,
+      "end": 29533
+    },
+    {
+      "path": "lib/main.dart",
+      "lines": 180,
+      "start": 29534,
+      "end": 29714
+    },
+    {
+      "path": "ohos/entry/src/main/ets/entryability/EntryAbility.ets",
+      "lines": 100,
+      "start": 29715,
+      "end": 29815
+    },
+    {
+      "path": "ohos/entry/src/main/ets/entryformability/EntryFormAbility.ets",
+      "lines": 190,
+      "start": 29816,
+      "end": 30006
+    },
+    {
+      "path": "ohos/entry/src/main/ets/pages/Index.ets",
+      "lines": 27,
+      "start": 30007,
+      "end": 30034
+    },
+    {
+      "path": "ohos/entry/src/main/ets/widget/models/CourseModel.ets",
+      "lines": 14,
+      "start": 30035,
+      "end": 30049
+    },
+    {
+      "path": "ohos/entry/src/main/ets/widget/models/FormData.ets",
+      "lines": 23,
+      "start": 30050,
+      "end": 30073
+    },
+    {
+      "path": "ohos/entry/src/main/ets/widget/models/WidgetDataModel.ets",
+      "lines": 18,
+      "start": 30074,
+      "end": 30092
+    },
+    {
+      "path": "ohos/entry/src/main/ets/widget/pages/Widget2x2.ets",
+      "lines": 180,
+      "start": 30093,
+      "end": 30273
+    },
+    {
+      "path": "ohos/entry/src/main/ets/widget/pages/components/WidgetPrimaryCard.ets",
+      "lines": 60,
+      "start": 30274,
+      "end": 30334
+    },
+    {
+      "path": "ohos/entry/src/main/ets/widget/pages/components/WidgetSecondaryCard.ets",
+      "lines": 37,
+      "start": 30335,
+      "end": 30372
+    },
+    {
+      "path": "ohos/entry/src/main/ets/widget/utils/TimeHelper.ets",
+      "lines": 20,
+      "start": 30373,
+      "end": 30393
+    }
+  ],
+  "excludedRules": [
+    ".dart_tool",
+    ".git",
+    "LICENSE",
+    "PersonalDevice.local.xcconfig",
+    "PersonalDevice.xcconfig",
+    "build",
+    "generated",
+    "key.properties",
+    "local.properties",
+    "mock",
+    "ohosTest",
+    "pubspec.lock",
+    "reference",
+    "test",
+    "tests",
+    "zgysyjy_2026_fall.json"
+  ],
+  "redactionRules": {
+    "中国艺术研究院": "[已脱敏学校]",
+    "iam.zgysyjy.org.cn": "[已脱敏学校域名]",
+    "access.zgysyjy.org.cn": "[已脱敏学校域名]",
+    "wxt.zgysyjy.org.cn:7792": "[已脱敏学校域名]",
+    "wxt.zgysyjy.org.cn": "[已脱敏学校域名]",
+    "导师课": "[已脱敏课程示例]",
+    "6406": "[已脱敏教室]"
+  }
+}
