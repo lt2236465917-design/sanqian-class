@@ -86,6 +86,45 @@ void main() {
         throwsA(isA<FormatException>()));
   });
 
+  test('decompressed payload limit is enforced during gzip decoding', () {
+    Map<String, dynamic> payloadWithTableData(String tableData) =>
+        QrPayloadCodec.buildSchedulePayload(
+          tableName: '超大课表',
+          tableData: tableData,
+          courseRows: <Map<String, dynamic>>[],
+        );
+
+    final emptyPayload = payloadWithTableData('');
+    final emptyPayloadLength = utf8.encode(jsonEncode(emptyPayload)).length;
+    final exactLimitPayload = payloadWithTableData(
+      'a' * (kNcsQrMaxDecompressedBytes - emptyPayloadLength),
+    );
+    final exactLimitEncoded = QrPayloadCodec.encodePayload(exactLimitPayload);
+
+    expect(exactLimitEncoded.length, lessThan(kNcsQrPayloadMaxChars));
+    expect(
+      QrPayloadCodec.decodeEncodedPayload(exactLimitEncoded)['table'],
+      exactLimitPayload['table'],
+    );
+
+    final oversizedPayload = payloadWithTableData(
+      'a' * (kNcsQrMaxDecompressedBytes - emptyPayloadLength + 1),
+    );
+    final encoded = QrPayloadCodec.encodePayload(oversizedPayload);
+
+    expect(encoded.length, lessThan(kNcsQrPayloadMaxChars));
+    expect(
+      () => QrPayloadCodec.decodeEncodedPayload(encoded),
+      throwsA(
+        isA<FormatException>().having(
+          (FormatException error) => error.message,
+          'message',
+          'decompressed_payload_too_large',
+        ),
+      ),
+    );
+  });
+
   test('v1 frame remains parseable', () {
     const raw = 'ncs://qr/v1/s/abc123';
     final parsed = QrPayloadCodec.parseFrame(raw);

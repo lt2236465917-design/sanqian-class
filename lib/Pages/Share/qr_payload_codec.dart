@@ -108,7 +108,11 @@ class QrPayloadCodec {
     }
     late final List<int> decoded;
     try {
-      decoded = GZipDecoder().decodeBytes(compressed);
+      final output = _BoundedOutputStream(kNcsQrMaxDecompressedBytes);
+      GZipDecoder().decodeStream(InputStream(compressed), output);
+      decoded = output.getBytes();
+    } on _DecompressedPayloadTooLarge {
+      throw const FormatException('decompressed_payload_too_large');
     } catch (_) {
       throw const FormatException('gzip_decode_failed');
     }
@@ -285,6 +289,41 @@ class QrPayloadCodec {
       crc = (_crc32Table[index] ^ (crc >> 8)) & 0xFFFFFFFF;
     }
     return (crc ^ 0xFFFFFFFF) & 0xFFFFFFFF;
+  }
+}
+
+class _DecompressedPayloadTooLarge implements Exception {
+  const _DecompressedPayloadTooLarge();
+}
+
+class _BoundedOutputStream extends OutputStream {
+  final int maxLength;
+
+  _BoundedOutputStream(this.maxLength) : super(size: maxLength);
+
+  void _checkAdditionalLength(int additionalLength) {
+    if (additionalLength < 0 || length > maxLength - additionalLength) {
+      throw const _DecompressedPayloadTooLarge();
+    }
+  }
+
+  @override
+  void writeByte(int value) {
+    _checkAdditionalLength(1);
+    super.writeByte(value);
+  }
+
+  @override
+  void writeBytes(List<int> bytes, [int? len]) {
+    final writeLength = len ?? bytes.length;
+    _checkAdditionalLength(writeLength);
+    super.writeBytes(bytes, writeLength);
+  }
+
+  @override
+  void writeInputStream(InputStreamBase stream) {
+    _checkAdditionalLength(stream.length);
+    super.writeInputStream(stream);
   }
 }
 
