@@ -46,7 +46,7 @@ class AboutView extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           const Text(
-            '基于 idealclover 与南哪课表贡献者开发的「南哪课表」修改，沿用 Apache License 2.0。感谢上游项目和所有开源贡献者。',
+            '三千上课基于 idealclover 与南哪课表贡献者开发的开源项目修改，遵循 Apache License 2.0。感谢上游项目和所有开源贡献者。',
             style: TextStyle(height: 1.8),
           ),
           const SizedBox(height: 14),
