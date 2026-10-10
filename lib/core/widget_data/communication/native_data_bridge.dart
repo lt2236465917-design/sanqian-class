@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/services.dart';
 import '../models/widget_schedule_data.dart';
@@ -206,41 +205,6 @@ class NativeDataBridge {
     return Platform.operatingSystem;
   }
   
-  /// 创建数据包头部信息
-  Map<String, dynamic> _createPackageHeader(String dataType) {
-    return {
-      'type': dataType,
-      'version': '1.0',
-      'timestamp': DateTime.now().toIso8601String(),
-      'platform': _getCurrentPlatform(),
-      'compression': 'none', // 或 'gzip'
-      'encryption': 'none',
-    };
-  }
-  
-  /// 验证数据包完整性
-  bool _validateDataPackage(Map<String, dynamic> package) {
-    try {
-      // 检查必需字段
-      if (!package.containsKey('version')) return false;
-      if (!package.containsKey('timestamp')) return false;
-      if (!package.containsKey('data')) return false;
-      
-      // 检查数据格式
-      final data = package['data'] as Map<String, dynamic>?;
-      if (data == null) return false;
-      
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
-  
-  /// 计算数据包大小
-  int _calculatePackageSize(Map<String, dynamic> package) {
-    final jsonString = jsonEncode(package);
-    return utf8.encode(jsonString).length;
-  }
 }
 
 /// 数据通信异常

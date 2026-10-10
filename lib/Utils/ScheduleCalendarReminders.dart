@@ -213,7 +213,7 @@ class ScheduleCalendarReminders {
         bool required,
       ) async {
         final result = await calendar.retrieveEvents(id, params);
-        if (result == null || !result.isSuccess || result.data == null) {
+        if (!result.isSuccess) {
           if (required) {
             throw const _CalendarFailure('无法核对已写入的提醒，请重试。');
           }

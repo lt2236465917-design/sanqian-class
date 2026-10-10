@@ -65,7 +65,6 @@ class _ImportReviewViewState extends State<ImportReviewView> {
   String? _metadataNote;
   bool _triedSave = false;
   late ScheduleRecognitionPreparation _preparation;
-  List<String> _replacementWarnings = [];
   bool _ocrAttempted = false;
   int get _pendingCourseCount => _courses.where((course) {
     try {
@@ -231,7 +230,6 @@ class _ImportReviewViewState extends State<ImportReviewView> {
       _courses = _copyCourses(_preparation.courses);
       _portalAICompleted = _beforeAICompleted;
       _beforeAI = null;
-      _replacementWarnings = [];
       _error = null;
     });
     ScheduleFeedback.success(context, '已恢复本次 AI 处理前的内容');
@@ -442,7 +440,6 @@ class _ImportReviewViewState extends State<ImportReviewView> {
         _beforeAICompleted = _portalAICompleted;
         _preparation = prepared;
         _courses = _copyCourses(prepared.courses);
-        _replacementWarnings = changes;
         if (!withOCR) _portalAICompleted = true;
       });
       ScheduleFeedback.success(context, 'AI 结果已采用，请继续核对');

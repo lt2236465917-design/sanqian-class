@@ -363,17 +363,6 @@ class UnifiedDataService {
     return widgetSchedule;
   }
   
-  /// 获取学校名称
-  String _getSchoolName(String schoolId) {
-    switch (schoolId) {
-      case 'seu':
-        return '东南大学';
-      case 'nju':
-      default:
-        return '南京大学';
-    }
-  }
-  
   /// 创建空数据（当没有课程时使用）
   WidgetScheduleData _createEmptyData() {
     // 使用南京大学作为默认
@@ -455,21 +444,6 @@ class UnifiedDataService {
 
     // 默认返回南京大学
     return {'id': 'nju', 'name': '南京大学', 'nameEn': 'Nanjing University'};
-  }
-
-  /// 获取学校英文名称（已废弃，由 _inferSchoolInfo 替代）
-  String _getSchoolNameEn(String schoolId) {
-    switch (schoolId) {
-      case 'seu':
-        return 'Southeast University';
-      case 'sjtu':
-        return 'Shanghai Jiao Tong University';
-      case 'ruc':
-        return 'Renmin University of China';
-      case 'nju':
-      default:
-        return 'Nanjing University';
-    }
   }
 
   /// 检查缓存是否有效
