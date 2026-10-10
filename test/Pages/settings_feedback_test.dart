@@ -5,12 +5,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:wheretosleepinnju/Models/Db/DbHelper.dart';
-import 'package:wheretosleepinnju/Pages/Settings/DeepSeekSettingsView.dart';
-import 'package:wheretosleepinnju/Pages/Settings/ReminderSettingsView.dart';
-import 'package:wheretosleepinnju/Pages/Import/PhotoScheduleImportView.dart';
-import 'package:wheretosleepinnju/Pages/Import/SchoolAccountView.dart';
-import 'package:wheretosleepinnju/Resources/PersonalTheme.dart';
+import 'package:sanqian_class/Models/Db/DbHelper.dart';
+import 'package:sanqian_class/Pages/Settings/DeepSeekSettingsView.dart';
+import 'package:sanqian_class/Pages/Settings/ReminderSettingsView.dart';
+import 'package:sanqian_class/Pages/Import/PhotoScheduleImportView.dart';
+import 'package:sanqian_class/Pages/Import/SchoolAccountView.dart';
+import 'package:sanqian_class/Resources/PersonalTheme.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

@@ -174,10 +174,10 @@ struct SchoolPortalParserTests {
             ])
         ])
         check(callerWindow == PortalPresenterChoice(sceneIndex: 0, windowIndex: 1, presentedDepth: 1), "caller window is preferred inside its scene")
-        check(ScheduleAppGroup.resolve("group.local.chaoxi.schedule") == "group.local.chaoxi.schedule", "plist app group is used")
+        check(ScheduleAppGroup.resolve("group.local.sanqian.schedule") == "group.local.sanqian.schedule", "plist app group is used")
         check(ScheduleAppGroup.resolve(nil) == ScheduleAppGroup.fallback, "missing plist uses the current group")
         check(ScheduleAppGroup.resolve("$(SCHEDULE_APP_GROUP)") == ScheduleAppGroup.fallback, "unsubstituted build setting is not an app group")
-        check(ScheduleAppGroup.fallback != "group.top.idealclover.wheretosleepinnju.group", "fallback is not the dormant app group")
+        check(ScheduleAppGroup.fallback == "group.local.sanqian.schedule", "fallback uses the current app group")
         if CommandLine.arguments.count > 1 {
             let data: Data
             if CommandLine.arguments[1].hasSuffix(".swift") {

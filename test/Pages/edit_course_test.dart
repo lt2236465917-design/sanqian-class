@@ -3,10 +3,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:wheretosleepinnju/Models/Db/DbHelper.dart';
-import 'package:wheretosleepinnju/Models/CourseModel.dart';
-import 'package:wheretosleepinnju/Models/CourseTableModel.dart';
-import 'package:wheretosleepinnju/Pages/AddCourse/EditCourseView.dart';
+import 'package:sanqian_class/Models/Db/DbHelper.dart';
+import 'package:sanqian_class/Models/CourseModel.dart';
+import 'package:sanqian_class/Models/CourseTableModel.dart';
+import 'package:sanqian_class/Pages/AddCourse/EditCourseView.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wheretosleepinnju/Models/CourseModel.dart';
-import 'package:wheretosleepinnju/Models/PersonalSchedule.dart';
-import 'package:wheretosleepinnju/Utils/ScheduleDerivedDataService.dart';
+import 'package:sanqian_class/Models/CourseModel.dart';
+import 'package:sanqian_class/Models/PersonalSchedule.dart';
+import 'package:sanqian_class/Utils/ScheduleDerivedDataService.dart';
 
 void main() {
   test(

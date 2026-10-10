@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wheretosleepinnju/Models/PersonalSchedule.dart';
-import 'package:wheretosleepinnju/Models/ScreenshotSchedule.dart';
+import 'package:sanqian_class/Models/PersonalSchedule.dart';
+import 'package:sanqian_class/Models/ScreenshotSchedule.dart';
 
 PersonalSchedule reviewedSchedule() {
   final source = ScreenshotSchedule.fromJson(

@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wheretosleepinnju/Models/ScheduleImportDraft.dart';
+import 'package:sanqian_class/Models/ScheduleImportDraft.dart';
 
 Map<String, dynamic> meeting({
   int day = 1,

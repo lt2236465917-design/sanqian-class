@@ -1,6 +1,6 @@
 # 三千上课：本地 iOS 开发
 
-基于 [南哪课表](https://github.com/WheretoSleepinNJU/NJU-Class-Shedule-Flutter) 的个人版，保留 Apache-2.0 许可与上游署名。上游提交 `25125ef6c7092c47f9341adcfaa7e1dc1974b44d`，版本 `4.0.2+67`，本地分支 `codex/ios-bootstrap`；改动尚未提交或发布。
+基于上游 Apache-2.0 开源项目修改的三千上课个人版，保留许可证与来源署名。上游提交 `25125ef6c7092c47f9341adcfaa7e1dc1974b44d`，版本 `4.0.2+67`，本地分支 `codex/ios-bootstrap`；改动尚未提交或发布。
 
 ## 当前功能
 
@@ -12,13 +12,13 @@
 - 第一周周一为 2026-09-07，开学日为 09-09，09-20 为第二周周日。三个时段来自补充截图：09:00–12:00、13:30–16:30、19:00–21:30。未知的时间、教师和地点仍保持待定。
 - App 名称为“三千上课”，暖白/淡紫主题，支持深色模式。图标采用用户确认的黑白边牧原图；桌面图标、启动页和关于页使用同一素材，保留原构图与颜色。
 - 设置提供内置课表导入、手动添加、课表管理、二维码导入导出、系统日历、外观和开源许可。内置导入是已核对截图的数据，不是拍照识别新课表。移除了无关校园入口、捐赠、评分以及友盟统计接入。旧校园适配源码保留供后续开发，未从个人版页面开放。
-- 模拟器 Bundle ID 保留 `top.idealclover.wheretosleepinnju`，以便原地更新并保留已有数据。真机 `local.chaoxi.schedule` 已用用户 Personal Team 签名安装；其他账号需要配置其可用的唯一 ID。
+- 模拟器和真机均使用 `local.sanqian.schedule`；其他账号安装时需配置其可用的唯一 ID。
 
 ## 工具链与运行
 
 Flutter **3.35.7** / Dart **3.9.2** / Xcode **26.5** / CocoaPods **1.17.0**。本工作区 SDK 位于 `../.tools/flutter`，包缓存位于 `../.tools/pub-cache`；使用 `tool/flutterw`，无需修改全局 PATH。其他机器可设置 `SCHEDULE_FLUTTER_SDK` 指向同版本 SDK。
 
-本任务仅使用「南哪课表 iPhone 16」模拟器，UDID 为 `EF43A038-4E4B-417D-A813-E2404D1220FD`，iOS 26.5。iPhone 17 是用户的其他测试环境，不操作它。所有模拟器命令显式指定目标 UDID，不使用 `booted`。
+本任务仅使用 iPhone 16 模拟器，UDID 为 `EF43A038-4E4B-417D-A813-E2404D1220FD`，iOS 26.5。iPhone 17 是用户的其他测试环境，不操作它。所有模拟器命令显式指定目标 UDID，不使用 `booted`。
 
 在本工程目录执行：
 

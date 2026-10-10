@@ -1,7 +1,7 @@
 // import 'package:flutter/material.dart';
 import 'package:scoped_model/scoped_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:wheretosleepinnju/Utils/ThemeUtil.dart';
+import 'package:sanqian_class/Utils/ThemeUtil.dart';
 import '../../Resources/Constant.dart';
 
 mixin ThemeStateModel on Model {

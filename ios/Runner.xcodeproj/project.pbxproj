@@ -6150,7 +6150,7 @@
 				);
 				MARKETING_VERSION = 4.0.1;
 				SCHEDULE_APP_GROUP = group.local.sanqian.schedule;
-                PRODUCT_BUNDLE_IDENTIFIER = top.idealclover.wheretosleepinnju;
+                PRODUCT_BUNDLE_IDENTIFIER = local.sanqian.schedule;
 				"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = "$(SCHEDULE_DEVICE_BUNDLE_ID)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -6194,7 +6194,7 @@
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				SCHEDULE_APP_GROUP = group.local.sanqian.schedule;
-                PRODUCT_BUNDLE_IDENTIFIER = top.idealclover.wheretosleepinnju.ScheduleWidgetExtension;
+                PRODUCT_BUNDLE_IDENTIFIER = local.sanqian.schedule.ScheduleWidgetExtension;
                 "PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = "$(SCHEDULE_DEVICE_BUNDLE_ID).ScheduleWidgetExtension";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -6242,7 +6242,7 @@
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_FAST_MATH = YES;
 				SCHEDULE_APP_GROUP = group.local.sanqian.schedule;
-                PRODUCT_BUNDLE_IDENTIFIER = top.idealclover.wheretosleepinnju.ScheduleWidgetExtension;
+                PRODUCT_BUNDLE_IDENTIFIER = local.sanqian.schedule.ScheduleWidgetExtension;
                 "PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = "$(SCHEDULE_DEVICE_BUNDLE_ID).ScheduleWidgetExtension";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -6288,7 +6288,7 @@
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_FAST_MATH = YES;
 				SCHEDULE_APP_GROUP = group.local.sanqian.schedule;
-                PRODUCT_BUNDLE_IDENTIFIER = top.idealclover.wheretosleepinnju.ScheduleWidgetExtension;
+                PRODUCT_BUNDLE_IDENTIFIER = local.sanqian.schedule.ScheduleWidgetExtension;
                 "PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = "$(SCHEDULE_DEVICE_BUNDLE_ID).ScheduleWidgetExtension";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -6450,7 +6450,7 @@
 				MARKETING_VERSION = 4.0.1;
 				ONLY_ACTIVE_ARCH = YES;
 				SCHEDULE_APP_GROUP = group.local.sanqian.schedule;
-                PRODUCT_BUNDLE_IDENTIFIER = top.idealclover.wheretosleepinnju;
+                PRODUCT_BUNDLE_IDENTIFIER = local.sanqian.schedule;
 				"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = "$(SCHEDULE_DEVICE_BUNDLE_ID)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -6494,7 +6494,7 @@
 				);
 				MARKETING_VERSION = 4.0.1;
 				SCHEDULE_APP_GROUP = group.local.sanqian.schedule;
-                PRODUCT_BUNDLE_IDENTIFIER = top.idealclover.wheretosleepinnju;
+                PRODUCT_BUNDLE_IDENTIFIER = local.sanqian.schedule;
 				"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = "$(SCHEDULE_DEVICE_BUNDLE_ID)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";

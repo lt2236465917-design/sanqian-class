@@ -4,10 +4,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:scoped_model/scoped_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:wheretosleepinnju/Models/Db/DbHelper.dart';
-import 'package:wheretosleepinnju/Models/CourseTableModel.dart';
-import 'package:wheretosleepinnju/Pages/ManageTable/ManageTableView.dart';
-import 'package:wheretosleepinnju/Utils/States/MainState.dart';
+import 'package:sanqian_class/Models/Db/DbHelper.dart';
+import 'package:sanqian_class/Models/CourseTableModel.dart';
+import 'package:sanqian_class/Pages/ManageTable/ManageTableView.dart';
+import 'package:sanqian_class/Utils/States/MainState.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

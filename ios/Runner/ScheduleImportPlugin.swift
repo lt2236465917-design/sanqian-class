@@ -93,7 +93,7 @@ final class ScheduleImportPlugin: NSObject, FlutterPlugin {
             case "clearLegacyReminders":
                 ScheduleReminderScheduler.shared.clearLegacy { result(true) }
             case "syncDerivedData":
-                let widgetsEnabled = Bundle.main.object(forInfoDictionaryKey: "ChaoxiWidgetsEnabled") as? Bool ?? false
+                let widgetsEnabled = Bundle.main.object(forInfoDictionaryKey: "SanqianWidgetsEnabled") as? Bool ?? false
                 guard widgetsEnabled else {
                     result(["widgetError": NSNull()])
                     return

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:wheretosleepinnju/Pages/Personal/PersonalHomeView.dart';
-import 'package:wheretosleepinnju/Pages/Personal/Widgets/FloatingScheduleNavigation.dart';
-import 'package:wheretosleepinnju/main.dart';
-import 'package:wheretosleepinnju/Models/CourseModel.dart';
-import 'package:wheretosleepinnju/Models/PersonalSchedule.dart';
+import 'package:sanqian_class/Pages/Personal/PersonalHomeView.dart';
+import 'package:sanqian_class/Pages/Personal/Widgets/FloatingScheduleNavigation.dart';
+import 'package:sanqian_class/main.dart';
+import 'package:sanqian_class/Models/CourseModel.dart';
+import 'package:sanqian_class/Models/PersonalSchedule.dart';
 
 import 'Models/personal_schedule_test.dart' show reviewedSchedule;
 

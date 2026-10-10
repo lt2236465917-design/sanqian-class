@@ -224,7 +224,7 @@ import EventKit
   private var mascotSplashPlaybackStarted = false
   private let calendarPermissionStore = EKEventStore()
   private let widgetSharingEnabled =
-    Bundle.main.object(forInfoDictionaryKey: "ChaoxiWidgetsEnabled") as? Bool ?? false
+    Bundle.main.object(forInfoDictionaryKey: "SanqianWidgetsEnabled") as? Bool ?? false
 
   override func application(
     _ application: UIApplication,

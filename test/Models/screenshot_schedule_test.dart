@@ -2,10 +2,10 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wheretosleepinnju/Models/CourseModel.dart';
-import 'package:wheretosleepinnju/Models/ScheduleModel.dart';
-import 'package:wheretosleepinnju/Models/ScreenshotSchedule.dart';
-import 'package:wheretosleepinnju/Utils/ClassTimeUtil.dart';
+import 'package:sanqian_class/Models/CourseModel.dart';
+import 'package:sanqian_class/Models/ScheduleModel.dart';
+import 'package:sanqian_class/Models/ScreenshotSchedule.dart';
+import 'package:sanqian_class/Utils/ClassTimeUtil.dart';
 
 void main() {
   late ScreenshotSchedule schedule;

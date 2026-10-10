@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wheretosleepinnju/Pages/Share/qr_payload_codec.dart';
+import 'package:sanqian_class/Pages/Share/qr_payload_codec.dart';
 
 void main() {
   Map<String, dynamic> samplePayload() {

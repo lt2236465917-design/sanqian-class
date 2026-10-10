@@ -14,7 +14,7 @@
 
 ## 概述
 
-本文档定义了南哪课表（NJU Class Schedule）iOS Widget 和 Live Activities 的设计规范，包括各尺寸 Widget 的内容布局、信息优先级、时间逻辑等。
+本文档定义了三千上课iOS Widget 和 Live Activities 的设计规范，包括各尺寸 Widget 的内容布局、信息优先级、时间逻辑等。
 
 ### 设计原则
 

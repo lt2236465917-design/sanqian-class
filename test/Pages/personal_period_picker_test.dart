@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wheretosleepinnju/Pages/AddCourse/Widgets/WeekTimeNodeDialog.dart';
-import 'package:wheretosleepinnju/Pages/AddCourse/Widgets/WeekNodeDialog.dart';
-import 'package:wheretosleepinnju/Utils/CourseWeekSelection.dart';
-import 'package:wheretosleepinnju/Utils/ClassTimeUtil.dart';
+import 'package:sanqian_class/Pages/AddCourse/Widgets/WeekTimeNodeDialog.dart';
+import 'package:sanqian_class/Pages/AddCourse/Widgets/WeekNodeDialog.dart';
+import 'package:sanqian_class/Utils/CourseWeekSelection.dart';
+import 'package:sanqian_class/Utils/ClassTimeUtil.dart';
 
 void main() {
   const periods = [

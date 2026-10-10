@@ -4,9 +4,9 @@ import 'package:device_calendar/device_calendar.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:wheretosleepinnju/Utils/IosCalendar.dart';
-import 'package:wheretosleepinnju/Utils/ScheduleCalendarReminders.dart';
-import 'package:wheretosleepinnju/Utils/ScheduleDerivedDataService.dart';
+import 'package:sanqian_class/Utils/IosCalendar.dart';
+import 'package:sanqian_class/Utils/ScheduleCalendarReminders.dart';
+import 'package:sanqian_class/Utils/ScheduleDerivedDataService.dart';
 import '../Models/personal_schedule_test.dart' show reviewedSchedule;
 
 Result<T> ok<T>(T value) => Result<T>()..data = value;

@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wheretosleepinnju/Pages/Personal/Widgets/FloatingScheduleNavigation.dart';
+import 'package:sanqian_class/Pages/Personal/Widgets/FloatingScheduleNavigation.dart';
 
 void main() {
   const capability = MethodChannel('chaoxi/schedule_navigation');

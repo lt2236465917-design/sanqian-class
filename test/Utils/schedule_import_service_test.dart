@@ -1,10 +1,10 @@
 import 'dart:convert';
-import 'package:wheretosleepinnju/Models/CourseTableModel.dart';
+import 'package:sanqian_class/Models/CourseTableModel.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:wheretosleepinnju/Models/Db/DbHelper.dart';
+import 'package:sanqian_class/Models/Db/DbHelper.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wheretosleepinnju/Models/ScheduleImportDraft.dart';
-import 'package:wheretosleepinnju/Utils/ScheduleImportService.dart';
+import 'package:sanqian_class/Models/ScheduleImportDraft.dart';
+import 'package:sanqian_class/Utils/ScheduleImportService.dart';
 
 ScheduleImportMeetingDraft meeting({
   List<int>? weeks,

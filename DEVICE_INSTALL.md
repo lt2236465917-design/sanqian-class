@@ -6,15 +6,15 @@ App 名称为「三千上课」，图标已接入用户确认的黑白边牧定�
 
 - 真机：`arm64`、`iphoneos`、Release；主 App 和所有嵌入 Framework 的最低版本均为 iOS 13。此配置覆盖 iPhone 12 起的系统范围，但不代表所有机型和旧系统已经实测。
 - iOS 26 使用原生玻璃底栏；更早系统使用 Flutter 磨砂底栏。
-- 模拟器保留原 Bundle ID，以保护已有数据；真机使用 `local.chaoxi.schedule`，已在本用户 Personal Team 完成签名；其他账号安装需配置其可用的唯一 ID。
+- 模拟器与真机均使用当前软件 Bundle ID；真机使用 `local.sanqian.schedule`，已在本用户 Personal Team 完成签名；其他账号安装需配置其可用的唯一 ID。
 - 已取消原作者 Team / 描述文件绑定，使用自动签名。主 App 不嵌入尚未验收的小组件，也不请求 App Groups，扩展源码保留待后续适配。
-- 新增 `ChaoxiDevice` scheme，Run 使用 Release，便于签名安装后脱离 Xcode 冷启动。
+- 使用 `SanqianDevice` scheme，Run 使用 Release，便于签名安装后脱离 Xcode 冷启动。
 
 ## 先用普通 Apple ID 试用
 
 1. 在 Xcode → Settings → Accounts 中自行登录 Apple Account。若团队显示 `Personal Team`，就是免费个人签名。无需向代理提供密码。
 2. 用数据线连接 iPhone，解锁并信任这台 Mac；若 Xcode 提示，按手机指引开启 Developer Mode。2026-09-20 已配对 iPhone 15 Pro Max / iOS 18.6.2，并确认 Developer Mode 已开启、Xcode Personal Team 已登录。
-3. 打开 `ios/Runner.xcworkspace`，选择 `ChaoxiDevice` scheme 和这台实际 iPhone。
+3. 打开 `ios/Runner.xcworkspace`，选择 `SanqianDevice` scheme 和这台实际 iPhone。
 4. Runner → Signing & Capabilities 中选择自己的 Team，保留 Automatically manage signing。真机 Bundle ID 通过 `ios/Flutter/PersonalDevice.local.xcconfig` 配置：复制同目录 `.example`，填写自己可用的 ID 和 Team ID；该本地配置已加入 Git 忽略。
 5. Run。Xcode 完成签名和安装后，从手机桌面独立打开 App。首次使用从首页或设置导入内置截图课表，不需要登录学校网站。
 

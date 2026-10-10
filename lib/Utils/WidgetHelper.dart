@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/services.dart';
-import 'package:wheretosleepinnju/Utils/ColorUtil.dart';
+import 'package:sanqian_class/Utils/ColorUtil.dart';
 import '../core/widget_data/utils/widget_refresh_helper.dart';
 import '../Models/CourseModel.dart';
 import '../Models/CourseTableModel.dart';
@@ -78,7 +78,7 @@ class WidgetHelper {
     try {
       print("Flutter[iOS]: Updating widget via UnifiedDataService...");
       // 使用新版 WidgetRefreshHelper 进行刷新
-      // 需要导入 'package:wheretosleepinnju/core/widget_data/utils/widget_refresh_helper.dart';
+      // 需要导入 'package:sanqian_class/core/widget_data/utils/widget_refresh_helper.dart';
       // 注意：这里我们使用 manualRefresh，它会清除缓存并强制重新计算
       // 实际上 WidgetHelper 的调用者已经提供了很多数据，但 UnifiedDataService
       // 有自己的一套完整获取和处理数据的逻辑，为了保证数据一致性（特别是 App Group 数据），

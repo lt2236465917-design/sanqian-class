@@ -3,8 +3,8 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:wheretosleepinnju/Models/CourseModel.dart';
-import 'package:wheretosleepinnju/Models/Db/DbHelper.dart';
+import 'package:sanqian_class/Models/CourseModel.dart';
+import 'package:sanqian_class/Models/Db/DbHelper.dart';
 
 const v1CourseTable = '''
 CREATE TABLE CourseTable (

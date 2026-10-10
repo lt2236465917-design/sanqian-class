@@ -4,10 +4,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wheretosleepinnju/Models/CourseModel.dart';
-import 'package:wheretosleepinnju/Models/PersonalSchedule.dart';
-import 'package:wheretosleepinnju/Models/ScreenshotSchedule.dart';
-import 'package:wheretosleepinnju/Pages/Personal/Widgets/WeekScheduleDetailPage.dart';
+import 'package:sanqian_class/Models/CourseModel.dart';
+import 'package:sanqian_class/Models/PersonalSchedule.dart';
+import 'package:sanqian_class/Models/ScreenshotSchedule.dart';
+import 'package:sanqian_class/Pages/Personal/Widgets/WeekScheduleDetailPage.dart';
 
 PersonalSchedule reviewedSchedule() {
   final source = ScreenshotSchedule.fromJson(

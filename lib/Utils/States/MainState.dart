@@ -1,5 +1,5 @@
 import 'package:scoped_model/scoped_model.dart';
-import 'package:wheretosleepinnju/Utils/States/ConfigState.dart';
+import 'package:sanqian_class/Utils/States/ConfigState.dart';
 import './ClassTableState.dart';
 import './ThemeState.dart';
 import './WeekState.dart';

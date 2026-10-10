@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:wheretosleepinnju/Models/CourseModel.dart';
-import 'package:wheretosleepinnju/Models/PersonalSchedule.dart';
-import 'package:wheretosleepinnju/Models/ScreenshotSchedule.dart';
-import 'package:wheretosleepinnju/Pages/Personal/PersonalHomeView.dart';
-import 'package:wheretosleepinnju/Utils/CourseWeeks.dart';
+import 'package:sanqian_class/Models/CourseModel.dart';
+import 'package:sanqian_class/Models/PersonalSchedule.dart';
+import 'package:sanqian_class/Models/ScreenshotSchedule.dart';
+import 'package:sanqian_class/Pages/Personal/PersonalHomeView.dart';
+import 'package:sanqian_class/Utils/CourseWeeks.dart';
 
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));

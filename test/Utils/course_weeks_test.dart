@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wheretosleepinnju/Models/CourseModel.dart';
-import 'package:wheretosleepinnju/Models/ScheduleModel.dart';
-import 'package:wheretosleepinnju/Resources/Constant.dart';
-import 'package:wheretosleepinnju/Utils/CourseWeeks.dart';
+import 'package:sanqian_class/Models/CourseModel.dart';
+import 'package:sanqian_class/Models/ScheduleModel.dart';
+import 'package:sanqian_class/Resources/Constant.dart';
+import 'package:sanqian_class/Utils/CourseWeeks.dart';
 
 void main() {
   test('weeks parser accepts only sorted unique in-range weeks', () {

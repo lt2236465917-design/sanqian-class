@@ -8,18 +8,18 @@ import 'package:flutter_test/flutter_test.dart';
 // Use the existing image_picker platform contract without invoking a photo library.
 // ignore: depend_on_referenced_packages
 import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
-import 'package:wheretosleepinnju/Pages/Import/PhotoScheduleImportView.dart';
+import 'package:sanqian_class/Pages/Import/PhotoScheduleImportView.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:scoped_model/scoped_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:wheretosleepinnju/Models/Db/DbHelper.dart';
-import 'package:wheretosleepinnju/Pages/Import/ImportReviewView.dart';
-import 'package:wheretosleepinnju/Pages/Import/SchoolAccountView.dart';
-import 'package:wheretosleepinnju/Resources/PersonalTheme.dart';
-import 'package:wheretosleepinnju/Models/ScheduleImportDraft.dart';
-import 'package:wheretosleepinnju/Utils/ScheduleImportService.dart';
-import 'package:wheretosleepinnju/Utils/States/MainState.dart';
-import 'package:wheretosleepinnju/Pages/Import/Widgets/RecognitionProgress.dart';
+import 'package:sanqian_class/Models/Db/DbHelper.dart';
+import 'package:sanqian_class/Pages/Import/ImportReviewView.dart';
+import 'package:sanqian_class/Pages/Import/SchoolAccountView.dart';
+import 'package:sanqian_class/Resources/PersonalTheme.dart';
+import 'package:sanqian_class/Models/ScheduleImportDraft.dart';
+import 'package:sanqian_class/Utils/ScheduleImportService.dart';
+import 'package:sanqian_class/Utils/States/MainState.dart';
+import 'package:sanqian_class/Pages/Import/Widgets/RecognitionProgress.dart';
 
 const sourceText =
     '[[[{"text":"科目"},{"text":"安排"}],'

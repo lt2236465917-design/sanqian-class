@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:wheretosleepinnju/Pages/Personal/Widgets/ColdStartMascotSplash.dart';
+import 'package:sanqian_class/Pages/Personal/Widgets/ColdStartMascotSplash.dart';
 
 void main() {
   testWidgets('cold start shows the poster for half a second before video', (

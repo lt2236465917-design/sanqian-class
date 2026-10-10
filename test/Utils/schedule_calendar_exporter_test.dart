@@ -3,9 +3,9 @@ import 'package:flutter/material.dart' show Color;
 import 'package:device_calendar/device_calendar.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:wheretosleepinnju/Models/PersonalSchedule.dart';
-import 'package:wheretosleepinnju/Utils/ScheduleCalendarExporter.dart';
-import 'package:wheretosleepinnju/Utils/IosCalendar.dart';
+import 'package:sanqian_class/Models/PersonalSchedule.dart';
+import 'package:sanqian_class/Utils/ScheduleCalendarExporter.dart';
+import 'package:sanqian_class/Utils/IosCalendar.dart';
 import '../Models/personal_schedule_test.dart' show reviewedSchedule;
 
 Result<T> ok<T>(T data) => Result<T>()..data = data;
