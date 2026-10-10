@@ -163,7 +163,6 @@ public class MainActivity extends FlutterActivity {
 //    @Override
 //    protected void onCreate(Bundle savedInstanceState) {
 //        super.onCreate(savedInstanceState);
-//        local.sanqian.schedule.UmengSdkPlugin.setContext(this);
 //        android.util.Log.i("UMLog", "onCreate@MainActivity");
 //    }
 //

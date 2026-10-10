@@ -1,5 +1,3 @@
--keep class com.umeng.** {*;}
-
 -keep class com.uc.** {*;}
 
 -keepclassmembers class * {
