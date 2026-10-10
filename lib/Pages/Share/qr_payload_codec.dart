@@ -67,7 +67,7 @@ class QrPayloadCodec {
       'v': 2,
       'alg': kNcsQrAlgGzip,
       'meta': <String, dynamic>{
-        'app': 'wheretosleepinnju',
+        'app': 'sanqian-class',
         'exportedAt': DateTime.now().toUtc().toIso8601String(),
         'source': 'local_sqlite',
         'checksum': checksum,
