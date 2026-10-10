@@ -29,7 +29,7 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace "com.lilystudio.wheretosleepinnju"
+    namespace "local.sanqian.schedule"
     compileSdkVersion 36
     ndkVersion "27.0.12077973"
 
@@ -49,7 +49,7 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.lilystudio.wheretosleepinnju"
+        applicationId "local.sanqian.schedule"
         minSdkVersion flutter.minSdkVersion
         targetSdkVersion flutter.targetSdkVersion
         versionCode flutterVersionCode.toInteger()

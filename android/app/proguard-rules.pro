@@ -15,9 +15,9 @@
 -keep class a.** {*;}
 -keep class com.vivo.** {*;}
 
--keep class com.lilystudio.wheretosleepinnju.ScheduleWidgetProvider { *; }
--keep class com.lilystudio.wheretosleepinnju.ScheduleWidgetRefreshReceiver { *; }
--keep class com.lilystudio.wheretosleepinnju.ScheduleWidgetBootReceiver { *; }
--keep class com.lilystudio.wheretosleepinnju.ScheduleReminderReceiver { *; }
--keep class com.lilystudio.wheretosleepinnju.ScheduleReminderScheduler { *; }
--keep class com.lilystudio.wheretosleepinnju.ScheduleImportPlugin { *; }
+-keep class local.sanqian.schedule.ScheduleWidgetProvider { *; }
+-keep class local.sanqian.schedule.ScheduleWidgetRefreshReceiver { *; }
+-keep class local.sanqian.schedule.ScheduleWidgetBootReceiver { *; }
+-keep class local.sanqian.schedule.ScheduleReminderReceiver { *; }
+-keep class local.sanqian.schedule.ScheduleReminderScheduler { *; }
+-keep class local.sanqian.schedule.ScheduleImportPlugin { *; }
