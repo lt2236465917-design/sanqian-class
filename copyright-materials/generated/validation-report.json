@@ -110,7 +110,7 @@
     "footerCount": 20,
     "footerCountPass": true,
     "sensitivePatternHits": [],
-    "sha256": "708ffb37ef83534c767796570b103fe3a1de8383b1f8722bce07b20daa77bc35"
+    "sha256": "90b2c657efeb4b14efa79987815b25e805fcbb454c70b1ab1513d4e7f3b42d58"
   },
   "sensitiveScanScope": "generated HTML and browser-exported PDF text; source inputs still require separate review",
   "pass": true,
@@ -203,7 +203,7 @@
       "htmlLineCountPass": true,
       "pdfLineCountExact": false,
       "pdfLineCountNote": "pdftotext drops blank source lines and may wrap long lines; use HTML line elements plus manual PDF review for the official line-count check.",
-      "sha256": "1c8eb69060539acd0e0002abe426fe733f29fe10b1fee78c7727ce9b772d521d"
+      "sha256": "da8cde3990b30f0642ea2b68585560b17e8abcf38b21bc31d71f4bf9d43c584c"
     },
     "documentation": {
       "path": "copyright-materials/generated/documentation-identification-material.browser.pdf",
@@ -243,7 +243,7 @@
       "htmlLineCountPass": true,
       "pdfLineCountExact": false,
       "pdfLineCountNote": "pdftotext drops blank source lines and may wrap long lines; use HTML line elements plus manual PDF review for the official line-count check.",
-      "sha256": "13d343dcfe35d2131a60f9bd0448f3d2bbc3bf4e19a5ac588adbb9ec546ee22f"
+      "sha256": "9d4af5795ab0e3754cb9de5ab85a6211369984ff45cb33b043d5e177efe1d1ef"
     },
     "physicalPdfReviewLimit": "Page count and markers are verified from the exported PDFs; exact visual line counts still require applicant page-by-page review because PDF text extraction does not preserve blank lines and wrapping."
   }

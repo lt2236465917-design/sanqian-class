@@ -27,7 +27,7 @@
 ## 项目事实（来自源码，不等于官网要求）
 
 - 当前仓库：`/Users/zhuanzmima0000/Desktop/NJU-Class-Shedule-Flutter-visual`，分支 `main`，材料生成时 HEAD 为 `49e01ac`；用户提供的旧 HEAD `c691223` 是材料生成前的提交。
-- 本次登记材料页眉统一采用 `V1.0`，符合官网建议格式。产品版本名统一为 `1.0.0`：`pubspec.yaml` 的 `+77` 是 Android 构建号，iOS `MARKETING_VERSION` 已统一为 `1.0.0`；申请表和材料页眉均使用 `V1.0`。
+- 本次登记材料页眉统一采用 `V1.0`，符合官网建议格式。产品版本名统一为 `1.0.0`；`pubspec.yaml` 的 `+1` 是跨平台构建号，Android `versionCode` 与 iOS `CFBundleVersion` 均为 `1`；申请表和材料页眉均使用 `V1.0`。
 - 用户可见品牌为“三千上课”；Android applicationId 与 iOS Bundle ID 主要配置为 `local.sanqian.schedule`。
 - 主要实现使用 Flutter/Dart、Android Java/Kotlin、iOS Swift；仓库还包含 OpenHarmony ETS 工程。代码量应按申请人选定的源程序口径确认，不能把测试、第三方、生成文件或真实数据当作纯业务源程序量。
 - 当前仓库没有 APK、AAB 或 IPA 产物；发表状态、首次发表日期/地点不能据此推断。
@@ -72,7 +72,7 @@ python3 -m json.tool copyright-materials/generated/validation-report.json >/dev/
 git diff --check -- copyright-materials
 ```
 
-申请表、页眉、证书版本号必须保持一致，统一填写 `V1.0`。如需发布新的商店/TestFlight 构建，产品版本名使用 `1.0.0`，构建号按平台递增。
+申请表、页眉、证书版本号必须保持一致，统一填写 `V1.0`。如需发布新的商店/TestFlight 构建，产品版本名使用 `1.0.0`，构建号按平台规则递增。
 
 ## 明确不能由本准备包完成的事项
 
