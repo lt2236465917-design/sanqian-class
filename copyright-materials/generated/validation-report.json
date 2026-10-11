@@ -110,10 +110,19 @@
     "footerCount": 20,
     "footerCountPass": true,
     "sensitivePatternHits": [],
-    "sha256": "e50bdcc99e75f2cc81742dd92d22b1231c0efdcd39f5dbdab1c73d9fd50b0fdf"
+    "sha256": "708ffb37ef83534c767796570b103fe3a1de8383b1f8722bce07b20daa77bc35"
   },
   "sensitiveScanScope": "generated HTML and browser-exported PDF text; source inputs still require separate review",
   "pass": true,
+  "officialSourcesRechecked": [
+    "https://www.ccopyright.com.cn/index.php?optionid=1080",
+    "https://www.ccopyright.com.cn/index.php?optionid=1081",
+    "https://www.ccopyright.com.cn/index.php?optionid=1087",
+    "https://www.ccopyright.com.cn/index.php?optionid=1087&page=1",
+    "https://www.ccopyright.com.cn/index.php?optionid=1087&page=2",
+    "https://www.ccopyright.com.cn/index.php?optionid=1087&page=3"
+  ],
+  "officialSourcesRecheckedAt": "2026-10-11 Asia/Shanghai",
   "pdfVerification": {
     "method": "Chromium page.pdf via Tabbit, then pdfinfo and pdftotext -layout",
     "source": {
@@ -194,7 +203,7 @@
       "htmlLineCountPass": true,
       "pdfLineCountExact": false,
       "pdfLineCountNote": "pdftotext drops blank source lines and may wrap long lines; use HTML line elements plus manual PDF review for the official line-count check.",
-      "sha256": "6735b09294c38e6e02d85607b3c3429b2e2e5084d1a40a06471ac39ae6e724c9"
+      "sha256": "1c8eb69060539acd0e0002abe426fe733f29fe10b1fee78c7727ce9b772d521d"
     },
     "documentation": {
       "path": "copyright-materials/generated/documentation-identification-material.browser.pdf",
@@ -234,17 +243,8 @@
       "htmlLineCountPass": true,
       "pdfLineCountExact": false,
       "pdfLineCountNote": "pdftotext drops blank source lines and may wrap long lines; use HTML line elements plus manual PDF review for the official line-count check.",
-      "sha256": "b9bc4dfbae1cee953fa49848223465d0d29a10d1dc99b04509ba28e782eff9b1"
+      "sha256": "13d343dcfe35d2131a60f9bd0448f3d2bbc3bf4e19a5ac588adbb9ec546ee22f"
     },
     "physicalPdfReviewLimit": "Page count and markers are verified from the exported PDFs; exact visual line counts still require applicant page-by-page review because PDF text extraction does not preserve blank lines and wrapping."
-  },
-  "officialSourcesRechecked": [
-    "https://www.ccopyright.com.cn/index.php?optionid=1080",
-    "https://www.ccopyright.com.cn/index.php?optionid=1081",
-    "https://www.ccopyright.com.cn/index.php?optionid=1087",
-    "https://www.ccopyright.com.cn/index.php?optionid=1087&page=1",
-    "https://www.ccopyright.com.cn/index.php?optionid=1087&page=2",
-    "https://www.ccopyright.com.cn/index.php?optionid=1087&page=3"
-  ],
-  "officialSourcesRecheckedAt": "2026-10-11 Asia/Shanghai"
+  }
 }

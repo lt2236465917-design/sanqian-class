@@ -27,7 +27,7 @@
 ## 项目事实（来自源码，不等于官网要求）
 
 - 当前仓库：`/Users/zhuanzmima0000/Desktop/NJU-Class-Shedule-Flutter-visual`，分支 `main`，材料生成时 HEAD 为 `49e01ac`；用户提供的旧 HEAD `c691223` 是材料生成前的提交。
-- 本次登记材料页眉已统一暂定为 `V1.0`，符合官网建议格式。源码仍有 `pubspec.yaml` 的 `1.0.0+77` 和 iOS `MARKETING_VERSION = 4.0.1`；这两个是产品发布元数据，申请人必须确认 `V1.0` 对应的软件快照，并在提交前决定是否另行调整产品配置。
+- 本次登记材料页眉统一采用 `V1.0`，符合官网建议格式。产品版本名统一为 `1.0.0`：`pubspec.yaml` 的 `+77` 是 Android 构建号，iOS `MARKETING_VERSION` 已统一为 `1.0.0`；申请表和材料页眉均使用 `V1.0`。
 - 用户可见品牌为“三千上课”；Android applicationId 与 iOS Bundle ID 主要配置为 `local.sanqian.schedule`。
 - 主要实现使用 Flutter/Dart、Android Java/Kotlin、iOS Swift；仓库还包含 OpenHarmony ETS 工程。代码量应按申请人选定的源程序口径确认，不能把测试、第三方、生成文件或真实数据当作纯业务源程序量。
 - 当前仓库没有 APK、AAB 或 IPA 产物；发表状态、首次发表日期/地点不能据此推断。
@@ -58,7 +58,7 @@
 - `generated/source-identification-material.browser.pdf`：浏览器实际打印的 60 页源程序 PDF 草稿。
 - `generated/documentation-identification-material.browser.pdf`：浏览器实际打印的 20 页文档 PDF 草稿。
 - `generated/validation-report.json`：HTML 和浏览器 PDF 的页数、页眉页脚页码、行数代理与敏感模式检查；`pdfRenderNotVerified: false` 仅表示本地 PDF 已核对，不表示版权中心已接受。
-- `scripts/generate_materials.py`：可重复生成脚本，默认使用本次暂定版本 `V1.0`。
+- `scripts/generate_materials.py`：可重复生成脚本，默认使用本次登记版本 `V1.0`。
 - `scripts/check_sensitive.py`：对生成 HTML 和 PDF 文本执行私钥、token、密钥形状扫描。
 
 ## 重生成与检查
@@ -72,7 +72,7 @@ python3 -m json.tool copyright-materials/generated/validation-report.json >/dev/
 git diff --check -- copyright-materials
 ```
 
-用户确认最终版本后，按同一版本重新生成并重新打印；申请表、页眉、证书版本号必须保持一致。产品源代码中的发布元数据冲突仍需用户决定，材料包没有擅自修改业务源码。
+申请表、页眉、证书版本号必须保持一致，统一填写 `V1.0`。如需发布新的商店/TestFlight 构建，产品版本名使用 `1.0.0`，构建号按平台递增。
 
 ## 明确不能由本准备包完成的事项
 
