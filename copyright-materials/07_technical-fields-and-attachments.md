@@ -12,13 +12,13 @@
 | 技术特点 | 导入后复核再保存；二维码压缩/校验；原生桥接；凭据安全存储；Widget/Live Activity | 不把测试、真实数据或上游思想写成独立权利 |
 | 编程语言 | Dart、Swift、Kotlin、Java；若纳入 OpenHarmony 再确认 ETS | “全部语言”按最终申请范围确认 |
 | 源程序量 | 生成清单记录当前选材行数；另有 Dart/Swift/Kotlin/Java/ETS 业务统计 | 用户选择统计口径并复核总行数 |
-| 版本号 | `pubspec.yaml` 为 `1.0.0+77`；Xcode 工程有 `4.0.1` | **必须统一**，页眉随之重生成 |
+| 版本号 | 本次登记材料页眉已统一暂定为 `V1.0`；源码证据仍为 `1.0.0+77` 与 `4.0.1` | **材料已统一；用户仍需确认 V1.0 对应的软件快照及产品发布元数据关系** |
 
 ## 附件说明草稿
 
 1. 在线申请表及官网生成的申请确认签章页 PDF：用户在线完成。
-2. 源程序鉴别材料：`generated/source-identification-material.html` 打印 PDF，附 `source-selection-manifest.json` 作为内部审计记录；提交前用户检查脱敏和版本。
-3. 文档鉴别材料：用户确认后的设计说明书/用户手册；当前 HTML 只是模板。
+2. 源程序鉴别材料：`generated/source-identification-material.browser.pdf` 是本地浏览器导出的 60 页草稿，附 `source-selection-manifest.json` 作为内部审计记录；提交前用户检查脱敏和版本。
+3. 文档鉴别材料：用户确认后的设计说明书/用户手册；当前 20 页 HTML/PDF 只是模板，完整性尚未验证。
 4. 身份证明：按 `05_identity-documents.md` 由用户提供。
 5. 权利归属/修改许可：`LICENSE`、上游 URL、修改说明，以及用户自行取得的许可证明（如适用）。
 6. 其他合同/任务书/转让或继承证明：仅在实际存在并适用时由用户提供。
@@ -36,6 +36,8 @@
 git grep -n -i -e '南哪课表' -e 'NJU-Class' -e 'wheretosleepinnju' -e '友盟' -e 'umeng'
 git ls-files | rg -i '(nan|nanj|nju|sleep|whereto|chaoxi|umeng|analytics)'
 python3 copyright-materials/scripts/generate_materials.py --version V1.0
+python3 copyright-materials/scripts/verify_printed_pdfs.py
+python3 copyright-materials/scripts/check_sensitive.py
 cat copyright-materials/generated/validation-report.json
 git diff --check -- copyright-materials
 ```

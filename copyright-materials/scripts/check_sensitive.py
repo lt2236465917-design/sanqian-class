@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -34,8 +35,21 @@ def main() -> None:
     findings: list[dict[str, object]] = []
     for path in sorted(p for p in target.rglob("*") if p.is_file()):
         try:
-            text = path.read_text(encoding="utf-8")
-        except UnicodeDecodeError:
+            if path.suffix.lower() == ".pdf":
+                converted = subprocess.run(
+                    ["pdftotext", "-layout", str(path), "-"],
+                    check=True,
+                    capture_output=True,
+                )
+                text = converted.stdout.decode("utf-8", errors="replace")
+            else:
+                text = path.read_text(encoding="utf-8")
+        except (UnicodeDecodeError, FileNotFoundError, subprocess.CalledProcessError) as error:
+            findings.append({
+                "file": path.relative_to(ROOT).as_posix(),
+                "pattern": "scan-error",
+                "detail": str(error),
+            })
             continue
         for name, pattern in PATTERNS.items():
             for match in pattern.finditer(text):
