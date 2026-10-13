@@ -514,14 +514,20 @@ void main() {
       find.byKey(const ValueKey('floating-schedule-bar')),
     );
     final start = tester.getCenter(indicator).dx;
+    final startWidth = tester.getSize(indicator).width;
     await tester.tap(find.byKey(const ValueKey('tab-month')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
     final during = tester.getCenter(indicator).dx;
+    final duringWidth = tester.getSize(indicator).width;
     await tester.pumpAndSettle();
     final end = tester.getCenter(indicator).dx;
+    final endWidth = tester.getSize(indicator).width;
     expect(during, greaterThan(start));
     expect(during, lessThan(end));
+    expect(duringWidth, closeTo(startWidth, 0.5));
+    expect(endWidth, closeTo(startWidth, 0.5));
+    expect(startWidth, lessThan(bar.width / 2));
     expect(
       end,
       closeTo(tester.getCenter(find.byKey(const ValueKey('tab-month'))).dx, 1),
@@ -549,6 +555,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('tab-today')));
     await tester.pump();
     expect(tester.getCenter(indicator).dx, closeTo(start, 1));
+    expect(tester.getSize(indicator).width, closeTo(startWidth, 0.5));
     expect(tester.takeException(), isNull);
   });
 

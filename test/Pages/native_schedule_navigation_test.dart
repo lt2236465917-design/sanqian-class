@@ -157,7 +157,11 @@ void main() {
           matching: find.byType(TextButton),
         ),
       );
-      expect(button.style?.splashFactory, InkSparkle.splashFactory);
+      expect(button.style?.splashFactory, NoSplash.splashFactory);
+      expect(
+        button.style?.overlayColor?.resolve(const <WidgetState>{}),
+        Colors.transparent,
+      );
       expect(tester.takeException(), isNull);
     },
     variant: TargetPlatformVariant.only(TargetPlatform.iOS),
@@ -190,14 +194,29 @@ void main() {
       await tester.pumpAndSettle();
       final indicator = find.byKey(const ValueKey('floating-tab-indicator'));
       final start = tester.getCenter(indicator).dx;
+      final startWidth = tester.getSize(indicator).width;
       await tester.tap(find.byKey(const ValueKey('tab-month')));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 120));
       final during = tester.getCenter(indicator).dx;
+      final duringWidth = tester.getSize(indicator).width;
       await tester.pumpAndSettle();
       final end = tester.getCenter(indicator).dx;
+      final endWidth = tester.getSize(indicator).width;
       expect(during, greaterThan(start));
       expect(during, lessThan(end));
+      // The capsule keeps one tab slot. A stretch would cover two tabs.
+      expect(duringWidth, closeTo(startWidth, 0.5));
+      expect(endWidth, closeTo(startWidth, 0.5));
+      expect(
+        startWidth,
+        lessThan(
+          tester
+                  .getSize(find.byKey(const ValueKey('floating-schedule-bar')))
+                  .width /
+              2,
+        ),
+      );
       expect(
         end,
         closeTo(
