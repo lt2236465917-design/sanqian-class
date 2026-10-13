@@ -7,6 +7,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -206,6 +207,13 @@ class DeepSeekOcrReviewTest {
         assertEquals(0.0, flipped.y, 1e-9)
         assertEquals(0.1, flipped.width, 1e-9)
         assertEquals(0.1, flipped.height, 1e-9)
+        val overflow = OcrGeometry.clipToUnit(
+            OcrGeometry.normalize(-1.0, 0.0, 100.0, 20.0, 1000, 1000),
+        )
+        assertNotNull(overflow)
+        assertEquals(0.0, overflow!!.x, 1e-9)
+        assertEquals(0.1, overflow.width, 1e-9)
+        assertNull(OcrGeometry.clipToUnit(OcrBox(-0.2, 0.1, 0.1, 0.1)))
     }
 
     private fun recognitionStillCurrent(ticket: Int, generation: Int, cancelled: Boolean): Boolean {

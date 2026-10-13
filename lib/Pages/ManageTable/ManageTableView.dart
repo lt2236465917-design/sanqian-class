@@ -34,7 +34,10 @@ class _ManageTableViewState extends State<ManageTableView> {
     try {
       await _provider.rename(id, name);
       if (mounted) {
-        setState(() => _tables = _loadTables());
+        // Block body: an arrow would return the Future and trip setState's debug assert.
+        setState(() {
+          _tables = _loadTables();
+        });
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('课表名称已保存')));
@@ -131,7 +134,11 @@ class _ManageTableViewState extends State<ManageTableView> {
     setState(() => _busy = true);
     try {
       await _provider.delete(table['id'] as int);
-      if (mounted) setState(() => _tables = _loadTables());
+      if (mounted) {
+        setState(() {
+          _tables = _loadTables();
+        });
+      }
     } catch (_) {
       _error();
     } finally {
@@ -142,7 +149,7 @@ class _ManageTableViewState extends State<ManageTableView> {
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(
-      title: const Text('课表管理'),
+      title: const Text('管理学期课表'),
       actions: [
         IconButton(
           tooltip: '新增课表',
@@ -158,7 +165,9 @@ class _ManageTableViewState extends State<ManageTableView> {
           if (snapshot.hasError) {
             return Center(
               child: TextButton(
-                onPressed: () => setState(() => _tables = _loadTables()),
+                onPressed: () => setState(() {
+                  _tables = _loadTables();
+                }),
                 child: const Text('读取失败，点击重试'),
               ),
             );

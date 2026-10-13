@@ -35,12 +35,25 @@ class ScheduleCredentialsStore private constructor(context: Context) {
 
     fun hasDeepSeekAPIKey(): Boolean = load(ITEM_API_KEY) != null
 
+    fun apiKeyPreview(): String? {
+        val key = loadDeepSeekAPIKey() ?: return null
+        return SecretMask.apiKey(key)
+    }
+
     fun deleteDeepSeekAPIKey() = delete(ITEM_API_KEY)
 
-    fun saveSchoolCredentials(account: String, password: String): SchoolAccountMetadata {
+    fun saveSchoolCredentials(
+        account: String,
+        password: String,
+        keepExistingPassword: Boolean = false,
+    ): SchoolAccountMetadata {
         synchronized(lock) {
             val username = account.trim()
-            if (username.isEmpty() || password.isEmpty()) throw ScheduleCredentialsStoreError.InvalidValue
+            val existing = if (keepExistingPassword) schoolCredentials() else null
+            val secret = if (keepExistingPassword) existing?.second ?: throw ScheduleCredentialsStoreError.InvalidValue else password
+            if (username.isEmpty() || secret.isEmpty() || (!keepExistingPassword && secret == SecretMask.PLACEHOLDER)) {
+                throw ScheduleCredentialsStoreError.InvalidValue
+            }
             val digest = sha256Hex(username.toByteArray(Charsets.UTF_8))
             val identityItem = "$ITEM_SCHOOL_IDENTITY_PREFIX$digest"
             val saved = load(identityItem)?.let { String(it, Charsets.UTF_8) }
@@ -51,7 +64,7 @@ class ScheduleCredentialsStore private constructor(context: Context) {
             }
             val payload = JSONObject()
                 .put("account", username)
-                .put("password", password)
+                .put("password", secret)
                 .put("accountLocalId", localId)
                 .toString()
                 .toByteArray(Charsets.UTF_8)

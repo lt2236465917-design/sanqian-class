@@ -45,7 +45,7 @@ class _ScreenshotImportViewState extends State<ScreenshotImportView> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('截图课表')),
+    appBar: AppBar(title: const Text('导入内置课表（调试）')),
     body: FutureBuilder<ScreenshotSchedule>(
       future: _schedule,
       builder: (context, snapshot) {

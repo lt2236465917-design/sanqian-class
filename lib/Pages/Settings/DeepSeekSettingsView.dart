@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../Utils/ScheduleDerivedDataService.dart';
 import '../../Utils/ScheduleFeedback.dart';
+import '../../Utils/SecretMask.dart';
 
 class DeepSeekSettingsView extends StatefulWidget {
   const DeepSeekSettingsView({super.key});
@@ -13,14 +14,39 @@ class DeepSeekSettingsView extends StatefulWidget {
 class _DeepSeekSettingsViewState extends State<DeepSeekSettingsView> {
   static final _createKey = Uri.parse('https://platform.deepseek.com/api_keys');
   final _key = TextEditingController();
+  final _keyFocus = FocusNode();
   bool? _saved;
   bool _busy = false, _loading = true, _invalidKey = false, _isError = false;
+  bool _keyMasked = false;
+  String? _visibleMask;
   String _message = '';
   VoidCallback? _retry;
   @override
   void initState() {
     super.initState();
+    _keyFocus.addListener(_onKeyFocus);
     _status();
+  }
+
+  void _onKeyFocus() {
+    if (_keyFocus.hasFocus) {
+      if (_keyMasked) {
+        _keyMasked = false;
+        _key.clear();
+        if (mounted) setState(() {});
+      }
+      return;
+    }
+    if (_key.text.trim().isEmpty && _saved == true && _visibleMask != null) {
+      _showMask(_visibleMask!);
+      if (mounted) setState(() {});
+    }
+  }
+
+  void _showMask(String mask) {
+    _keyMasked = true;
+    _visibleMask = mask;
+    _key.text = mask;
   }
 
   Future<void> _status() async {
@@ -35,7 +61,20 @@ class _DeepSeekSettingsViewState extends State<DeepSeekSettingsView> {
             'hasAPIKey',
           ) ??
           false;
-      if (mounted) setState(() => _saved = value);
+      String? preview;
+      if (value) {
+        try {
+          preview = await ScheduleDerivedDataService.channel.invokeMethod<String>(
+            'apiKeyPreview',
+          );
+        } catch (_) {
+          preview = null;
+        }
+      }
+      if (mounted) {
+        setState(() => _saved = value);
+        if (value) _showMask(preview ?? SecretMask.placeholder);
+      }
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -54,6 +93,8 @@ class _DeepSeekSettingsViewState extends State<DeepSeekSettingsView> {
 
   @override
   void dispose() {
+    _keyFocus.removeListener(_onKeyFocus);
+    _keyFocus.dispose();
     _key.clear();
     _key.dispose();
     super.dispose();
@@ -61,7 +102,13 @@ class _DeepSeekSettingsViewState extends State<DeepSeekSettingsView> {
 
   Future<void> _action(bool remove) async {
     if (_busy || _loading) return;
-    if (!remove && _key.text.trim().isEmpty) {
+    final typed = _key.text.trim();
+    if (!remove && (_keyMasked || typed.isEmpty)) {
+      if (_saved == true && (_keyMasked || typed.isEmpty)) {
+        if (_visibleMask != null) _showMask(_visibleMask!);
+        setState(() => _message = 'Key 已保存在本机');
+        return;
+      }
       setState(() => _invalidKey = true);
       return;
     }
@@ -74,10 +121,16 @@ class _DeepSeekSettingsViewState extends State<DeepSeekSettingsView> {
     try {
       await ScheduleDerivedDataService.channel.invokeMethod(
         remove ? 'deleteAPIKey' : 'saveAPIKey',
-        remove ? null : {'key': _key.text.trim()},
+        remove ? null : {'key': typed},
       );
       if (mounted) {
-        _key.clear();
+        if (remove) {
+          _keyMasked = false;
+          _visibleMask = null;
+          _key.clear();
+        } else {
+          _showMask(SecretMask.apiKey(typed));
+        }
         setState(() {
           _saved = !remove;
           _isError = false;
@@ -115,7 +168,7 @@ class _DeepSeekSettingsViewState extends State<DeepSeekSettingsView> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('DeepSeek 设置')),
+    appBar: AppBar(title: const Text('AI设置')),
     body: SafeArea(
       child: ListView(
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
@@ -141,13 +194,15 @@ class _DeepSeekSettingsViewState extends State<DeepSeekSettingsView> {
           const SizedBox(height: 16),
           TextField(
             controller: _key,
+            focusNode: _keyFocus,
             enabled: !_busy && !_loading,
-            obscureText: true,
+            obscureText: !_keyMasked,
             enableSuggestions: false,
             autocorrect: false,
             decoration: InputDecoration(
               labelText: 'DeepSeek API key',
               hintText: _saved == true ? '输入新 Key 可替换' : null,
+              helperText: _keyMasked ? '已保存，只显示脱敏内容。点按后可输入新 Key。' : null,
               errorText: _invalidKey ? '请先填写 Key' : null,
             ),
             onChanged: (_) {
@@ -197,7 +252,7 @@ class _DeepSeekSettingsViewState extends State<DeepSeekSettingsView> {
           ),
           const ScheduleSection('安全提醒'),
           const ScheduleNotice(
-            'Key 只写入本机安全存储。保存之后，这里不再显示原文。\n'
+            'Key 只写入本机安全存储。保存之后，填写框只显示脱敏后的 Key，不显示原文。\n'
             '不要把 Key 告诉他人，也不要放进截图、聊天或邮件。\n'
             '只有你在导入页确认识别后，课表图片或网页课表原文才会发给 DeepSeek，费用从你的 DeepSeek 账户扣除。\n'
             '学校账号、密码和验证码不会随识别发送。\n'

@@ -155,9 +155,7 @@ class _ReminderSettingsViewState extends State<ReminderSettingsView>
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('撤销日历提醒'),
-        content: const Text(
-          '将关闭全部提前提醒，并删除三千上课已经写入系统日历的上课提醒。你自己添加的其他日程会保留。',
-        ),
+        content: const Text('将关闭全部提前提醒，并删除三千上课已经写入系统日历的上课提醒。你自己添加的其他日程会保留。'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -199,9 +197,7 @@ class _ReminderSettingsViewState extends State<ReminderSettingsView>
           _isError = true;
           _status = ScheduleFeedback.message(
             e,
-            fallback: saved
-                ? '提前提醒已关闭，但日历中的上课提醒尚未完全删除，请重试。'
-                : '撤销未完成，请重试。',
+            fallback: saved ? '提前提醒已关闭，但日历中的上课提醒尚未完全删除，请重试。' : '撤销未完成，请重试。',
           );
           _retry = saved ? _resync : _revoke;
         });
@@ -334,9 +330,33 @@ class _ReminderSettingsViewState extends State<ReminderSettingsView>
               label: const Text('打开系统设置'),
             ),
           if (_retry != null)
-            TextButton(
-              onPressed: _busy ? null : _retry,
-              child: const Text('重试提醒设置'),
+            Card(
+              clipBehavior: Clip.antiAlias,
+              child: ListTile(
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 8,
+                ),
+                leading: Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.primaryContainer.withValues(alpha: .6),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(
+                    Icons.refresh_rounded,
+                    size: 22,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+                title: const Text('重试提醒设置'),
+                trailing: const Icon(Icons.chevron_right_rounded, size: 20),
+                enabled: !_busy,
+                onTap: _busy ? null : _retry,
+              ),
             ),
           if (_enabled.containsValue(true) || _hasImportedReminders)
             TextButton(

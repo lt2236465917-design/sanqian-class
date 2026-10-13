@@ -96,6 +96,7 @@ class ScheduleImportPlugin :
         try {
             when (call.method) {
                 "hasAPIKey" -> result.success(store.hasDeepSeekAPIKey())
+                "apiKeyPreview" -> result.success(store.apiKeyPreview())
                 "saveAPIKey" -> {
                     store.saveDeepSeekAPIKey(call.argument<String>("key") ?: "")
                     result.success(true)
@@ -111,7 +112,8 @@ class ScheduleImportPlugin :
                 "saveSchoolAccount" -> {
                     val info = store.saveSchoolCredentials(
                         call.argument<String>("account") ?: "",
-                        call.argument<String>("password") ?: ""
+                        call.argument<String>("password") ?: "",
+                        call.argument<Boolean>("keepPassword") == true,
                     )
                     result.success(mapOf("account" to info.account, "accountLocalId" to info.accountLocalId))
                 }
@@ -143,13 +145,14 @@ class ScheduleImportPlugin :
                     client.recognizeText(call.argument<String>("text") ?: "")
                 }
                 "recognizePhotos" -> recognize(result) { client ->
-                    val paths = call.argument<List<String>>("paths") ?: emptyList()
-                    if (paths.isEmpty() || paths.size > 20) throw ImportBridgeError.images
-                    val images = paths.mapIndexed { index, path ->
-                        if (cancelled.get()) throw DeepSeekTimetableClientError.Cancelled
-                        DeepSeekTimetableClient.jpegFromPath(path, index)
-                    }
-                    client.recognizeImages(images)
+                    client.recognizeImages(loadImages(call))
+                }
+                "recognizePhotosWithOCR" -> recognize(result) { client ->
+                    val images = loadImages(call)
+                    val pages = MlKitChineseTimetableOcr().recognize(images, cancelled)
+                    // Reject empty or illegal OCR before any image is uploaded.
+                    DeepSeekTimetableClient.ocrReviewText(pages, images.size)
+                    client.recognizeImages(images, pages)
                 }
                 "requestReminderPermission" -> requestReminderPermission(result)
                 "clearLegacyReminders" -> {
@@ -179,6 +182,15 @@ class ScheduleImportPlugin :
             current.startActivityForResult(Intent(current, SchoolPortalActivity::class.java), REQUEST_PORTAL)
         } catch (error: Exception) {
             reply.error("schedule_import", error.message)
+        }
+    }
+
+    private fun loadImages(call: MethodCall): List<AIImportImage> {
+        val paths = call.argument<List<String>>("paths") ?: emptyList()
+        if (paths.isEmpty() || paths.size > 20) throw ImportBridgeError.images
+        return paths.mapIndexed { index, path ->
+            if (cancelled.get()) throw DeepSeekTimetableClientError.Cancelled
+            DeepSeekTimetableClient.jpegFromPath(path, index)
         }
     }
 

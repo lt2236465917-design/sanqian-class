@@ -94,15 +94,17 @@ class MlKitChineseTimetableOcr : TimetableOcr {
     ) {
         val text = rawText?.trim().orEmpty()
         if (text.isEmpty() || box == null || width <= 0 || height <= 0) return
-        val normalized = OcrGeometry.normalize(
-            box.left.toDouble(),
-            box.top.toDouble(),
-            box.right.toDouble(),
-            box.bottom.toDouble(),
-            width,
-            height,
-            OcrGeometry.NORMAL,
-        )
+        val normalized = OcrGeometry.clipToUnit(
+            OcrGeometry.normalize(
+                box.left.toDouble(),
+                box.top.toDouble(),
+                box.right.toDouble(),
+                box.bottom.toDouble(),
+                width,
+                height,
+                OcrGeometry.NORMAL,
+            ),
+        ) ?: return
         tokens.add(
             OcrToken(
                 imageIndex = imageIndex,

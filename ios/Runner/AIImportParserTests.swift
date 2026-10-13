@@ -212,6 +212,9 @@ struct AIImportOfflineTests {
         let candidates = VisionScheduleDraftParser.parse(pages: [VisionTimetablePage(imageIndex: 0, tokens: ambiguous)])["courses"] as! [[String: Any]]
         check(Set(candidates.compactMap { $0["name"] as? String }) == Set(["英语", "摄影"]), "ambiguous cell preserves both names")
         check(candidates.allSatisfy { $0["pendingReason"] is String }, "ambiguous cell cannot borrow other course times")
+        let clipped = VisionTimetableRecognizer.clipToUnit(AIImportBoundingBox(x: -0.001, y: 0.2, width: 0.101, height: 0.1))
+        check(clipped?.x == 0 && abs((clipped?.width ?? 0) - 0.1) < 0.000001, "near-edge Vision box stays inside the image")
+        check(VisionTimetableRecognizer.clipToUnit(AIImportBoundingBox(x: -0.2, y: 0.2, width: 0.1, height: 0.1)) == nil, "box outside the image is dropped")
         print("AIImportOfflineTests PASS: \(assertions) assertions; URLProtocol only, no real network, no Keychain writes")
     }
 }

@@ -216,6 +216,7 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
     };
     final todayCount = schedule?.onDay(_now).length ?? 0;
     return Container(
+      key: const ValueKey('schedule-header'),
       padding: const EdgeInsets.fromLTRB(22, 18, 18, 20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -229,6 +230,7 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(28)),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
             child: Column(
@@ -236,6 +238,8 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
               children: [
                 Text(
                   title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w700,
@@ -247,6 +251,8 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
                   _tab == _ScheduleTab.today
                       ? '${_date(_now)} · 星期${_weekdays[_now.weekday - 1]}'
                       : schedule?.name ?? '三千上课',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 14,
                     color: _colors.onSurfaceVariant,
@@ -264,27 +270,39 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
                 icon: const Icon(Icons.settings_outlined),
                 color: _colors.onSurface,
               ),
-              if (_tab == _ScheduleTab.today && schedule != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: _colors.surface.withValues(alpha: .72),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    '$todayCount 节课',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: _colors.onSurfaceVariant,
-                    ),
-                  ),
+              if (schedule != null)
+                _lessonCount(
+                  '$todayCount 节课',
+                  visible: _tab == _ScheduleTab.today,
                 ),
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  /// Keeps the day, week, and month headers the same height. The lesson
+  /// count is only meaningful on the day tab, but its slot stays reserved.
+  Widget _lessonCount(String label, {required bool visible}) {
+    return Visibility(
+      visible: visible,
+      maintainSize: true,
+      maintainAnimation: true,
+      maintainState: true,
+      child: ExcludeSemantics(
+        excluding: !visible,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: _colors.surface.withValues(alpha: .72),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(fontSize: 12, color: _colors.onSurfaceVariant),
+          ),
+        ),
       ),
     );
   }
@@ -326,7 +344,7 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
         // Scaffold includes the floating bar in this padding when extendBody is on.
         padding: EdgeInsets.fromLTRB(
           22,
-          0,
+          scheduleTitleContentGap,
           22,
           24 + MediaQuery.paddingOf(pageContext).bottom,
         ),

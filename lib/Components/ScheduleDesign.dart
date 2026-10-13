@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 
+/// Space between a title card and the content under it.
+/// Detail pages use this after [ScheduleIntro]. The day, week, and month
+/// schedules use the same distance under their header.
+const double scheduleTitleContentGap = 24;
+
 /// Shared information hierarchy for schedule, import and preferences.
 class ScheduleIntro extends StatelessWidget {
   final IconData icon;

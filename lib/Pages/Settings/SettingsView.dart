@@ -13,11 +13,11 @@ import 'DeepSeekSettingsView.dart';
 import 'ReminderSettingsView.dart';
 import '../ManageTable/ManageTableView.dart';
 import '../Share/ShareView.dart';
+import 'AppearanceSettingsView.dart';
 import 'WidgetSettingsView.dart';
 
 class SettingsView extends StatelessWidget {
   const SettingsView({super.key});
-  static const _modes = ['跟随系统', '浅色', '深色'];
 
   @override
   Widget build(BuildContext context) {
@@ -69,7 +69,7 @@ class SettingsView extends StatelessWidget {
                   tile(
                     Icons.school_outlined,
                     '学校账号导入课表',
-                    '中国艺术研究院 · 登录后 AI 识别课表',
+                    '登录后 AI 识别课表，暂只支持中国艺术研究院',
                     () => open(
                       const SchoolAccountView(),
                       successMessage: '课表已保存，返回首页即可查看。',
@@ -110,7 +110,7 @@ class SettingsView extends StatelessWidget {
                   const Divider(height: 1, indent: 18, endIndent: 18),
                   tile(
                     Icons.calendar_month_outlined,
-                    '管理课表',
+                    '管理学期课表',
                     '切换或新增一份课表',
                     () => open(
                       const ManageTableView(),
@@ -141,7 +141,7 @@ class SettingsView extends StatelessWidget {
                 children: [
                   tile(
                     Icons.key_outlined,
-                    'DeepSeek 设置',
+                    'AI设置',
                     '保存或删除本机 API key',
                     () => open(const DeepSeekSettingsView()),
                   ),
@@ -164,9 +164,9 @@ class SettingsView extends StatelessWidget {
                   const Divider(height: 1, indent: 18, endIndent: 18),
                   tile(
                     Icons.brightness_6_outlined,
-                    '外观',
-                    _modes[model.themeModeIndex ?? 0],
-                    () => _chooseTheme(context),
+                    '显示外观',
+                    AppearanceSettingsView.modes[model.themeModeIndex ?? 0],
+                    () => open(const AppearanceSettingsView()),
                   ),
                   const Divider(height: 1, indent: 18, endIndent: 18),
                   tile(
@@ -188,39 +188,6 @@ class SettingsView extends StatelessWidget {
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _chooseTheme(BuildContext context) {
-    final model = MainStateModel.of(context);
-    showModalBottomSheet<void>(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Padding(
-              padding: EdgeInsets.all(12),
-              child: Text(
-                '外观',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-              ),
-            ),
-            for (var i = 0; i < _modes.length; i++)
-              ListTile(
-                title: Text(_modes[i]),
-                trailing: (model.themeModeIndex ?? 0) == i
-                    ? const Icon(Icons.check_rounded)
-                    : null,
-                onTap: () {
-                  model.changeThemeMode(i);
-                  Navigator.pop(context);
-                },
-              ),
-            const SizedBox(height: 12),
           ],
         ),
       ),

@@ -11,7 +11,7 @@ class AboutView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('关于')),
+    appBar: AppBar(title: const Text('关于三千上课')),
     body: SafeArea(
       child: ListView(
         padding: const EdgeInsets.all(24),

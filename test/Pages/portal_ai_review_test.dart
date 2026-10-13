@@ -15,6 +15,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sanqian_class/Models/Db/DbHelper.dart';
 import 'package:sanqian_class/Pages/Import/ImportReviewView.dart';
 import 'package:sanqian_class/Pages/Import/SchoolAccountView.dart';
+import 'package:sanqian_class/Utils/SecretMask.dart';
 import 'package:sanqian_class/Resources/PersonalTheme.dart';
 import 'package:sanqian_class/Models/ScheduleImportDraft.dart';
 import 'package:sanqian_class/Utils/ScheduleImportService.dart';
@@ -577,6 +578,10 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(const MaterialApp(home: PhotoScheduleImportView()));
     await tester.pumpAndSettle();
+    expect(
+      find.ancestor(of: find.text('选择课表图片'), matching: find.byType(Card)),
+      findsOneWidget,
+    );
     await tester.tap(find.text('选择课表图片'));
     await tester.pumpAndSettle();
     expect(find.text('已选择 2 张'), findsOneWidget);
@@ -780,10 +785,7 @@ void main() {
       expect(find.textContaining('来源候选中有课程'), findsNothing);
       await send(tester);
       expect(find.textContaining('来源候选中有课程未出现在识别结果中：本地课程'), findsNothing);
-      expect(
-        find.text('有 0 门课程包含待定安排，缺失信息未自动补全，请核对。'),
-        findsNothing,
-      );
+      expect(find.text('有 0 门课程包含待定安排，缺失信息未自动补全，请核对。'), findsNothing);
       expect(find.text('AI自动复核课程'), findsNothing);
       expect(
         tester
@@ -1033,8 +1035,114 @@ void main() {
         calls.map((c) => c.method).where((method) => method != 'hasAPIKey'),
         ['schoolAccount', 'saveSchoolAccount', 'openPortal'],
       );
-      expect(tester.widget<TextField>(fields.at(1)).controller!.text, isEmpty);
+      expect(
+        tester.widget<TextField>(fields.at(1)).controller!.text,
+        SecretMask.placeholder,
+      );
+      expect(
+        tester.widget<TextField>(fields.at(0)).controller!.text,
+        'fixture-account',
+      );
       expect(find.textContaining('本机已记住账号 fixture-account'), findsOneWidget);
+      expect(
+        calls
+            .where((call) => call.method == 'saveSchoolAccount')
+            .single
+            .arguments,
+        {'account': 'fixture-account', 'password': 'fixture-only-password'},
+      );
+    },
+  );
+
+  testWidgets(
+    'filled school credentials save themselves and keep a password mask',
+    (tester) async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            calls.add(call);
+            if (call.method == 'schoolAccount') return null;
+            if (call.method == 'hasAPIKey') return false;
+            if (call.method == 'saveSchoolAccount') {
+              return {
+                'account': 'fixture-account',
+                'accountLocalId': 'local-fixture',
+              };
+            }
+            throw StateError('Unexpected method ${call.method}');
+          });
+      await tester.binding.setSurfaceSize(const Size(430, 1400));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(const MaterialApp(home: SchoolAccountView()));
+      await tester.pumpAndSettle();
+      final fields = find.byType(TextField);
+      await tester.enterText(fields.at(0), 'fixture-account');
+      await tester.enterText(fields.at(1), 'fixture-only-password');
+      await tester.pump(const Duration(milliseconds: 800));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<TextField>(fields.at(0)).controller!.text,
+        'fixture-account',
+      );
+      expect(
+        tester.widget<TextField>(fields.at(1)).controller!.text,
+        SecretMask.placeholder,
+      );
+      expect(find.textContaining('已保存，只显示脱敏内容'), findsOneWidget);
+      await tester.tap(fields.at(1));
+      await tester.pump();
+      expect(find.textContaining('已保存，只显示脱敏内容'), findsNothing);
+      expect(tester.widget<TextField>(fields.at(1)).controller!.text, isEmpty);
+      expect(
+        calls.where((call) => call.method == 'saveSchoolAccount'),
+        hasLength(1),
+      );
+      expect(
+        calls
+            .where((call) => call.method == 'saveSchoolAccount')
+            .single
+            .arguments,
+        {'account': 'fixture-account', 'password': 'fixture-only-password'},
+      );
+      await tester.pump(const Duration(milliseconds: 800));
+      expect(
+        calls.where((call) => call.method == 'saveSchoolAccount'),
+        hasLength(1),
+      );
+    },
+  );
+
+  testWidgets(
+    'saved school account reopens with the account and a password mask',
+    (tester) async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            calls.add(call);
+            if (call.method == 'schoolAccount') {
+              return {
+                'account': 'fixture-account',
+                'accountLocalId': 'local-fixture',
+              };
+            }
+            if (call.method == 'hasAPIKey') return false;
+            throw StateError('Unexpected method ${call.method}');
+          });
+      await tester.binding.setSurfaceSize(const Size(430, 1400));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(const MaterialApp(home: SchoolAccountView()));
+      await tester.pumpAndSettle();
+      final fields = find.byType(TextField);
+      expect(
+        tester.widget<TextField>(fields.at(0)).controller!.text,
+        'fixture-account',
+      );
+      expect(
+        tester.widget<TextField>(fields.at(1)).controller!.text,
+        SecretMask.placeholder,
+      );
+      expect(
+        calls.where((call) => call.method == 'saveSchoolAccount'),
+        isEmpty,
+      );
     },
   );
 }

@@ -11,6 +11,9 @@ class ScheduleFeedback {
     if (error is ScheduleImportValidationException) {
       return '课程信息不完整或有重复，请检查课程名称、周次和起止时间后重试。';
     }
+    if (error is MissingPluginException) {
+      return '当前版本没有接上这项识别，请更新 App 后重试。核对内容已保留。';
+    }
     final detail = switch (error) {
       StateError e => e.message,
       FormatException e => e.message,

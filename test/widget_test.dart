@@ -315,10 +315,13 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('手动添加课程'), findsOneWidget);
       expect(find.textContaining('捐赠'), findsNothing);
-      await tester.scrollUntilVisible(find.text('外观'), 200);
+      await tester.scrollUntilVisible(find.text('显示外观'), 200);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('外观'));
+      await tester.tap(find.text('显示外观'));
       await tester.pumpAndSettle();
+      expect(find.byType(BottomSheet), findsNothing);
+      expect(find.widgetWithText(AppBar, '显示外观'), findsOneWidget);
+      expect(find.text('让课表适应周围光线'), findsOneWidget);
       await tester.tap(find.text('深色'));
       await tester.pumpAndSettle();
       expect(
@@ -329,6 +332,15 @@ void main() {
         (await SharedPreferences.getInstance()).getInt('themeModeIndex'),
         2,
       );
+      expect(find.widgetWithText(AppBar, '显示外观'), findsOneWidget);
+      await tester.tap(
+        find.descendant(
+          of: find.widgetWithText(AppBar, '显示外观'),
+          matching: find.byType(BackButton),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.widgetWithText(AppBar, '设置'), findsOneWidget);
       await tester.tap(find.byType(BackButton));
       await tester.pumpAndSettle();
       expect(find.text('2026年10月'), findsOneWidget);

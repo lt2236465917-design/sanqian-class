@@ -70,4 +70,28 @@ internal object OcrGeometry {
     fun rounded(value: Double): Double {
         return (value.coerceIn(0.0, 1.0) * 10000.0).roundToInt() / 10000.0
     }
+
+    /**
+     * ML Kit integer rectangles can extend one pixel past the bitmap. Pull a
+     * near-edge box back into the unit square. A box that misses the image,
+     * or sticks out by more than about one percent, is dropped instead of
+     * failing the whole review.
+     */
+    fun clipToUnit(box: OcrBox): OcrBox? {
+        val values = listOf(box.x, box.y, box.width, box.height)
+        if (values.any { !it.isFinite() } || box.width <= 0.0 || box.height <= 0.0) return null
+        val slack = 0.01
+        if (box.x < -slack || box.y < -slack || box.x > 1.0 + slack || box.y > 1.0 + slack) {
+            return null
+        }
+        if (box.x + box.width > 1.0 + slack || box.y + box.height > 1.0 + slack) return null
+        val x = box.x.coerceIn(0.0, 1.0)
+        val y = box.y.coerceIn(0.0, 1.0)
+        val right = (box.x + box.width).coerceIn(0.0, 1.0)
+        val bottom = (box.y + box.height).coerceIn(0.0, 1.0)
+        val width = right - x
+        val height = bottom - y
+        if (width <= 0.0 || height <= 0.0) return null
+        return OcrBox(x, y, width, height)
+    }
 }

@@ -573,14 +573,21 @@ class ScheduleImportService {
     return meetings.map((meeting) {
       int? slot, count;
       if (meeting.startMinute != null && meeting.endMinute != null) {
-        final starts = <int>[], ends = <int>[];
+        final exact = <int>[], starts = <int>[], ends = <int>[];
         for (var i = 0; i < periods.length; i++) {
-          if (_minute(periods[i]['start']) == meeting.startMinute) {
-            starts.add(i);
-          }
-          if (_minute(periods[i]['end']) == meeting.endMinute) ends.add(i);
+          final sameStart = _minute(periods[i]['start']) == meeting.startMinute;
+          final sameEnd = _minute(periods[i]['end']) == meeting.endMinute;
+          // Several ranges often share only a start or only an end. An exact
+          // range still belongs on its own row; otherwise the whole course is
+          // stored with no weekday and disappears from the timetable.
+          if (sameStart && sameEnd) exact.add(i);
+          if (sameStart) starts.add(i);
+          if (sameEnd) ends.add(i);
         }
-        if (starts.length == 1 &&
+        if (exact.isNotEmpty) {
+          slot = exact.first + 1;
+          count = 0;
+        } else if (starts.length == 1 &&
             ends.length == 1 &&
             ends.single >= starts.single) {
           slot = starts.single + 1;

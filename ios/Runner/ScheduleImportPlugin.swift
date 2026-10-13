@@ -19,13 +19,18 @@ final class ScheduleImportPlugin: NSObject, FlutterPlugin {
         do {
             switch call.method {
             case "hasAPIKey": result(try store.hasDeepSeekAPIKey())
+            case "apiKeyPreview": result(try store.apiKeyPreview())
             case "saveAPIKey": try store.saveDeepSeekAPIKey(args["key"] as? String ?? ""); result(true)
             case "deleteAPIKey": try store.deleteDeepSeekAPIKey(); result(true)
             case "schoolAccount":
                 if let info = try store.schoolAccountMetadata() { result(["account": info.account, "accountLocalId": info.accountLocalId]) }
                 else { result(nil) }
             case "saveSchoolAccount":
-                let info = try store.saveSchoolCredentials(account: args["account"] as? String ?? "", password: args["password"] as? String ?? "")
+                let info = try store.saveSchoolCredentials(
+                    account: args["account"] as? String ?? "",
+                    password: args["password"] as? String ?? "",
+                    keepExistingPassword: args["keepPassword"] as? Bool ?? false
+                )
                 result(["account": info.account, "accountLocalId": info.accountLocalId])
             case "deleteSchoolAccount": try store.deleteSchoolCredentials(); result(true)
             case "loadLegacyJwCredentials":
@@ -58,7 +63,7 @@ final class ScheduleImportPlugin: NSObject, FlutterPlugin {
                         let output = try await DeepSeekTimetableClient(apiKey: key).recognize(text: text)
                         try Task.checkCancellation()
                         result(try JSONSerialization.jsonObject(with: Data(output.jsonText.utf8)))
-                    } catch { result(FlutterError(code: "recognition", message: error.localizedDescription, details: nil)) }
+                    } catch { result(FlutterError(code: "recognition", message: Self.recognitionMessage(error), details: nil)) }
                 }
             case "recognizePhotos", "recognizePhotosWithOCR":
                 guard recognition == nil else { throw ImportBridgeError.busy }
@@ -88,7 +93,7 @@ final class ScheduleImportPlugin: NSObject, FlutterPlugin {
                         let object = try JSONSerialization.jsonObject(with: Data(output.jsonText.utf8))
                         try Task.checkCancellation()
                         result(object)
-                    } catch { result(FlutterError(code: "recognition", message: error.localizedDescription, details: nil)) }
+                    } catch { result(FlutterError(code: "recognition", message: Self.recognitionMessage(error), details: nil)) }
                 }
             case "clearLegacyReminders":
                 ScheduleReminderScheduler.shared.clearLegacy { result(true) }
@@ -114,6 +119,14 @@ final class ScheduleImportPlugin: NSObject, FlutterPlugin {
             default: result(FlutterMethodNotImplemented)
             }
         } catch { result(FlutterError(code: "schedule_import", message: error.localizedDescription, details: nil)) }
+    }
+
+    private static func recognitionMessage(_ error: Error) -> String {
+        let described = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
+        if described.range(of: "\\p{Han}", options: .regularExpression) != nil {
+            return described
+        }
+        return "AI 识别没有完成，当前核对内容已保留。请重试。"
     }
 
     private func currentPresenter() -> UIViewController? {

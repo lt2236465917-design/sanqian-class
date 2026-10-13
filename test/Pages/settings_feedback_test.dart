@@ -11,6 +11,7 @@ import 'package:sanqian_class/Pages/Settings/ReminderSettingsView.dart';
 import 'package:sanqian_class/Pages/Import/PhotoScheduleImportView.dart';
 import 'package:sanqian_class/Pages/Import/SchoolAccountView.dart';
 import 'package:sanqian_class/Resources/PersonalTheme.dart';
+import 'package:sanqian_class/Utils/SecretMask.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -138,11 +139,21 @@ void main() {
       await tester.tap(find.widgetWithText(TextButton, '重试'));
       await tester.pumpAndSettle();
       expect(find.text('Key 已保存到本机安全存储'), findsOneWidget);
+      final savedField = tester.widget<TextField>(find.byType(TextField));
+      expect(savedField.controller!.text, SecretMask.apiKey('fixture-key'));
+      expect(savedField.obscureText, isFalse);
+      await tester.tap(find.widgetWithText(FilledButton, '保存'));
+      await tester.pumpAndSettle();
+      expect(find.text('Key 已保存在本机'), findsOneWidget);
       expect(
         tester.widget<TextField>(find.byType(TextField)).controller!.text,
-        '',
+        SecretMask.apiKey('fixture-key'),
       );
       expect(calls.where((c) => c.method == 'saveAPIKey'), hasLength(2));
+      expect(
+        calls.where((call) => call.method == 'saveAPIKey').last.arguments,
+        {'key': 'fixture-key'},
+      );
       expect(tester.takeException(), isNull);
     },
   );
@@ -159,6 +170,10 @@ void main() {
     await tester.tap(find.widgetWithText(TextButton, '重试'));
     await tester.pumpAndSettle();
     expect(find.text('已保存 Key · ••••••••'), findsOneWidget);
+    expect(
+      tester.widget<TextField>(find.byType(TextField)).controller!.text,
+      SecretMask.placeholder,
+    );
   });
 
   testWidgets(
@@ -241,6 +256,10 @@ void main() {
       await settleReminders(tester);
       expect(find.text('提醒设置已保存，但提醒尚未完成安排，请重试。'), findsOneWidget);
       expect(
+        find.ancestor(of: find.text('重试提醒设置'), matching: find.byType(Card)),
+        findsOneWidget,
+      );
+      expect(
         (await SharedPreferences.getInstance()).getBool('reminder_180'),
         isTrue,
       );
@@ -250,10 +269,7 @@ void main() {
       expect(find.text('已同步，当前没有待提醒的课程。'), findsNothing);
       expect(find.text('系统日历提醒已开启。'), findsNothing);
       expect(find.text('上课提醒已关闭。'), findsNothing);
-      expect(
-        find.text('课程会同步到系统日历，按你选择的时间提醒，无需打开 App。'),
-        findsOneWidget,
-      );
+      expect(find.text('课程会同步到系统日历，按你选择的时间提醒，无需打开 App。'), findsOneWidget);
       expect(
         calls.where((c) => c.method == 'requestPermissions'),
         hasLength(1),
@@ -277,7 +293,10 @@ void main() {
     await tester.scrollUntilVisible(find.text('撤销已导入的日历提醒'), 200);
     await tester.tap(find.text('撤销已导入的日历提醒'));
     await tester.pumpAndSettle();
-    expect(find.text('将关闭全部提前提醒，并删除三千上课已经写入系统日历的上课提醒。你自己添加的其他日程会保留。'), findsOneWidget);
+    expect(
+      find.text('将关闭全部提前提醒，并删除三千上课已经写入系统日历的上课提醒。你自己添加的其他日程会保留。'),
+      findsOneWidget,
+    );
     await tester.tap(find.widgetWithText(FilledButton, '撤销'));
     await settleReminders(tester);
     for (final label in ['提前 15 分钟', '提前 3 小时']) {
@@ -293,10 +312,7 @@ void main() {
     expect(preferences.getBool('reminder_180'), isFalse);
     expect(find.text('撤销已导入的日历提醒'), findsNothing);
     expect(find.text('上课提醒已关闭。'), findsNothing);
-    expect(
-      find.text('课程会同步到系统日历，按你选择的时间提醒，无需打开 App。'),
-      findsOneWidget,
-    );
+    expect(find.text('课程会同步到系统日历，按你选择的时间提醒，无需打开 App。'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -333,11 +349,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('学校账号导入课表'), findsOneWidget);
     expect(find.text('学校账号与导入'), findsNothing);
+    expect(find.text('中国艺术研究院 · 研究生'), findsNothing);
+    expect(find.text('暂只支持中国艺术研究院，其他学校逐渐适配中。'), findsOneWidget);
     expect(find.text('尚未配置 DeepSeek Key，请先打开下方设置。'), findsOneWidget);
     expect(find.textContaining('只有你确认发送才会联网'), findsOneWidget);
-    final open = tester.getRect(
-      find.widgetWithText(FilledButton, '打开学校网页'),
-    );
+    final open = tester.getRect(find.widgetWithText(FilledButton, '打开学校网页'));
     final shortcut = tester.getRect(
       find.widgetWithText(TextButton, 'DeepSeek 设置'),
     );

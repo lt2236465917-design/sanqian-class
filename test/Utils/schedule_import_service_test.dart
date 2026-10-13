@@ -910,6 +910,86 @@ void sqliteTests() {
       },
     );
     test(
+      'an exact clock range stays scheduled when other ranges share its start or end',
+      () async {
+        final shared = [
+          {'label': '08:00–09:40', 'start': '08:00', 'end': '09:40'},
+          {'label': '08:00–11:30', 'start': '08:00', 'end': '11:30'},
+          {'label': '10:00–11:30', 'start': '10:00', 'end': '11:30'},
+          {'label': '14:00–16:30', 'start': '14:00', 'end': '16:30'},
+        ];
+        final input = draft([
+          course(
+            meetings: [
+              ScheduleImportMeetingDraft(
+                weekday: 1,
+                weeks: [1, 2],
+                startMinute: 8 * 60,
+                endMinute: 9 * 60 + 40,
+                location: 'A101',
+              ),
+              ScheduleImportMeetingDraft(
+                weekday: 2,
+                weeks: [3],
+                startMinute: 8 * 60,
+                endMinute: 11 * 60 + 30,
+                location: 'B202',
+              ),
+              ScheduleImportMeetingDraft(
+                weekday: 3,
+                weeks: [1],
+                startMinute: 10 * 60,
+                endMinute: 11 * 60 + 30,
+                location: 'C303',
+              ),
+            ],
+          ),
+        ]);
+        await ScheduleImportService.commit(
+          input,
+          database: db,
+          periods: shared,
+        );
+        final saved = await rows();
+        expect(saved.map((row) => row['week_time']), [1, 2, 3]);
+        expect(saved.map((row) => row['weeks']), ['[1,2]', '[3]', '[1]']);
+        expect(saved.map((row) => row['start_time']), [1, 2, 3]);
+        expect(saved.map((row) => row['time_count']), [0, 0, 0]);
+      },
+    );
+    test(
+      'a class that starts one period and ends on a later period still spans both',
+      () async {
+        final slots = [
+          {'label': '第1节', 'start': '08:00', 'end': '08:45'},
+          {'label': '第2节', 'start': '08:55', 'end': '09:40'},
+          {'label': '第3节', 'start': '10:00', 'end': '10:45'},
+        ];
+        await ScheduleImportService.commit(
+          draft([
+            course(
+              meetings: [
+                ScheduleImportMeetingDraft(
+                  weekday: 5,
+                  weeks: [2, 4],
+                  startMinute: 8 * 60,
+                  endMinute: 9 * 60 + 40,
+                  location: 'A101',
+                ),
+              ],
+            ),
+          ]),
+          database: db,
+          periods: slots,
+        );
+        final saved = (await rows()).single;
+        expect(saved['week_time'], 5);
+        expect(saved['weeks'], '[2,4]');
+        expect(saved['start_time'], 1);
+        expect(saved['time_count'], 1);
+      },
+    );
+    test(
       'existing calendar metadata survives a new draft and invalid periods fail before writes',
       () async {
         await expectLater(

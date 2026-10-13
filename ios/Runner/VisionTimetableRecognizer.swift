@@ -52,8 +52,14 @@ public final class VisionTimetableRecognizer {
                             let tokens = (request.results ?? []).compactMap { observation -> VisionTimetableToken? in
                                 guard let candidate = observation.topCandidates(1).first else { return nil }
                                 let rect = observation.boundingBox
+                                guard let box = Self.clipToUnit(AIImportBoundingBox(
+                                    x: Double(rect.minX),
+                                    y: Double(1 - rect.maxY),
+                                    width: Double(rect.width),
+                                    height: Double(rect.height)
+                                )) else { return nil }
                                 return VisionTimetableToken(imageIndex: imageIndex, text: candidate.string,
-                                    boundingBox: AIImportBoundingBox(x: Double(rect.minX), y: Double(1 - rect.maxY), width: Double(rect.width), height: Double(rect.height)),
+                                    boundingBox: box,
                                     confidence: Double(candidate.confidence))
                             }
                             continuation.resume(returning: tokens)
@@ -66,6 +72,22 @@ public final class VisionTimetableRecognizer {
             try Task.checkCancellation()
             return result
         } catch is CancellationError { throw VisionTimetableRecognizerError.cancelled }
+    }
+
+    /// Vision boxes can sit a fraction outside the image. Keep a near-edge
+    /// word and drop a box that misses the page, instead of failing the review.
+    static func clipToUnit(_ box: AIImportBoundingBox) -> AIImportBoundingBox? {
+        let values = [box.x, box.y, box.width, box.height]
+        guard values.allSatisfy(\.isFinite), box.width > 0, box.height > 0 else { return nil }
+        let slack = 0.01
+        guard box.x >= -slack, box.y >= -slack, box.x <= 1 + slack, box.y <= 1 + slack,
+              box.x + box.width <= 1 + slack, box.y + box.height <= 1 + slack else { return nil }
+        let x = min(1, max(0, box.x))
+        let y = min(1, max(0, box.y))
+        let right = min(1, max(0, box.x + box.width))
+        let bottom = min(1, max(0, box.y + box.height))
+        guard right > x, bottom > y else { return nil }
+        return AIImportBoundingBox(x: x, y: y, width: right - x, height: bottom - y)
     }
 
     static func orientation(_ value: UIImage.Orientation) -> CGImagePropertyOrientation {

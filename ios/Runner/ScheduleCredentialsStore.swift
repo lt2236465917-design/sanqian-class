@@ -34,15 +34,27 @@ public final class ScheduleCredentialsStore {
         return key
     }
     public func hasDeepSeekAPIKey() throws -> Bool { try load(item: account) != nil }
+    /// Redacted display text only. The full key never crosses the method channel.
+    public func apiKeyPreview() throws -> String? {
+        guard let key = try loadDeepSeekAPIKey() else { return nil }
+        return SecretMask.apiKey(key)
+    }
     public func deleteDeepSeekAPIKey() throws { try delete(item: account) }
 
     /// A random per-account local ID remains stable if the active account is
     /// switched or cleared. The identity map contains no password.
     @discardableResult
-    public func saveSchoolCredentials(account username: String, password: String) throws -> SchoolAccountMetadata {
+    public func saveSchoolCredentials(account username: String, password: String, keepExistingPassword: Bool = false) throws -> SchoolAccountMetadata {
         lock.lock(); defer { lock.unlock() }
         let username = username.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !username.isEmpty, !password.isEmpty else { throw ScheduleCredentialsStoreError.invalidValue }
+        let secret: String
+        if keepExistingPassword {
+            guard let existing = try schoolCredentials() else { throw ScheduleCredentialsStoreError.invalidValue }
+            secret = existing.password
+        } else {
+            secret = password
+        }
+        guard !username.isEmpty, !secret.isEmpty, keepExistingPassword || secret != SecretMask.placeholder else { throw ScheduleCredentialsStoreError.invalidValue }
         let digest = SHA256.hash(data: Data(username.utf8)).map { String(format: "%02x", $0) }.joined()
         let identityItem = account + ".school.identity." + digest
         let localId: String
@@ -52,7 +64,7 @@ public final class ScheduleCredentialsStore {
             localId = UUID().uuidString
             try save(Data(localId.utf8), item: identityItem)
         }
-        let bytes = try JSONSerialization.data(withJSONObject: ["account": username, "password": password, "accountLocalId": localId])
+        let bytes = try JSONSerialization.data(withJSONObject: ["account": username, "password": secret, "accountLocalId": localId])
         try save(bytes, item: schoolItem)
         return SchoolAccountMetadata(account: username, accountLocalId: localId)
     }
@@ -144,6 +156,17 @@ public enum ScheduleCredentialsStoreError: Error, Equatable {
     case notFound
     case status(OSStatus)
 }
+enum SecretMask {
+    static let placeholder = "••••••••"
+    static func apiKey(_ raw: String) -> String {
+        let value = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard value.count > 8 else { return placeholder }
+        let head = value.prefix(3)
+        let tail = value.suffix(4)
+        return "\(head)••••\(tail)"
+    }
+}
+
 extension ScheduleCredentialsStoreError: LocalizedError {
     public var errorDescription: String? {
         switch self {

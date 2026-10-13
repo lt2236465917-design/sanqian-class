@@ -65,7 +65,7 @@ void main() {
       await tester.runAsync(() => tester.tap(nameField('秋季')));
       await settle();
       expect((await SharedPreferences.getInstance()).getInt('tableId'), b.id);
-      expect(find.text('课表管理'), findsOneWidget);
+      expect(find.text('管理学期课表'), findsOneWidget);
       expect(tester.testTextInput.isVisible, isTrue);
       expect(
         tester.widget<TextField>(nameField('秋季')).decoration!.labelText,
@@ -80,6 +80,64 @@ void main() {
       final saved = await tester.runAsync(() => provider.getCourseTable(b.id!));
       expect(saved!.name, '我的秋季');
       expect((await SharedPreferences.getInstance()).getInt('tableId'), b.id);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'deleting a non-current table removes it without a failure message',
+    (tester) async {
+      await tester.pumpWidget(
+        ScopedModel<MainStateModel>(
+          model: MainStateModel(),
+          child: const MaterialApp(home: ManageTableView()),
+        ),
+      );
+      Future<void> settle() async {
+        for (var i = 0; i < 30; i++) {
+          await tester.pump();
+          if (find.byType(TextField).evaluate().length == 2 &&
+              find.byType(LinearProgressIndicator).evaluate().isEmpty) {
+            break;
+          }
+          await tester.runAsync(
+            () => Future<void>.delayed(const Duration(milliseconds: 10)),
+          );
+        }
+        await tester.pumpAndSettle();
+      }
+
+      await settle();
+      Finder nameField(String name) => find.byWidgetPredicate(
+        (w) => w is TextField && w.controller!.text == name,
+      );
+      await tester.runAsync(() => tester.tap(nameField('春季')));
+      await settle();
+      expect(tester.testTextInput.isVisible, isTrue);
+      await tester.tap(find.byTooltip('删除秋季'));
+      await tester.pumpAndSettle();
+      expect(find.text('删除“秋季”？'), findsOneWidget);
+      await tester.tap(find.widgetWithText(TextButton, '删除'));
+      var sawFailure = false;
+      for (var i = 0; i < 40; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+        if (find.text('操作未完成，请重试。').evaluate().isNotEmpty) {
+          sawFailure = true;
+        }
+        final gone =
+            find.byTooltip('删除秋季').evaluate().isEmpty &&
+            nameField('秋季').evaluate().isEmpty;
+        if (gone && find.byType(LinearProgressIndicator).evaluate().isEmpty) {
+          break;
+        }
+        await tester.runAsync(
+          () => Future<void>.delayed(const Duration(milliseconds: 20)),
+        );
+      }
+      expect(sawFailure, isFalse);
+      expect(nameField('秋季'), findsNothing);
+      expect(nameField('春季'), findsOneWidget);
+      expect(find.text('操作未完成，请重试。'), findsNothing);
       expect(tester.takeException(), isNull);
     },
   );

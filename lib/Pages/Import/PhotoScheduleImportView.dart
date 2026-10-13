@@ -226,14 +226,36 @@ class _PhotoScheduleImportViewState extends State<PhotoScheduleImportView> {
             icon: Icons.photo_library_outlined,
             eyebrow: '多张截图 · AI 识别',
             title: '从截图带入课表',
-            description:
-                '选择同一学期的课表截图。尽量包含星期、周次和时间表头，识别后先核对，再保存。',
+            description: '选择同一学期的课表截图。尽量包含星期、周次和时间表头，识别后先核对，再保存。',
           ),
           const SizedBox(height: 16),
-          TextButton.icon(
-            onPressed: _busy ? null : _pick,
-            icon: const Icon(Icons.photo_library_outlined),
-            label: const Text('选择课表图片'),
+          Card(
+            clipBehavior: Clip.antiAlias,
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 8,
+              ),
+              leading: Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.primaryContainer.withValues(alpha: .6),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  Icons.photo_library_outlined,
+                  size: 22,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+              title: const Text('选择课表图片'),
+              trailing: const Icon(Icons.chevron_right_rounded, size: 20),
+              enabled: !_busy,
+              onTap: _busy ? null : _pick,
+            ),
           ),
           Wrap(
             spacing: 12,

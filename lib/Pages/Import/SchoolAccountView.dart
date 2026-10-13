@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import '../../Components/ScheduleDesign.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../Utils/ScheduleDerivedDataService.dart';
+import '../../Utils/SecretMask.dart';
 import '../Settings/DeepSeekSettingsView.dart';
 import 'ImportReviewView.dart';
 import 'Widgets/AIKeyStatus.dart';
@@ -13,15 +16,24 @@ class SchoolAccountView extends StatefulWidget {
 }
 
 class _SchoolAccountViewState extends State<SchoolAccountView> {
+  static const _autoSaveDelay = Duration(milliseconds: 700);
   final _account = TextEditingController(), _password = TextEditingController();
+  final _passwordFocus = FocusNode();
   String? _localId;
   String _savedAccount = '';
   bool _busy = false;
+  bool _hydrating = false;
+  bool _passwordMasked = false;
   int _keyRevision = 0;
   String _message = '';
+  Timer? _autoSaveTimer;
+  Future<void>? _saveInFlight;
   @override
   void initState() {
     super.initState();
+    _account.addListener(_onCredentialEdited);
+    _password.addListener(_onCredentialEdited);
+    _passwordFocus.addListener(_onPasswordFocus);
     _load();
   }
 
@@ -30,11 +42,13 @@ class _SchoolAccountViewState extends State<SchoolAccountView> {
       final data = await ScheduleDerivedDataService.channel
           .invokeMapMethod<String, dynamic>('schoolAccount');
       if (mounted && data != null) {
-        setState(() {
-          _account.text = data['account'] as String? ?? '';
-          _localId = data['accountLocalId'] as String?;
-          _savedAccount = _account.text;
-        });
+        _hydrating = true;
+        _account.text = data['account'] as String? ?? '';
+        _localId = data['accountLocalId'] as String?;
+        _savedAccount = _account.text;
+        if (_localId != null) _applyPasswordMask();
+        _hydrating = false;
+        setState(() {});
       }
     } catch (e) {
       if (mounted) setState(() => _message = _errorText(e));
@@ -43,10 +57,129 @@ class _SchoolAccountViewState extends State<SchoolAccountView> {
 
   @override
   void dispose() {
+    _autoSaveTimer?.cancel();
+    _account.removeListener(_onCredentialEdited);
+    _password.removeListener(_onCredentialEdited);
+    _passwordFocus.removeListener(_onPasswordFocus);
+    final account = _account.text.trim();
+    final password = _password.text;
+    if (_saveInFlight == null &&
+        !_passwordMasked &&
+        account.isNotEmpty &&
+        password.isNotEmpty &&
+        password != SecretMask.placeholder) {
+      unawaited(
+        ScheduleDerivedDataService.channel
+            .invokeMapMethod('saveSchoolAccount', {
+              'account': account,
+              'password': password,
+            })
+            .then((_) {}, onError: (_, _) {}),
+      );
+    }
     _password.clear();
+    _passwordFocus.dispose();
     _password.dispose();
     _account.dispose();
     super.dispose();
+  }
+
+  void _applyPasswordMask() {
+    _passwordMasked = true;
+    _password.text = SecretMask.placeholder;
+  }
+
+  void _onCredentialEdited() {
+    if (_hydrating) return;
+    if (_passwordMasked && _password.text != SecretMask.placeholder) {
+      _passwordMasked = false;
+    }
+    _scheduleAutoSave();
+  }
+
+  void _onPasswordFocus() {
+    if (_passwordFocus.hasFocus) {
+      if (_passwordMasked) {
+        _hydrating = true;
+        _passwordMasked = false;
+        _password.clear();
+        _hydrating = false;
+        if (mounted) setState(() {});
+      }
+      return;
+    }
+    if (_password.text.isEmpty && _localId != null) {
+      _hydrating = true;
+      _applyPasswordMask();
+      _hydrating = false;
+      if (mounted) setState(() {});
+      return;
+    }
+    _autoSaveTimer?.cancel();
+    unawaited(
+      _saveIfReady().catchError((Object error) {
+        if (mounted) setState(() => _message = _errorText(error));
+      }),
+    );
+  }
+
+  void _scheduleAutoSave() {
+    if (_busy) return;
+    _autoSaveTimer?.cancel();
+    _autoSaveTimer = Timer(_autoSaveDelay, () {
+      if (!mounted) return;
+      unawaited(
+        _saveIfReady().catchError((Object error) {
+          if (mounted) setState(() => _message = _errorText(error));
+        }),
+      );
+    });
+  }
+
+  bool get _passwordIsMask =>
+      _passwordMasked || _password.text == SecretMask.placeholder;
+
+  Future<void> _saveIfReady() {
+    final current = _saveInFlight;
+    if (current != null) return current;
+    final run = _saveBody();
+    _saveInFlight = run;
+    return run.whenComplete(() {
+      if (identical(_saveInFlight, run)) _saveInFlight = null;
+    });
+  }
+
+  Future<void> _saveBody() async {
+    final account = _account.text.trim();
+    final password = _password.text;
+    final masked = _passwordIsMask;
+    if (account.isEmpty) return;
+    if (masked && _localId != null && account == _savedAccount) return;
+    if (masked && _localId == null) return;
+    if (!masked && password.isEmpty) {
+      if (_localId != null && account != _savedAccount) {
+        throw const FormatException('更换账号时请填写该账号的密码');
+      }
+      return;
+    }
+    final saved = await ScheduleDerivedDataService.channel
+        .invokeMapMethod<String, dynamic>('saveSchoolAccount', {
+          'account': account,
+          if (!masked) 'password': password,
+          if (masked) 'keepPassword': true,
+        });
+    if (!mounted) return;
+    if (saved?['accountLocalId'] is! String || saved?['account'] is! String) {
+      throw const FormatException('账号保存未完成，请重试');
+    }
+    _hydrating = true;
+    _localId = saved!['accountLocalId'] as String;
+    _savedAccount = saved['account'] as String;
+    _account.text = _savedAccount;
+    _applyPasswordMask();
+    _hydrating = false;
+    if (_passwordFocus.hasFocus) _passwordFocus.unfocus();
+    if (mounted) setState(() => _message = '');
   }
 
   Future<void> _openSettings() async {
@@ -60,32 +193,13 @@ class _SchoolAccountViewState extends State<SchoolAccountView> {
   Future<void> _open() async {
     if (_busy) return;
     FocusScope.of(context).unfocus();
+    _autoSaveTimer?.cancel();
     setState(() {
       _busy = true;
       _message = '';
     });
     try {
-      if (_localId != null &&
-          _account.text.trim() != _savedAccount &&
-          _password.text.isEmpty) {
-        throw const FormatException('更换账号时请填写该账号的密码');
-      }
-      if (_password.text.isNotEmpty) {
-        final saved = await ScheduleDerivedDataService.channel
-            .invokeMapMethod<String, dynamic>('saveSchoolAccount', {
-              'account': _account.text,
-              'password': _password.text,
-            });
-        if (!mounted) return;
-        if (saved?['accountLocalId'] is! String ||
-            saved?['account'] is! String) {
-          throw const FormatException('账号保存未完成，请重试');
-        }
-        _localId = saved!['accountLocalId'] as String;
-        _savedAccount = saved['account'] as String;
-        _account.text = _savedAccount;
-        _password.clear();
-      }
+      await _saveIfReady();
       if (!mounted) return;
       final result = await ScheduleDerivedDataService.channel
           .invokeMapMethod<String, dynamic>('openPortal');
@@ -129,17 +243,20 @@ class _SchoolAccountViewState extends State<SchoolAccountView> {
   }
 
   Future<void> _clear() async {
+    _autoSaveTimer?.cancel();
     try {
       await ScheduleDerivedDataService.channel.invokeMethod(
         'deleteSchoolAccount',
       );
       if (mounted) {
-        setState(() {
-          _localId = null;
-          _account.clear();
-          _password.clear();
-          _message = '已清除账号，已导入课表仍保留';
-        });
+        _hydrating = true;
+        _localId = null;
+        _savedAccount = '';
+        _passwordMasked = false;
+        _account.clear();
+        _password.clear();
+        _hydrating = false;
+        setState(() => _message = '已清除账号，已导入课表仍保留');
       }
     } catch (e) {
       if (mounted) setState(() => _message = _errorText(e));
@@ -167,10 +284,12 @@ class _SchoolAccountViewState extends State<SchoolAccountView> {
         children: [
           const ScheduleIntro(
             icon: Icons.school_outlined,
-            eyebrow: '中国艺术研究院 · 研究生',
+            eyebrow: '学校网页 · AI 识别',
             title: '从学校带入课表',
             description: '使用学号或统一身份认证用户名。验证码在学校网页填写，读取后先核对，再保存。',
           ),
+          const SizedBox(height: 16),
+          const ScheduleNotice('暂只支持中国艺术研究院，其他学校逐渐适配中。'),
           const ImportJourney(step: 0),
           const ScheduleSection('学校账号', subtitle: '可以留空，在学校网页中自行登录。'),
           if (_localId != null)
@@ -190,12 +309,14 @@ class _SchoolAccountViewState extends State<SchoolAccountView> {
           const SizedBox(height: 16),
           TextField(
             controller: _password,
+            focusNode: _passwordFocus,
             enabled: !_busy,
             obscureText: true,
             enableSuggestions: false,
             autocorrect: false,
             decoration: InputDecoration(
-              labelText: _localId == null ? '学校网页密码（可留空）' : '新密码（留空则不改本机保存）',
+              labelText: '学校网页密码（可留空）',
+              helperText: _passwordMasked ? '已保存，只显示脱敏内容。点按后可输入新密码。' : null,
             ),
           ),
           const SizedBox(height: 16),
