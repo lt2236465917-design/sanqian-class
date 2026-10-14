@@ -352,6 +352,90 @@ void main() {
   );
 
   testWidgets(
+    'completed portal review offers a recheck that lists only differences',
+    (tester) async {
+      await showReview(tester);
+      await send(tester);
+      expect(find.text('规则遗漏课程'), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, 'AI 识别网页课表'), findsNothing);
+      expect(find.widgetWithText(FilledButton, 'AI复核课表'), findsOneWidget);
+
+      recognize = (_) async => {
+        'courses': [
+          {...course('规则遗漏课程'), 'teacher': '复核教师'},
+          course('复核新增课程'),
+        ],
+      };
+      await tester.tap(find.widgetWithText(FilledButton, 'AI复核课表'));
+      await tester.pumpAndSettle();
+      expect(find.widgetWithText(AlertDialog, 'AI复核课表'), findsOneWidget);
+      expect(find.textContaining('只对照第一次识别结果'), findsOneWidget);
+      await tester.tap(find.text('发送并复核'));
+      await tester.pumpAndSettle();
+      final dialog = find.byType(AlertDialog);
+      expect(find.text('复核差异'), findsOneWidget);
+      expect(find.text('规则遗漏课程 · 教师：待定 → 复核教师'), findsOneWidget);
+      expect(find.text('新增：复核新增课程'), findsOneWidget);
+      expect(find.text('与第一次识别结果的不同：'), findsOneWidget);
+      expect(
+        find.descendant(of: dialog, matching: find.text('当前核对内容')),
+        findsNothing,
+      );
+      expect(
+        find.descendant(of: dialog, matching: find.text('AI 返回内容')),
+        findsNothing,
+      );
+      expect(
+        find.descendant(of: dialog, matching: find.text('字段对照')),
+        findsNothing,
+      );
+      expect(
+        find.descendant(of: dialog, matching: find.textContaining('13:30')),
+        findsNothing,
+      );
+      expect(
+        find.descendant(of: dialog, matching: find.textContaining('6406')),
+        findsNothing,
+      );
+      await tester.tap(find.text('保留当前内容'));
+      await tester.pumpAndSettle();
+      expect(find.text('复核教师'), findsNothing);
+      expect(find.text('复核新增课程'), findsNothing);
+      expect(find.widgetWithText(FilledButton, 'AI复核课表'), findsOneWidget);
+      expect(await db.query('Course'), isEmpty);
+    },
+  );
+
+  testWidgets('portal recheck with the same courses only says they match', (
+    tester,
+  ) async {
+    await showReview(tester);
+    await send(tester);
+    await tester.tap(find.widgetWithText(FilledButton, 'AI复核课表'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('发送并复核'));
+    await tester.pumpAndSettle();
+    final dialog = find.byType(AlertDialog);
+    expect(find.text('二次复核与第一次识别结果一致。'), findsOneWidget);
+    expect(
+      find.descendant(of: dialog, matching: find.text('AI 返回内容')),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: dialog, matching: find.textContaining('6406')),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: dialog, matching: find.text('规则遗漏课程')),
+      findsNothing,
+    );
+    await tester.tap(find.text('采用复核结果'));
+    await tester.pumpAndSettle();
+    expect(find.text('规则遗漏课程'), findsOneWidget);
+    expect(await db.query('Course'), isEmpty);
+  });
+
+  testWidgets(
     'recognition honors reduced motion and cancel still rejects late output',
     (tester) async {
       final response = Completer<Object?>();

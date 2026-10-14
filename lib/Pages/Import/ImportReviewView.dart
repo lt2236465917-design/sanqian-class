@@ -271,12 +271,15 @@ class _ImportReviewViewState extends State<ImportReviewView> {
 
   Future<void> _assist({bool withOCR = false}) async {
     if (_busy || (withOCR && !_offersOCR)) return;
+    final recheck = !withOCR && _portalAICompleted;
     final accepted = await showDialog<bool>(
       context: context,
       builder: (c) => AlertDialog(
         title: Text(
           withOCR
               ? 'AI自动复核课程'
+              : recheck
+              ? 'AI复核课表'
               : _hasPortalText
               ? 'AI 识别网页课表'
               : 'AI 辅助核对',
@@ -284,6 +287,8 @@ class _ImportReviewViewState extends State<ImportReviewView> {
         content: Text(
           withOCR
               ? '如果发现有课程没有写上，可以把原课表图片和本机识别出的文字发给 DeepSeek 再检查一次，可能再次消耗账户余额。文字识别也可能出错。'
+              : recheck
+              ? '将再次把网页课表原文发给 DeepSeek，只对照第一次识别结果。可能消耗账户余额。不会发送账号、密码或网页会话。'
               : _hasPortalText
               ? '将网页中读取到的原始课表单元格发送到 DeepSeek，包含尚未解析出的课程行，可能消耗账户余额。不会发送账号、密码或网页会话。识别后仍需核对和确认保存。'
               : '将当前课程名称、教师和课表安排发送到 DeepSeek，可能消耗账户余额。不会发送账号、密码或网页会话。',
@@ -295,7 +300,7 @@ class _ImportReviewViewState extends State<ImportReviewView> {
           ),
           FilledButton(
             onPressed: () => Navigator.pop(c, true),
-            child: Text(withOCR ? '发送并复核' : '发送并整理'),
+            child: Text(withOCR || recheck ? '发送并复核' : '发送并整理'),
           ),
         ],
       ),
@@ -382,43 +387,59 @@ class _ImportReviewViewState extends State<ImportReviewView> {
         final useResult = await showDialog<bool>(
           context: context,
           builder: (c) => AlertDialog(
-            title: Text(withOCR ? '复核结果' : '核对 AI 识别结果'),
+            title: Text(
+              withOCR
+                  ? '复核结果'
+                  : recheck
+                  ? '复核差异'
+                  : '核对 AI 识别结果',
+            ),
             content: withOCR
                 ? Text(
                     addedNames.isEmpty
                         ? '课程课表已经很完整了，不需要再次添加了。'
                         : '多添加了 ${addedNames.length} 门课程：${addedNames.join('、')}。',
                   )
+                : recheck
+                ? _recheckDifferenceContent(reviewed, changes)
                 : SizedBox(
-              width: 420,
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '当前 ${_courses.length} 门课程 · 复核整理后 ${reviewed.length} 门',
-                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    width: 420,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '当前 ${_courses.length} 门课程 · 复核整理后 ${reviewed.length} 门',
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            '采用后将替换当前核对内容，包括手动修改；保存前可恢复本次 AI 处理前的内容。正式课表尚不会改变。',
+                          ),
+                          if (prepared.warnings.isNotEmpty ||
+                              changes.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            for (final warning in [
+                              ...prepared.warnings,
+                              ...changes,
+                            ])
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: Text(warning),
+                              ),
+                          ],
+                          const SizedBox(height: 12),
+                          ..._aiChanges(reviewed),
+                          _draftSummaryGroup('当前核对内容', _courses),
+                          _draftSummaryGroup(
+                            'AI 返回内容',
+                            reviewed,
+                            expanded: true,
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      '采用后将替换当前核对内容，包括手动修改；保存前可恢复本次 AI 处理前的内容。正式课表尚不会改变。',
-                    ),
-                    if (prepared.warnings.isNotEmpty || changes.isNotEmpty) ...[
-                      const SizedBox(height: 12),
-                      for (final warning in [...prepared.warnings, ...changes])
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Text(warning),
-                        ),
-                    ],
-                    const SizedBox(height: 12),
-                    ..._aiChanges(reviewed),
-                    _draftSummaryGroup('当前核对内容', _courses),
-                    _draftSummaryGroup('AI 返回内容', reviewed, expanded: true),
-                  ],
-                ),
-              ),
-            ),
+                  ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(c, false),
@@ -426,7 +447,13 @@ class _ImportReviewViewState extends State<ImportReviewView> {
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(c, true),
-                child: Text(withOCR ? '采用' : '采用并继续核对'),
+                child: Text(
+                  withOCR
+                      ? '采用'
+                      : recheck
+                      ? '采用复核结果'
+                      : '采用并继续核对',
+                ),
               ),
             ],
           ),
@@ -462,17 +489,147 @@ class _ImportReviewViewState extends State<ImportReviewView> {
     }
   }
 
-  List<Widget> _aiChanges(List<Map<String, dynamic>> candidates) {
-    String key(Map<String, dynamic> course) {
-      final stable = '${course['stableId'] ?? ''}'.trim();
-      if (stable.isNotEmpty) return 'stable:$stable';
-      final code = '${course['courseCode'] ?? ''}'.trim();
-      return jsonEncode([
-        code.isEmpty ? 'name' : 'code',
-        code.isEmpty ? '${course['name'] ?? ''}'.trim() : code,
-        course['section'],
-      ]);
+  String _recognitionCourseKey(Map<String, dynamic> course) {
+    final stable = '${course['stableId'] ?? ''}'.trim();
+    if (stable.isNotEmpty) return 'stable:$stable';
+    final code = '${course['courseCode'] ?? ''}'.trim();
+    return jsonEncode([
+      code.isEmpty ? 'name' : 'code',
+      code.isEmpty ? '${course['name'] ?? ''}'.trim() : code,
+      course['section'],
+    ]);
+  }
+
+  String _courseLabel(Map course) {
+    final name = '${course['name'] ?? ''}'.trim();
+    return name.isEmpty ? '未命名课程' : name;
+  }
+
+  String _fieldText(String key, dynamic raw) {
+    if (raw == null || raw == '' || raw is List && raw.isEmpty) return '待定';
+    if (key == 'startMinute' || key == 'endMinute') return _clock(raw);
+    if (key == 'weeks' && raw is List) {
+      final weeks = List<int>.from(raw)..sort();
+      return weeks.join('、');
     }
+    return '$raw';
+  }
+
+  String _arrangement(Map meeting) {
+    final weeks = meeting['weeks'];
+    final weekText = weeks is List && weeks.isNotEmpty
+        ? (List<int>.from(weeks)..sort()).join('、')
+        : '周次待定';
+    return '星期 ${meeting['weekday'] ?? '待定'} · $weekText · '
+        '${_clock(meeting['startMinute'])}–${_clock(meeting['endMinute'])} · '
+        '${meeting['location'] ?? '地点待定'}';
+  }
+
+  // Second-pass portal review only lists the delta, not another full timetable.
+  List<String> _recheckDifferenceLines(List<Map<String, dynamic>> candidates) {
+    const courseFields = {
+      'name': '课程名称',
+      'teacher': '教师',
+      'courseCode': '课程编码',
+      'section': '教学班',
+      'pendingReason': '待定说明',
+    };
+    const meetingFields = {
+      'weekday': '星期',
+      'weeks': '周次',
+      'startMinute': '开始时间',
+      'endMinute': '结束时间',
+      'location': '教室',
+      'periodIndex': '开始节次',
+      'periodCount': '节次跨度',
+    };
+    final paired = <Map<String, dynamic>>{};
+    final lines = <String>[];
+    for (final candidate in candidates) {
+      final label = _courseLabel(candidate);
+      final candidateKey = _recognitionCourseKey(candidate);
+      final matches = _courses
+          .where((course) => _recognitionCourseKey(course) == candidateKey)
+          .toList();
+      final sameKeyCount = candidates
+          .where((course) => _recognitionCourseKey(course) == candidateKey)
+          .length;
+      if (matches.length != 1 || sameKeyCount != 1) {
+        lines.add('新增：$label');
+        continue;
+      }
+      final before = matches.single;
+      paired.add(before);
+      void addFields(Map left, Map right, Map<String, String> labels) {
+        for (final item in labels.entries) {
+          final oldValue = _fieldText(item.key, left[item.key]);
+          final newValue = _fieldText(item.key, right[item.key]);
+          if (oldValue != newValue) {
+            lines.add('$label · ${item.value}：$oldValue → $newValue');
+          }
+        }
+      }
+
+      addFields(before, candidate, courseFields);
+      final oldMeetings = List<Map>.from(before['meetings'] ?? []);
+      final newMeetings = List<Map>.from(candidate['meetings'] ?? []);
+      if (oldMeetings.length == 1 && newMeetings.length == 1) {
+        addFields(oldMeetings.single, newMeetings.single, meetingFields);
+      } else {
+        String meetingKey(Map meeting) => ScheduleImportMeetingDraft.fromJson(
+          Map<String, dynamic>.from(meeting),
+        ).meetingKey;
+        for (final meeting in oldMeetings) {
+          if (!newMeetings.any(
+            (item) => meetingKey(item) == meetingKey(meeting),
+          )) {
+            lines.add('未保留：$label · ${_arrangement(meeting)}');
+          }
+        }
+        for (final meeting in newMeetings) {
+          if (!oldMeetings.any(
+            (item) => meetingKey(item) == meetingKey(meeting),
+          )) {
+            lines.add('新增：$label · ${_arrangement(meeting)}');
+          }
+        }
+      }
+    }
+    for (final course in _courses.where((course) => !paired.contains(course))) {
+      lines.add('未保留：${_courseLabel(course)}');
+    }
+    return lines;
+  }
+
+  Widget _recheckDifferenceContent(
+    List<Map<String, dynamic>> reviewed,
+    List<String> changes,
+  ) {
+    final lines = _recheckDifferenceLines(reviewed);
+    final notes = lines.isNotEmpty ? lines : changes;
+    return SizedBox(
+      width: 420,
+      child: SingleChildScrollView(
+        child: notes.isEmpty
+            ? const Text('二次复核与第一次识别结果一致。')
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('与第一次识别结果的不同：'),
+                  const SizedBox(height: 12),
+                  for (final line in notes)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text(line),
+                    ),
+                ],
+              ),
+      ),
+    );
+  }
+
+  List<Widget> _aiChanges(List<Map<String, dynamic>> candidates) {
+    String key(Map<String, dynamic> course) => _recognitionCourseKey(course);
 
     final paired = <Map<String, dynamic>>{};
     final changes = <Widget>[];
@@ -563,24 +720,14 @@ class _ImportReviewViewState extends State<ImportReviewView> {
     Map after,
     Map<String, String> labels,
   ) {
-    String value(String key, dynamic raw) {
-      if (raw == null || raw == '' || raw is List && raw.isEmpty) return '待定';
-      if (key == 'startMinute' || key == 'endMinute') return _clock(raw);
-      if (key == 'weeks' && raw is List) {
-        final weeks = List<int>.from(raw)..sort();
-        return weeks.join('、');
-      }
-      return '$raw';
-    }
-
     return [
       for (final label in labels.entries)
-        if (value(label.key, before[label.key]) !=
-            value(label.key, after[label.key]))
+        if (_fieldText(label.key, before[label.key]) !=
+            _fieldText(label.key, after[label.key]))
           Padding(
             padding: const EdgeInsets.only(bottom: 10),
             child: Text(
-              '${label.value}\n原：${value(label.key, before[label.key])}\nAI：${value(label.key, after[label.key])}',
+              '${label.value}\n原：${_fieldText(label.key, before[label.key])}\nAI：${_fieldText(label.key, after[label.key])}',
             ),
           ),
     ];
@@ -725,10 +872,7 @@ class _ImportReviewViewState extends State<ImportReviewView> {
   }
 
   Future<void> _save() async {
-    if (_needsPortalAI ||
-        _busy ||
-        _loadingTables ||
-        _courses.isEmpty) {
+    if (_needsPortalAI || _busy || _loadingTables || _courses.isEmpty) {
       return;
     }
     final model = MainStateModel.of(context);
@@ -955,7 +1099,13 @@ class _ImportReviewViewState extends State<ImportReviewView> {
                     (_hasPortalText || _courses.isNotEmpty))
                   FilledButton(
                     onPressed: _busy ? null : _assist,
-                    child: Text(_hasPortalText ? 'AI 识别网页课表' : 'AI 辅助核对课表文字'),
+                    child: Text(
+                      _portalAICompleted
+                          ? 'AI复核课表'
+                          : _hasPortalText
+                          ? 'AI 识别网页课表'
+                          : 'AI 辅助核对课表文字',
+                    ),
                   ),
                 if (widget.source == 'school-portal')
                   AIKeyStatus(revision: _keyRevision),
