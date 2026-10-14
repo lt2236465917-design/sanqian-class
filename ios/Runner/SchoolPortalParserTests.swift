@@ -107,14 +107,50 @@ struct SchoolPortalParserTests {
         check(mergedSource[0][1][1].rowSpan == 2, "AI source keeps original merged-cell structure")
         let nonTimetable = table([[SchoolPortalTableCell(text: "个人中心")], [SchoolPortalTableCell(text: "欢迎登录")]])
         check(!SchoolScheduleParser.parse(message: nonTimetable).canReview, "personal center cannot become an empty AI import")
+        let morning = "5周日-上午课-虚拟教室1(主校区)"
+        let pendingCell = "2label.teachtask.courseclass.week.null-自排教室，请与任课教师联系上课时间和地点"
+        let academy = table([
+            [SchoolPortalTableCell(text: "课程"), SchoolPortalTableCell(text: "教师"), SchoolPortalTableCell(text: "周次、时段与地点")],
+            [SchoolPortalTableCell(text: "黑白摄影暗房工艺基础"), SchoolPortalTableCell(text: "张涛"), SchoolPortalTableCell(text: morning)],
+            [SchoolPortalTableCell(text: "导师课"), SchoolPortalTableCell(text: ""), SchoolPortalTableCell(text: pendingCell)]
+        ])
+        let academyResult = SchoolScheduleParser.parse(message: academy)
+        check(academyResult.canReview && academyResult.timetableText?.contains("黑白摄影暗房工艺基础") == true, "art academy course reaches AI text")
+        check(academyResult.timetableText?.contains("张涛") == true && academyResult.timetableText?.contains(morning) == true, "teacher and school cell reach AI text")
+        check(academyResult.timetableText?.contains(pendingCell) == true && academyResult.timetableText?.contains("09:00") != true, "pending cell stays literal and no clock is invented")
+        check(academyResult.drafts.allSatisfy { $0.startMinutes == nil && $0.endMinutes == nil }, "上午课 does not invent a clock")
+        check(academyResult.drafts.contains { $0.title == "黑白摄影暗房工艺基础" && $0.teacher == "张涛" && $0.weeks == [5] && $0.weekday == 7 }, "week and weekday written in the cell are kept")
+        check(academyResult.drafts.contains { $0.title == "导师课" && $0.isPending && $0.weeks == nil && $0.weekday == nil }, "unknown mentor meeting stays pending")
         for sensitive in ["学号 123456", "密码 SECRET", "https://example.test/?ticket=SECRET", "Cookie: SECRET", "<input value=SECRET>"] {
-            let unsafe = table([unsupported.rows[0], [SchoolPortalTableCell(text: sensitive), SchoolPortalTableCell(text: "待定")]])
-            let rejected = SchoolScheduleParser.parse(message: unsafe)
-            check(rejected.timetableText == nil && !rejected.canReview, "unsafe source text does not cross into AI review")
+            let unsafe = table([
+                [SchoolPortalTableCell(text: "课程"), SchoolPortalTableCell(text: "上课安排")],
+                [SchoolPortalTableCell(text: "中国艺术史"), SchoolPortalTableCell(text: "6-11周一-下午课-6406(主校区)")],
+                [SchoolPortalTableCell(text: sensitive), SchoolPortalTableCell(text: "待定")]
+            ])
+            let kept = SchoolScheduleParser.parse(message: unsafe)
+            let text = kept.timetableText ?? ""
+            check(!text.contains("SECRET") && !text.contains("123456") && !text.contains("https://") && !text.contains("<input"), "sensitive cell stays out of AI text")
+            check(text.contains("中国艺术史") && text.contains("6-11周一-下午课-6406(主校区)"), "course cells survive a sensitive neighbor")
+            check(kept.drafts.allSatisfy { draft in
+                let blob = [draft.title, draft.teacher, draft.location, draft.rawText, draft.notes].joined(separator: "\n")
+                return !blob.contains("SECRET") && !blob.contains("123456") && !blob.contains("https://") && !blob.contains("<input")
+            }, "sensitive cell does not become a course")
+            check(kept.drafts.allSatisfy { $0.startMinutes == nil }, "下午课 does not invent a clock")
         }
+        let onlySecret = table([
+            [SchoolPortalTableCell(text: "课程"), SchoolPortalTableCell(text: "上课安排")],
+            [SchoolPortalTableCell(text: "密码 SECRET"), SchoolPortalTableCell(text: "https://example.test/?ticket=SECRET")]
+        ])
+        let blocked = SchoolScheduleParser.parse(message: onlySecret)
+        check(blocked.timetableText == nil && !blocked.canReview, "a table with only credentials is not sent")
         var clipped = unsupported
         clipped.truncated = true
         check(!SchoolScheduleParser.parse(message: clipped).canReview, "clipped raw timetable is not sent as complete input")
+        var clippedAcademy = academy
+        clippedAcademy.truncated = true
+        let sibling = SchoolScheduleParser.parse(tables: [clippedAcademy, academy])
+        check(sibling.timetableText?.contains("黑白摄影暗房工艺基础") == true && sibling.timetableText?.contains(morning) == true, "complete sibling still reaches AI when another table is truncated")
+        check(SchoolScheduleParser.parse(message: clippedAcademy).timetableText == nil, "truncated school table is not sent as complete input")
         let oversized = table([unsupported.rows[0], [SchoolPortalTableCell(text: String(repeating: "课", count: 24000)), SchoolPortalTableCell(text: "待定")]])
         check(SchoolScheduleParser.parse(message: oversized).timetableText == nil, "oversized source rejected without prefix truncation")
         let portalHosts: Set<String> = ["iam.zgysyjy.org.cn"]
@@ -249,6 +285,31 @@ const largeTable={querySelector:()=>null,rows:[courseTable.rows[0],{cells:[cell(
 frame('c.school.test',[largeTable]).deliver(request,'https://a.school.test');
 assert.equal(results.at(-1).truncated,true,'source truncation is explicit');
 assert.equal(results.at(-1).rows[1][1].text.length,2000);
+const academyTable={querySelector:()=>null,rows:[
+  {cells:[cell('课程'),cell('教师'),cell('周次、时段与地点')]},
+  {cells:[cell('黑白摄影暗房工艺基础'),cell('张涛'),cell('5周日-上午课-虚拟教室1(主校区)')]}
+]};
+frame('c.school.test',[academyTable]).deliver(request,'https://a.school.test');
+assert.equal(results.at(-1).rows[1][2].text,'5周日-上午课-虚拟教室1(主校区)','school list cell is read');
+assert.equal(results.at(-1).rows[1][1].text,'张涛');
+assert(!JSON.stringify(results.at(-1)).includes('SECRET'));
+{
+  let listener;
+  const line={
+    textContent:'5周日-上午课-虚拟教室1(主校区)',
+    cloneNode(){return {textContent:this.textContent,querySelectorAll(){return [];}};},
+    getAttribute(){return null},
+    closest(){return null},
+    querySelector(){return null}
+  };
+  const location={protocol:'https:',hostname:'c.school.test',origin:'https://c.school.test',pathname:'/schedule',href:'https://c.school.test/schedule?ticket=SECRET'};
+  const window={frames:[],top:{},webkit:{messageHandlers:{customHandler:{postMessage:data=>results.push(data)}}},addEventListener:(name,callback)=>{listener=callback;}};
+  const document={querySelectorAll(selector){return selector==='table'?[]:[line];}};
+  vm.runInNewContext(production,{window,location,document,URL,Set,Array,String,Math,Number,parseInt,sanqianAllowedHosts:['a.school.test','b.school.test','c.school.test'],sanqianHandler:'customHandler'});
+  listener({data:request,origin:'https://a.school.test'});
+  assert.equal(results.at(-1).rows[1][1].text,'5周日-上午课-虚拟教室1(主校区)','course line outside a table is read');
+  assert(!JSON.stringify(results.at(-1)).includes('SECRET'));
+}
 process.stdout.write(JSON.stringify(table));
 """#
 

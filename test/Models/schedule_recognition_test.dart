@@ -217,4 +217,184 @@ void main() {
     );
     expect(warnings.single, contains('未保留当前课程：导师课'));
   });
+
+  test('labeled and agreed teachers are kept, bare names are not', () {
+    expect(
+      ScheduleImportCourseDraft.fromJson({
+        'name': '中国画',
+        'teacher': null,
+        'sourceLine': '中国画 教师：李四 周一',
+        'meetings': [meeting()],
+      }).teacher,
+      '李四',
+    );
+    expect(
+      ScheduleImportCourseDraft.fromJson({
+        'name': '中国画',
+        'teacher': null,
+        'raw': {'sourceLine': '教师：李四'},
+        'meetings': [meeting()],
+      }).teacher,
+      '李四',
+    );
+    expect(
+      ScheduleImportCourseDraft.fromJson({
+        'name': '中国画',
+        'teacher': null,
+        'meetings': [
+          {...meeting(), 'teacher': '葛玉清'},
+          {...meeting(day: 2), 'teacher': '葛玉清'},
+        ],
+      }).teacher,
+      '葛玉清',
+    );
+    expect(
+      ScheduleImportCourseDraft.fromJson({
+        'name': '中国画',
+        'teacher': null,
+        'meetings': [
+          {...meeting(), 'teacher': '葛玉清'},
+          {...meeting(day: 2), 'teacher': '李老师'},
+        ],
+      }).teacher,
+      isNull,
+    );
+    expect(
+      ScheduleImportCourseDraft.fromJson({
+        'name': '中国画',
+        'teacher': null,
+        'sourceLine': '中国画 葛玉清 周一',
+        'meetings': [meeting()],
+      }).teacher,
+      isNull,
+    );
+    expect(
+      ScheduleImportCourseDraft.fromJson({
+        'name': '中国画',
+        'sourceLine': '教师：张三',
+        'raw': {'sourceLine': '教师：李四'},
+        'meetings': [meeting()],
+      }).teacher,
+      isNull,
+    );
+    expect(
+      ScheduleImportCourseDraft.fromJson({
+        'name': '导师课',
+        'teacher': '待定',
+        'meetings': [],
+        'pendingReason': '联系老师',
+      }).teacher,
+      isNull,
+    );
+    final aliases = ScheduleImportCourseDraft.fromJson({
+      'name': '中国画',
+      '课程代码': 'ART-01',
+      '教学班': '一班',
+      '教师': '葛玉清',
+      '教室': '6406',
+      'meetings': [
+        {'weekday': 1, 'weeks': null, 'startMinute': null, 'endMinute': null},
+      ],
+    });
+    expect(aliases.courseCode, 'ART-01');
+    expect(aliases.section, '一班');
+    expect(aliases.teacher, '葛玉清');
+    expect(aliases.meetings.single.location, '6406');
+    expect(aliases.meetings.single.weeks, isNull);
+    expect(aliases.meetings.single.startMinute, isNull);
+    expect(aliases.meetings.single.endMinute, isNull);
+    expect(
+      ScheduleImportCourseDraft.fromJson({
+        'name': '中国画',
+        '教室': '其他',
+        'meetings': [meeting(room: '6406')],
+      }).meetings.single.location,
+      '6406',
+    );
+  });
+
+  test('a later review keeps a seen teacher and room, not another time', () {
+    final previous = [course(name: '摄影', teacher: '张老师')];
+    expect(
+      preserveReviewedFields(previous, [
+        course(name: '摄影', teacher: null),
+      ]).single['teacher'],
+      '张老师',
+    );
+    expect(
+      preserveReviewedFields(previous, [
+        course(name: '摄影', teacher: '王老师'),
+      ]).single['teacher'],
+      '王老师',
+    );
+    expect(
+      preserveReviewedFields(previous, [
+        course(name: '英语', teacher: null),
+      ]).single['teacher'],
+      isNull,
+    );
+    expect(
+      preserveReviewedFields(
+        [course(teacher: '张老师', section: '一班')],
+        [course(teacher: null, section: '二班')],
+      ).single['teacher'],
+      isNull,
+    );
+    final sameTime = preserveReviewedFields(
+      [
+        course(
+          meetings: [
+            meeting(weeks: [8], room: '6406'),
+          ],
+        ),
+      ],
+      [
+        course(meetings: [meeting(weeks: null, room: null)]),
+      ],
+    );
+    final sameRow = (sameTime.single['meetings'] as List).single as Map;
+    expect(sameRow['location'], '6406');
+    expect(sameRow['weeks'], isNull);
+    final otherTime = preserveReviewedFields(
+      [
+        course(meetings: [meeting(room: '6406')]),
+      ],
+      [
+        course(meetings: [meeting(room: null, start: 810, end: 990)]),
+      ],
+    );
+    expect(
+      ((otherTime.single['meetings'] as List).single as Map)['location'],
+      isNull,
+    );
+    final unknownClock = preserveReviewedFields(
+      [
+        course(meetings: [meeting(room: '6406')]),
+      ],
+      [
+        course(meetings: [meeting(room: null, start: null, end: null)]),
+      ],
+    );
+    expect(
+      ((unknownClock.single['meetings'] as List).single as Map)['location'],
+      isNull,
+    );
+    final ambiguousRoom = preserveReviewedFields(
+      [
+        course(
+          meetings: [
+            meeting(room: '6406'),
+            meeting(room: '6407'),
+          ],
+        ),
+      ],
+      [
+        course(meetings: [meeting(room: null)]),
+      ],
+    );
+    expect(
+      ((ambiguousRoom.single['meetings'] as List).single as Map)['location'],
+      isNull,
+    );
+  });
 }

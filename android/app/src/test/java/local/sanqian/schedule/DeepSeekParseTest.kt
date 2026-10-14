@@ -81,7 +81,69 @@ class DeepSeekParseTest {
         assertEquals(810, meeting.getInt("startMinute"))
         assertEquals(990, meeting.getInt("endMinute"))
         assertEquals("3,4,6-7周一下午", meeting.getString("sourceReference"))
+        assertTrue(rows.getJSONObject(0).isNull("teacher"))
+        assertTrue(rows.getJSONObject(2).isNull("teacher"))
         assertEquals(0, rows.getJSONObject(2).getJSONArray("meetings").length())
+    }
+
+    @Test
+    fun recognizedTeacherClassAndRoomAreKeptWithoutInventingTime() {
+        val meetingTeacher = courses(
+            """{"courses":[{"name":"中国画","teacher":null,"meetings":[{"weekday":1,"weeks":[1],"startMinute":540,"endMinute":630,"location":"6406","teacher":"葛玉清"}]}]}""",
+        )
+        assertEquals("葛玉清", meetingTeacher.getJSONObject(0).getString("teacher"))
+
+        val labeled = courses(
+            """{"courses":[{"name":"中国画","teacher":null,"sourceLine":"中国画 教师：葛玉清 周一","meetings":[{"weekday":1,"weeks":[1],"startMinute":540,"endMinute":630,"location":null}]}]}""",
+        )
+        assertEquals("葛玉清", labeled.getJSONObject(0).getString("teacher"))
+
+        val unlabeled = courses(
+            """{"courses":[{"name":"中国画","teacher":null,"sourceLine":"中国画 葛玉清 周一","meetings":[{"weekday":1,"weeks":[1],"startMinute":540,"endMinute":630,"location":null}]}]}""",
+        )
+        assertTrue(unlabeled.getJSONObject(0).isNull("teacher"))
+
+        val conflict = courses(
+            """{"courses":[{"name":"中国画","teacher":null,"meetings":[{"weekday":1,"weeks":[1],"startMinute":540,"endMinute":630,"location":null,"teacher":"葛玉清"},{"weekday":2,"weeks":[1],"startMinute":540,"endMinute":630,"location":null,"teacher":"李老师"}]}]}""",
+        )
+        assertTrue(conflict.getJSONObject(0).isNull("teacher"))
+
+        val aliases = courses(
+            """{"courses":[{"name":"中国画","课程代码":"ART-01","教学班":"一班","教师":"葛玉清","教室":"6406","meetings":[{"weekday":1,"weeks":null,"startMinute":null,"endMinute":null,"location":null}]}]}""",
+        )
+        val alias = aliases.getJSONObject(0)
+        assertEquals("ART-01", alias.getString("courseCode"))
+        assertEquals("一班", alias.getString("section"))
+        assertEquals("葛玉清", alias.getString("teacher"))
+        val aliasMeeting = alias.getJSONArray("meetings").getJSONObject(0)
+        assertEquals("6406", aliasMeeting.getString("location"))
+        assertTrue(aliasMeeting.isNull("weeks"))
+        assertTrue(aliasMeeting.isNull("startMinute"))
+        assertTrue(aliasMeeting.isNull("endMinute"))
+
+        val explicitRoom = courses(
+            """{"courses":[{"name":"中国画","教室":"其他","meetings":[{"weekday":1,"weeks":[1],"startMinute":540,"endMinute":630,"location":"6406"}]}]}""",
+        )
+        assertEquals(
+            "6406",
+            explicitRoom.getJSONObject(0).getJSONArray("meetings").getJSONObject(0).getString("location"),
+        )
+
+        val placeholder = courses(
+            """{"courses":[{"name":"导师课","teacher":"待定","meetings":[],"pendingReason":"联系老师"}]}""",
+        )
+        assertTrue(placeholder.getJSONObject(0).isNull("teacher"))
+        assertEquals(0, placeholder.getJSONObject(0).getJSONArray("meetings").length())
+
+        val ignoredAlias = courses(
+            """{"courses":[{"name":"中国画","教师":123,"meetings":[{"weekday":1,"weeks":[1],"startMinute":540,"endMinute":630,"location":null}]}]}""",
+        )
+        assertTrue(ignoredAlias.getJSONObject(0).isNull("teacher"))
+        expect(DeepSeekTimetableClientError.InvalidCourseField("courses[0].teacher")) {
+            DeepSeekTimetableClient.parseResponse(
+                envelope(valid.replace("\"teacher\":null", "\"teacher\":123")),
+            )
+        }
     }
 
     @Test

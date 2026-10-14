@@ -260,7 +260,16 @@ void main() {
       await tab(tester, 'week');
       await tester.tap(find.text('2 门课程待安排'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('导师课'));
+      final scroll = getPageScroll('week');
+      for (
+        var attempt = 0;
+        attempt < 6 && find.text('导师课').hitTestable().evaluate().isEmpty;
+        attempt++
+      ) {
+        await tester.drag(scroll, const Offset(0, -160));
+        await tester.pumpAndSettle();
+      }
+      await tester.tap(find.text('导师课').hitTestable());
       await tester.pumpAndSettle();
       expect(find.text('时间待定'), findsOneWidget);
       expect(find.text('周次待定'), findsOneWidget);

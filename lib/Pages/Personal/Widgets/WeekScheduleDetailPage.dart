@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../../../Models/CourseModel.dart';
 import '../../../Models/PersonalSchedule.dart';
+import '../../../Utils/SavedCourseFacts.dart';
 
 class WeekScheduleDetailPage extends StatelessWidget {
   final PersonalSchedule schedule;
@@ -350,10 +351,8 @@ String _courseName(Course course) {
   return name.isEmpty ? '未命名课程' : name;
 }
 
-String _courseRoom(Course course) {
-  final room = course.classroom?.trim() ?? '';
-  return room.isEmpty ? '地点待定' : room;
-}
+String _courseRoom(Course course) =>
+    SavedCourseFacts.fromCourse(course).classroomLabel;
 
 class _TimeCourse {
   final CourseOccurrence item;

@@ -151,10 +151,14 @@ final class SchoolPortalSession: NSObject, WKNavigationDelegate, WKUIDelegate {
             frame: SchoolPortalFrameIdentity(url: url, securityOrigin: "https://\(origin.host):\(origin.port)", isMainFrame: message.frameInfo.isMainFrame),
             title: "", innerText: payload.rows.flatMap { $0 }.map(\.text).joined(separator: "\n"), html: "", rows: payload.rows, truncated: payload.truncated)
         observedFrames.insert(url)
-        if !trusted.rows.isEmpty && !tables.contains(trusted) {
+        let stored = !trusted.rows.isEmpty && !tables.contains(trusted)
+        if stored {
             tables.append(trusted)
             onTableMessage?(trusted)
         }
+        // An empty frameset acknowledgement must not end the read before a
+        // child frame sends the timetable. The deadline still closes an empty page.
+        if !stored && tables.isEmpty { return }
         finishWork?.cancel()
         let finish = DispatchWorkItem { [weak self] in self?.finishExtraction(requestID, timedOut: false) }
         finishWork = finish
@@ -318,6 +322,13 @@ final class SchoolPortalSession: NSObject, WKNavigationDelegate, WKUIDelegate {
             } catch (_) { return ''; }
           };
           const span = (cell, name, limit) => Math.min(limit, Math.max(1, parseInt(cell.getAttribute(name) || '1', 10) || 1));
+          const looksLikeTimetable = text => {
+            const list = /课程名称|课程名|科目|教学科目/.test(text) && /上课|时间|地点|安排|周次/.test(text);
+            const named = /课程/.test(text) && /教师|老师|教室|周次|上课/.test(text);
+            const grid = /周一|星期一/.test(text) && /周二|星期二/.test(text);
+            const school = /上午课|下午课|晚上课/.test(text);
+            return list || named || grid || school;
+          };
           const weight = list => list.reduce((n, row) => n + row.reduce((m, cell) => m + String(cell.text || '').length + 24, 48), 0);
           const send = (requestID, rows, truncated = false) => {
             let payloadRows = rows;
@@ -350,8 +361,31 @@ final class SchoolPortalSession: NSObject, WKNavigationDelegate, WKUIDelegate {
                 });
               });
               const text = rows.flat().map(cell => cell.text).join(' ');
-              if (rows.length >= 2 && ((/课程名称|课程名|科目|教学科目/.test(text) && /上课|时间|地点|安排|周次/.test(text)) || /周一|星期一/.test(text) && /周二|星期二/.test(text))) {
+              if (rows.length >= 2 && looksLikeTimetable(text)) {
                 send(requestID, rows, truncated); count++;
+              }
+            }
+            if (!count) {
+              const lines = [];
+              const seen = new Set();
+              let nodes = [];
+              try { nodes = Array.from(doc.querySelectorAll('li,p,div,span,td')); } catch (_) { nodes = []; }
+              for (const node of nodes) {
+                if (!node || node.rows || node.cells) continue;
+                try { if (node.closest && node.closest('table')) continue; } catch (_) { continue; }
+                try { if (node.closest && node.closest('form') && node.closest('form').querySelector('input[type="password"]')) continue; } catch (_) {}
+                try { if (node.querySelector && node.querySelector('div,p,li,span,td,table')) continue; } catch (_) {}
+                const text = safeText(node, view);
+                if (!text || text.length > 500 || seen.has(text) || !/上午课|下午课|晚上课/.test(text)) continue;
+                seen.add(text);
+                lines.push(text);
+                if (lines.length >= 128) break;
+              }
+              if (lines.length) {
+                const loose = [[{text:'课程',rowSpan:1,colSpan:1},{text:'上课安排',rowSpan:1,colSpan:1}]];
+                for (const line of lines) loose.push([{text:line,rowSpan:1,colSpan:1},{text:line,rowSpan:1,colSpan:1}]);
+                send(requestID, loose, false);
+                count++;
               }
             }
             return count;

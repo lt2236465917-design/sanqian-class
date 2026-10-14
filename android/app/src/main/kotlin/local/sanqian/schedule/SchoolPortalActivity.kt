@@ -2,6 +2,7 @@ package local.sanqian.schedule
 
 import android.annotation.SuppressLint
 import android.app.Activity
+import android.util.Log
 import android.app.AlertDialog
 import android.content.Intent
 import android.graphics.Bitmap
@@ -121,6 +122,14 @@ class SchoolPortalActivity : Activity() {
                 refreshChrome()
             }
         )
+    }
+
+    @SuppressLint("MissingSuperCall")
+    override fun onSaveInstanceState(outState: Bundle) {
+        // The school WebView keeps frameset history. Putting that into the
+        // bundle makes finish() throw TransactionTooLargeException before the
+        // activity is marked finished. The timetable then never reaches Flutter.
+        outState.putInt("sanqian.portal.skip", 1)
     }
 
     override fun onBackPressed() {
@@ -419,53 +428,83 @@ class SchoolPortalActivity : Activity() {
             truncated = parsed.truncated
         )
         observedFrames.add(url)
-        if (trusted.rows.isNotEmpty() && tables.none { it.rows == trusted.rows && it.frame.url == trusted.frame.url }) {
-            tables.add(trusted)
-        }
+        val stored = trusted.rows.isNotEmpty() && tables.none { it.rows == trusted.rows && it.frame.url == trusted.frame.url }
+        if (stored) tables.add(trusted)
+        // An empty frameset acknowledgement must not end the read before a
+        // child frame sends the timetable. The deadline still closes an empty page.
+        if (!stored && tables.isEmpty()) return
         finishRunnable?.let { handler.removeCallbacks(it) }
         val finish = Runnable { finishExtraction(requestID, timedOut = false) }
         finishRunnable = finish
         handler.postDelayed(finish, 800)
     }
 
+    private fun detachWebViews() {
+        val views = (childWebViews + if (this::mainWebView.isInitialized) listOf(mainWebView) else emptyList()).distinct()
+        for (view in views) {
+            try {
+                (view.parent as? ViewGroup)?.removeView(view)
+            } catch (_: Throwable) {
+            }
+        }
+    }
+
     private fun finishExtraction(requestID: String, timedOut: Boolean) {
-        if (extractionID != requestID) return
+        if (extractionID != requestID || isDestroyed) return
         val pageUrl = try {
             SchoolPortalSecurity.sanitizedURL(activeWebView.url)
         } catch (_: Throwable) {
             null
         }
-        try {
-            val parsed = SchoolScheduleParser.parse(
-                tables.toList(),
-                frameCount = observedFrames.size,
-                sourceURL = pageUrl
+        val snapshot = tables.toList()
+        val frameCount = observedFrames.size
+        val parsed = try {
+            SchoolScheduleParser.parse(snapshot, frameCount = frameCount, sourceURL = pageUrl)
+        } catch (error: Throwable) {
+            Log.w("SchoolPortal", "parse", error)
+            SchoolScheduleParseResult(
+                source = "school-portal",
+                sourceURL = pageUrl,
+                frameCount = frameCount,
+                tableCount = snapshot.size,
+                drafts = emptyList(),
+                warnings = listOf("本机没能整理这页课表，请再点一次「读取并识别」。"),
+                timetableText = null
             )
-            val warning = if (timedOut) {
-                "读取窗口已结束；未响应或仍在加载的页面需重新读取。"
-            } else {
-                "已汇总本次响应的表格；仍在加载的页面需重新读取。"
-            }
-            val result = parsed.copy(warnings = parsed.warnings + warning)
-            cancelExtraction()
-            if (!result.canReview) {
-                showStatus(parsed.warnings.lastOrNull() ?: "当前页面没有可识别课表。请先进入「研究生综合管理 → 我的课表」，看到课表后再点底部「读取并识别」。")
-                return
-            }
-            val payload = toJsonValue(result.toChannelMap()) as JSONObject
-            val json = payload.toString()
-            if (!PortalResultBus.offer(json)) {
-                showStatus("这次读到的课表太长，没有带回。请分页面读取，或改用多图课表导入。")
-                return
-            }
-            setResult(RESULT_OK, Intent().putExtra(EXTRA_RESULT, PortalResultBus.TOKEN))
-            finish()
-        } catch (_: Throwable) {
-            PortalResultBus.clear()
-            cancelExtraction()
-            if (!isFinishing && !isDestroyed) {
-                showStatus("读取课表失败。请留在此页，点底部「读取并识别」再试一次。")
-            }
+        }
+        val warning = if (timedOut) {
+            "读取窗口已结束；未响应或仍在加载的页面需重新读取。"
+        } else {
+            "已汇总本次响应的表格；仍在加载的页面需重新读取。"
+        }
+        val result = parsed.copy(warnings = parsed.warnings + warning)
+        cancelExtraction()
+        if (!result.canReview) {
+            showStatus(parsed.warnings.lastOrNull() ?: "当前页面没有可识别课表。请先进入「研究生综合管理 → 我的课表」，看到课表后再点底部「读取并识别」。")
+            return
+        }
+        val failure = try {
+            PortalResultHandoff.deliver(
+                json = portalResultJson(result),
+                offer = { PortalResultBus.offer(it) },
+                detachViews = { detachWebViews() },
+                finish = {
+                    setResult(RESULT_OK, Intent().putExtra(EXTRA_RESULT, PortalResultBus.TOKEN))
+                    try {
+                        finish()
+                    } catch (error: Throwable) {
+                        Log.w("SchoolPortal", "finish", error)
+                        throw error
+                    }
+                }
+            )
+        } catch (error: Throwable) {
+            Log.w("SchoolPortal", "handoff", error)
+            "课表已经读到，但页面没能关闭。请点底部「读取并识别」再试一次。"
+        }
+        if (failure != null && !isFinishing && !isDestroyed) {
+            if (this::mainWebView.isInitialized) show(activeWebView)
+            showStatus(failure)
         }
     }
 
@@ -653,6 +692,13 @@ class SchoolPortalActivity : Activity() {
                 } catch (_) { return ''; }
               };
               const span = (cell, name, limit) => Math.min(limit, Math.max(1, parseInt(cell.getAttribute(name) || '1', 10) || 1));
+              const looksLikeTimetable = text => {
+                const list = /课程名称|课程名|科目|教学科目/.test(text) && /上课|时间|地点|安排|周次/.test(text);
+                const named = /课程/.test(text) && /教师|老师|教室|周次|上课/.test(text);
+                const grid = /周一|星期一/.test(text) && /周二|星期二/.test(text);
+                const school = /上午课|下午课|晚上课/.test(text);
+                return list || named || grid || school;
+              };
               const weight = list => list.reduce((n, row) => n + row.reduce((m, cell) => m + String(cell.text || '').length + 24, 48), 0);
               const send = (requestID, rows, truncated = false) => {
                 let payloadRows = rows;
@@ -687,8 +733,31 @@ class SchoolPortalActivity : Activity() {
                     });
                   });
                   const text = rows.flat().map(cell => cell.text).join(' ');
-                  if (rows.length >= 2 && ((/课程名称|课程名|科目|教学科目/.test(text) && /上课|时间|地点|安排|周次/.test(text)) || /周一|星期一/.test(text) && /周二|星期二/.test(text))) {
+                  if (rows.length >= 2 && looksLikeTimetable(text)) {
                     send(requestID, rows, truncated); count++;
+                  }
+                }
+                if (!count) {
+                  const lines = [];
+                  const seen = new Set();
+                  let nodes = [];
+                  try { nodes = Array.from(doc.querySelectorAll('li,p,div,span,td')); } catch (_) { nodes = []; }
+                  for (const node of nodes) {
+                    if (!node || node.rows || node.cells) continue;
+                    try { if (node.closest && node.closest('table')) continue; } catch (_) { continue; }
+                    try { if (node.closest && node.closest('form') && node.closest('form').querySelector('input[type="password"]')) continue; } catch (_) {}
+                    try { if (node.querySelector && node.querySelector('div,p,li,span,td,table')) continue; } catch (_) {}
+                    const text = safeText(node, view);
+                    if (!text || text.length > 500 || seen.has(text) || !/上午课|下午课|晚上课/.test(text)) continue;
+                    seen.add(text);
+                    lines.push(text);
+                    if (lines.length >= 128) break;
+                  }
+                  if (lines.length) {
+                    const loose = [[{text:'课程',rowSpan:1,colSpan:1},{text:'上课安排',rowSpan:1,colSpan:1}]];
+                    for (const line of lines) loose.push([{text:line,rowSpan:1,colSpan:1},{text:line,rowSpan:1,colSpan:1}]);
+                    send(requestID, loose, false);
+                    count++;
                   }
                 }
                 return count;

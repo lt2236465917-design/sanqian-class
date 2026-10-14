@@ -69,7 +69,7 @@ class SettingsView extends StatelessWidget {
                   tile(
                     Icons.school_outlined,
                     '学校账号导入课表',
-                    '登录后 AI 识别课表，暂只支持中国艺术研究院',
+                    '登录账号后AI识别课表录入',
                     () => open(
                       const SchoolAccountView(),
                       successMessage: '课表已保存，返回首页即可查看。',

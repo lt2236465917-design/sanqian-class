@@ -359,7 +359,14 @@ class _ImportReviewViewState extends State<ImportReviewView> {
         };
       }
       final prepared = prepareScheduleRecognition(
-        candidates,
+        preserveReviewedFields(
+          _courses,
+          prepareScheduleRecognition(
+            candidates,
+            source: widget.source,
+            expectedCourseNames: widget.expectedCourseNames,
+          ).courses,
+        ),
         source: widget.source,
         expectedCourseNames: widget.expectedCourseNames,
       );
@@ -1261,15 +1268,26 @@ class _ImportReviewViewState extends State<ImportReviewView> {
     ),
   );
   String _summary(Map<String, dynamic> course) {
+    final identity = [
+      for (final field in const [
+        ['teacher', '教师'],
+        ['section', '教学班'],
+        ['courseCode', '课程编码'],
+      ])
+        if ('${course[field[0]] ?? ''}'.trim().isNotEmpty)
+          '${field[1]}：${'${course[field[0]]}'.trim()}',
+    ];
     final meetings = (course['meetings'] as List? ?? []).whereType<Map>();
-    if (meetings.isEmpty) return '${course['pendingReason'] ?? '安排待定'}';
-    return meetings
-        .map(
-          (m) =>
-              '星期 ${m['weekday'] ?? '待定'} · ${m['weeks'] ?? '周次待定'}\n'
-              '${_clock(m['startMinute'])}–${_clock(m['endMinute'])} · ${m['location'] ?? '地点待定'}',
-        )
-        .join('\n');
+    final schedule = meetings.isEmpty
+        ? '${course['pendingReason'] ?? '安排待定'}'
+        : meetings
+              .map(
+                (m) =>
+                    '星期 ${m['weekday'] ?? '待定'} · ${m['weeks'] ?? '周次待定'}\n'
+                    '${_clock(m['startMinute'])}–${_clock(m['endMinute'])} · ${m['location'] ?? '地点待定'}',
+              )
+              .join('\n');
+    return [...identity, schedule].join('\n');
   }
 }
 

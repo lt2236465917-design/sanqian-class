@@ -2,6 +2,7 @@ package local.sanqian.schedule
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -145,4 +146,84 @@ class SchoolScheduleParserTest {
             SchoolPortalSecurity.sanitizedURL("https://school.example/t?ticket=SECRET#token")
         )
     }
+
+    @Test
+    fun artAcademyCellsReachAiWithoutInventedClocks() {
+        val morning = "5周日-上午课-虚拟教室1(主校区)"
+        val pending = "2label.teachtask.courseclass.week.null-自排教室，请与任课教师联系上课时间和地点"
+        val result = SchoolScheduleParser.parse(
+            table(
+                listOf(
+                    listOf(cell("课程"), cell("教师"), cell("周次、时段与地点")),
+                    listOf(cell("黑白摄影暗房工艺基础"), cell("张涛"), cell(morning)),
+                    listOf(cell("导师课"), cell(""), cell(pending))
+                )
+            )
+        )
+        val text = result.timetableText
+        assertTrue(result.canReview)
+        assertNotNull(text)
+        assertTrue(text!!.contains("黑白摄影暗房工艺基础"))
+        assertTrue(text.contains("张涛"))
+        assertTrue(text.contains(morning))
+        assertTrue(text.contains(pending))
+        assertFalse(text.contains("09:00"))
+        assertFalse(text.contains("SECRET"))
+        assertFalse(text.contains("https"))
+        assertTrue(result.drafts.all { it.startMinutes == null && it.endMinutes == null })
+        assertTrue(result.drafts.any { it.title == "黑白摄影暗房工艺基础" && it.teacher == "张涛" && it.weeks == listOf(5) && it.weekday == 7 })
+        assertTrue(result.drafts.any { it.title == "导师课" && it.isPending && it.weeks == null && it.weekday == null })
+    }
+
+    @Test
+    fun sensitiveCellIsDroppedAndCompleteSiblingSurvivesTruncation() {
+        val course = "6-11周一-下午课-6406(主校区)"
+        val kept = SchoolScheduleParser.parse(
+            table(
+                listOf(
+                    listOf(cell("课程"), cell("上课安排")),
+                    listOf(cell("中国艺术史"), cell(course)),
+                    listOf(cell("学号 123456"), cell("密码 SECRET"))
+                )
+            )
+        )
+        val text = kept.timetableText
+        assertNotNull(text)
+        assertTrue(text!!.contains("中国艺术史"))
+        assertTrue(text.contains(course))
+        assertFalse(text.contains("123456"))
+        assertFalse(text.contains("SECRET"))
+        assertTrue(kept.drafts.all { draft ->
+            val blob = listOf(draft.title, draft.teacher, draft.location, draft.rawText, draft.notes).joinToString("\n")
+            !blob.contains("SECRET") && !blob.contains("123456")
+        })
+        assertTrue(kept.drafts.all { it.startMinutes == null })
+
+        val onlySecret = SchoolScheduleParser.parse(
+            table(
+                listOf(
+                    listOf(cell("课程"), cell("上课安排")),
+                    listOf(cell("密码 SECRET"), cell("https://example.test/?ticket=SECRET"))
+                )
+            )
+        )
+        assertNull(onlySecret.timetableText)
+        assertFalse(onlySecret.canReview)
+
+        val complete = table(
+            listOf(
+                listOf(cell("课程"), cell("教师"), cell("周次、时段与地点")),
+                listOf(cell("中国艺术史"), cell("杨明刚"), cell(course))
+            )
+        )
+        val clipped = complete.copy(truncated = true, requestID = "clipped")
+        val sibling = SchoolScheduleParser.parse(listOf(clipped, complete))
+        assertTrue(sibling.timetableText?.contains("中国艺术史") == true)
+        assertTrue(sibling.timetableText?.contains(course) == true)
+        assertTrue(sibling.timetableText?.contains("杨明刚") == true)
+        val alone = SchoolScheduleParser.parse(clipped)
+        assertNull(alone.timetableText)
+    }
+
+    private fun cell(text: String) = SchoolPortalTableCell(text)
 }

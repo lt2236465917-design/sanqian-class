@@ -11,6 +11,7 @@ import '../../Models/PersonalSchedule.dart';
 import '../../Models/ScreenshotSchedule.dart';
 import '../../Utils/ClassTimeUtil.dart';
 import '../../Utils/CourseWeeks.dart';
+import '../../Utils/SavedCourseFacts.dart';
 import '../../Utils/ScheduleDerivedDataService.dart';
 import '../../Utils/ScheduleImportService.dart';
 import '../Settings/SettingsView.dart';
@@ -1093,10 +1094,12 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
                   ),
                 ],
               ),
-              if ((item.course.teacher ?? '').isNotEmpty) ...[
+              if ((SavedCourseFacts.fromCourse(item.course).teacher ?? '')
+                  .trim()
+                  .isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Text(
-                  item.course.teacher!,
+                  SavedCourseFacts.fromCourse(item.course).teacher!.trim(),
                   style: TextStyle(
                     fontSize: 14,
                     color: _colors.onSurfaceVariant,
@@ -1144,7 +1147,7 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
   }
 
   String _room(Course course) =>
-      (course.classroom ?? '').trim().isEmpty ? '地点待定' : course.classroom!;
+      SavedCourseFacts.fromCourse(course).classroomLabel;
 
   String _courseInfo(Course course) {
     final info = (course.info ?? '').trim();
@@ -1175,6 +1178,7 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
   }
 
   void _details(Course course, PersonalSchedule schedule) {
+    final facts = SavedCourseFacts.fromCourse(course);
     final info = _courseInfo(course);
     final period = ClassTimeUtil.rangeLabel(
       schedule.periods,
@@ -1244,11 +1248,13 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
                         ? '周${_weekdays[course.weekTime! - 1]} · ${_timeDescription(period, clock, separator: '\n')}'
                         : '时间待定',
                   ),
-                  _detailLine(Icons.place_outlined, _room(course)),
-                  _detailLine(
-                    Icons.person_outline_rounded,
-                    (course.teacher ?? '').isEmpty ? '教师待定' : course.teacher!,
-                  ),
+                  _detailLine(Icons.place_outlined, facts.classroomLabel),
+                  _detailLine(Icons.person_outline_rounded, facts.teacherLabel),
+                  if ((facts.section ?? '').isNotEmpty)
+                    _detailLine(Icons.groups_outlined, '教学班：${facts.section}'),
+                  if ((facts.courseCode ?? '').isNotEmpty &&
+                      !info.contains(facts.courseCode!))
+                    _detailLine(Icons.tag_outlined, '课程代码：${facts.courseCode}'),
                   _detailLine(
                     Icons.date_range_outlined,
                     ScreenshotSchedule.formatWeeks(weeks),

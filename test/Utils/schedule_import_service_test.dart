@@ -3,7 +3,9 @@ import 'package:sanqian_class/Models/CourseTableModel.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:sanqian_class/Models/Db/DbHelper.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sanqian_class/Models/CourseModel.dart';
 import 'package:sanqian_class/Models/ScheduleImportDraft.dart';
+import 'package:sanqian_class/Utils/SavedCourseFacts.dart';
 import 'package:sanqian_class/Utils/ScheduleImportService.dart';
 
 ScheduleImportMeetingDraft meeting({
@@ -43,6 +45,80 @@ ScheduleImportDraft draft(List<ScheduleImportCourseDraft> courses) =>
     );
 
 void main() {
+  test(
+    'a cleared teacher stays empty and a missing column can use the saved recognition',
+    () {
+      final original = jsonEncode({
+        'schedule_import_row': {
+          'original_course': {
+            'teacher': '李四',
+            'section': '一班',
+            'courseCode': 'ART-01',
+            'meetings': [
+              {'location': '6406'},
+            ],
+          },
+        },
+      });
+      SavedCourseFacts facts({
+        String? teacher,
+        String? classroom,
+        String? classNumber,
+        String? data,
+      }) => SavedCourseFacts.fromCourse(
+        Course(
+          1,
+          '中国画',
+          '[]',
+          0,
+          0,
+          0,
+          0,
+          teacher: teacher,
+          classroom: classroom,
+          classNumber: classNumber,
+          data: data ?? original,
+        ),
+      );
+      final recovered = facts();
+      expect(recovered.teacher, '李四');
+      expect(recovered.teacherLabel, '李四');
+      expect(recovered.section, '一班');
+      expect(recovered.classroom, '6406');
+      expect(recovered.courseCode, 'ART-01');
+      final cleared = facts(teacher: '', classroom: '');
+      expect(cleared.teacherLabel, '教师待定');
+      expect(cleared.classroomLabel, '地点待定');
+      expect(cleared.section, '一班');
+      expect(
+        facts(
+          data: jsonEncode({
+            'schedule_import_row': {
+              'original_course': {'teacher': '', 'meetings': []},
+            },
+          }),
+          teacher: '',
+        ).teacherLabel,
+        '教师待定',
+      );
+      expect(
+        facts(
+          data: jsonEncode({
+            'schedule_import_row': {
+              'original_course': {
+                'teacher': '李四',
+                'meetings': [
+                  {'location': '6406'},
+                  {'location': '6407'},
+                ],
+              },
+            },
+          }),
+        ).classroomLabel,
+        '地点待定',
+      );
+    },
+  );
   sqliteTests();
   test(
     'bridge contract accepts weeks 1 through 60 and rejects outside bounds',
@@ -464,6 +540,39 @@ void sqliteTests() {
         'custom': 'keep',
       });
     });
+    test(
+      'a teacher written only on the source line is saved and shown',
+      () async {
+        final parsed = ScheduleImportCourseDraft.fromJson({
+          'name': '中国画',
+          'teacher': null,
+          'section': '一班',
+          'sourceLine': '中国画 教师：李四 周一',
+          'meetings': [
+            {
+              'weekday': 1,
+              'weeks': [1, 2],
+              'startMinute': 540,
+              'endMinute': 720,
+              'location': '6406',
+            },
+          ],
+        });
+        expect(parsed.teacher, '李四');
+        await ScheduleImportService.commit(
+          draft([parsed]),
+          database: db,
+          periods: periods,
+        );
+        final saved = (await rows()).single;
+        expect(saved['teacher'], '李四');
+        final course = Course.fromMap(saved);
+        final shown = SavedCourseFacts.fromCourse(course);
+        expect(shown.teacherLabel, '李四');
+        expect(shown.section, '一班');
+        expect(shown.classroom, '6406');
+      },
+    );
     test('duplicate image courses retain evidence from both images', () async {
       final input = draft([
         for (final index in [0, 1])

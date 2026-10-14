@@ -103,7 +103,13 @@ class ScheduleImportMeetingDraft {
         periodCount: _asInt(json['periodCount']),
         startMinute: _asInt(json['startMinute']),
         endMinute: _asInt(json['endMinute']),
-        location: _asString(json['location']),
+        location: _firstNonEmpty(
+          _asString(json['location']),
+          _plainText(json['room']),
+          _plainText(json['classroom']),
+          _plainText(json['教室']),
+          _plainText(json['地点']),
+        ),
         sourceReference: _asString(json['sourceReference']),
         raw: _asMap(json['raw']),
       );
@@ -175,23 +181,82 @@ class ScheduleImportCourseDraft {
     'raw': raw,
   };
 
-  factory ScheduleImportCourseDraft.fromJson(Map<String, dynamic> json) =>
-      ScheduleImportCourseDraft(
-        stableId: _asString(json['stableId']),
-        courseCode: _asString(json['courseCode']),
-        name: _asString(json['name']) ?? '',
-        section: _asString(json['section']),
-        teacher: _asString(json['teacher']),
-        meetings: (json['meetings'] as List? ?? const [])
-            .map(
-              (meeting) => ScheduleImportMeetingDraft.fromJson(
-                Map<String, dynamic>.from(meeting as Map),
-              ),
-            )
-            .toList(),
-        pendingReason: _asString(json['pendingReason']),
-        raw: _asMap(json['raw']),
-      );
+  factory ScheduleImportCourseDraft.fromJson(Map<String, dynamic> json) {
+    final raw = _asMap(json['raw']);
+    final meetings = (json['meetings'] as List? ?? const [])
+        .map(
+          (meeting) => ScheduleImportMeetingDraft.fromJson(
+            Map<String, dynamic>.from(meeting as Map),
+          ),
+        )
+        .toList();
+    final courseRoom = _firstNonEmpty(
+      _plainText(json['location']),
+      _plainText(json['classroom']),
+      _plainText(json['教室']),
+      _plainText(json['地点']),
+    );
+    final placed = courseRoom == null
+        ? meetings
+        : [
+            for (final meeting in meetings)
+              (meeting.location ?? '').trim().isEmpty
+                  ? ScheduleImportMeetingDraft(
+                      weekday: meeting.weekday,
+                      weeks: meeting.weeks,
+                      periodIndex: meeting.periodIndex,
+                      periodCount: meeting.periodCount,
+                      startMinute: meeting.startMinute,
+                      endMinute: meeting.endMinute,
+                      location: courseRoom,
+                      sourceReference: meeting.sourceReference,
+                      raw: meeting.raw,
+                    )
+                  : meeting,
+          ];
+    final sourceText = [
+      _plainText(json['sourceLine']),
+      _plainText(raw['sourceLine']),
+      for (final meeting in placed) _plainText(meeting.sourceReference),
+    ].whereType<String>().join('\n');
+    final meetingTeachers = <String?>[
+      for (final meeting in json['meetings'] as List? ?? const [])
+        if (meeting is Map)
+          _personName(
+            meeting['teacher'] ??
+                meeting['教师'] ??
+                meeting['老师'] ??
+                meeting['任课教师'],
+          ),
+    ];
+    return ScheduleImportCourseDraft(
+      stableId: _asString(json['stableId']),
+      courseCode: _firstNonEmpty(
+        _asString(json['courseCode']),
+        _plainText(json['课程编码']),
+        _plainText(json['课程代码']),
+        _plainText(json['课程号']),
+        _plainText(json['code']),
+      ),
+      name: _asString(json['name']) ?? '',
+      section: _firstNonEmpty(
+        _asString(json['section']),
+        _plainText(json['教学班']),
+        _plainText(json['班号']),
+      ),
+      teacher: _firstNonEmpty(
+        _personName(json['teacher']),
+        _personName(json['教师']),
+        _personName(json['老师']),
+        _personName(json['任课教师']),
+        _agreed(meetingTeachers),
+        _labeledPerson(sourceText),
+      ),
+      meetings: placed,
+      pendingReason: _asString(json['pendingReason']),
+      raw: raw,
+    );
+  }
 }
 
 class ScheduleImportDraft {
@@ -548,6 +613,90 @@ List<String> scheduleRecognitionReplacementWarnings(
   ];
 }
 
+/// A later recognition often leaves teacher, class, code, or room empty.
+/// Keep a value the user already reviewed when the new result does not
+/// replace it with a different explicit value. Conflicting identities stay
+/// untouched, and unknown times are never copied across meetings.
+List<Map<String, dynamic>> preserveReviewedFields(
+  Iterable<Map<String, dynamic>> previous,
+  Iterable<Map<String, dynamic>> replacement,
+) {
+  final prior = previous.map(ScheduleImportCourseDraft.fromJson).toList();
+  return replacement.map(ScheduleImportCourseDraft.fromJson).map((next) {
+    final matches = prior
+        .where((old) => _sameReviewedCourse(old, next))
+        .toList();
+    if (matches.length != 1) return next.toJson();
+    final old = matches.single;
+    return ScheduleImportCourseDraft(
+      name: next.name,
+      stableId: _firstNonEmpty(next.stableId, old.stableId),
+      courseCode: _firstNonEmpty(next.courseCode, old.courseCode),
+      section: _firstNonEmpty(next.section, old.section),
+      teacher: _firstNonEmpty(next.teacher, old.teacher),
+      pendingReason: next.pendingReason,
+      meetings: [
+        for (final meeting in next.meetings)
+          _keepReviewedRoom(meeting, old.meetings),
+      ],
+      raw: next.raw,
+    ).toJson();
+  }).toList();
+}
+
+bool _sameReviewedCourse(
+  ScheduleImportCourseDraft first,
+  ScheduleImportCourseDraft second,
+) {
+  if (_recognitionName(first.name) != _recognitionName(second.name)) {
+    return false;
+  }
+  for (final pair in [
+    [first.stableId, second.stableId],
+    [first.courseCode, second.courseCode],
+    [first.section, second.section],
+  ]) {
+    final left = _recognitionField(pair[0]);
+    final right = _recognitionField(pair[1]);
+    if (left.isNotEmpty && right.isNotEmpty && left != right) return false;
+  }
+  return true;
+}
+
+ScheduleImportMeetingDraft _keepReviewedRoom(
+  ScheduleImportMeetingDraft meeting,
+  List<ScheduleImportMeetingDraft> previous,
+) {
+  if ((meeting.location ?? '').trim().isNotEmpty) return meeting;
+  if (meeting.weekday == null ||
+      meeting.startMinute == null ||
+      meeting.endMinute == null) {
+    return meeting;
+  }
+  final rooms = previous
+      .where(
+        (old) =>
+            old.weekday == meeting.weekday &&
+            old.startMinute == meeting.startMinute &&
+            old.endMinute == meeting.endMinute &&
+            (old.location ?? '').trim().isNotEmpty,
+      )
+      .map((old) => old.location!.trim())
+      .toSet();
+  if (rooms.length != 1) return meeting;
+  return ScheduleImportMeetingDraft(
+    weekday: meeting.weekday,
+    weeks: meeting.weeks,
+    periodIndex: meeting.periodIndex,
+    periodCount: meeting.periodCount,
+    startMinute: meeting.startMinute,
+    endMinute: meeting.endMinute,
+    location: rooms.single,
+    sourceReference: meeting.sourceReference,
+    raw: meeting.raw,
+  );
+}
+
 String _recognitionName(String value) => _recognitionField(value);
 String _recognitionField(String? value) =>
     _normalise(value).replaceAll(RegExp(r'\s+'), '').replaceAll('，', ',');
@@ -585,6 +734,33 @@ bool _recognitionCompatible(
 
 String _normalise(String? value) => (value ?? '').trim().toLowerCase();
 String? _asString(dynamic value) => value?.toString();
+String? _plainText(dynamic value) {
+  if (value is! String) return null;
+  final text = value.trim();
+  return text.isEmpty ? null : text;
+}
+
+const _notAPersonName = {'待定', '未知', '无', '暂无', '自行安排', '自行联系', 'null'};
+
+String? _personName(dynamic value) {
+  final text = _plainText(value);
+  if (text == null || _notAPersonName.contains(text)) return null;
+  return text;
+}
+
+String? _agreed(Iterable<String?> values) {
+  final names = values.map(_personName).whereType<String>().toSet();
+  if (names.length != 1) return null;
+  return names.single;
+}
+
+String? _labeledPerson(String text) {
+  final match = RegExp(
+    r'(?:任课教师|教师|老师)\s*[:：]\s*([^\n,，;；\s]{1,20})',
+  ).allMatches(text);
+  return _agreed(match.map((found) => found.group(1)));
+}
+
 int? _asInt(dynamic value) {
   if (value == null) return null;
   if (value is int) return value;
@@ -646,9 +822,17 @@ ScheduleImportCourseDraft _mergeCourse(
   );
 }
 
-String? _firstNonEmpty(String? first, String? second) {
-  if (first != null && first.trim().isNotEmpty) return first;
-  if (second != null && second.trim().isNotEmpty) return second;
+String? _firstNonEmpty(
+  String? first,
+  String? second, [
+  String? third,
+  String? fourth,
+  String? fifth,
+  String? sixth,
+]) {
+  for (final value in [first, second, third, fourth, fifth, sixth]) {
+    if (value != null && value.trim().isNotEmpty) return value;
+  }
   return first ?? second;
 }
 

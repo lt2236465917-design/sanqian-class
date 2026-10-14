@@ -6,8 +6,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:sanqian_class/Models/Db/DbHelper.dart';
+import 'package:scoped_model/scoped_model.dart';
 import 'package:sanqian_class/Pages/Settings/DeepSeekSettingsView.dart';
 import 'package:sanqian_class/Pages/Settings/ReminderSettingsView.dart';
+import 'package:sanqian_class/Pages/Settings/SettingsView.dart';
+import 'package:sanqian_class/Utils/States/MainState.dart';
 import 'package:sanqian_class/Pages/Import/PhotoScheduleImportView.dart';
 import 'package:sanqian_class/Pages/Import/SchoolAccountView.dart';
 import 'package:sanqian_class/Resources/PersonalTheme.dart';
@@ -351,6 +354,7 @@ void main() {
     expect(find.text('学校账号与导入'), findsNothing);
     expect(find.text('中国艺术研究院 · 研究生'), findsNothing);
     expect(find.text('暂只支持中国艺术研究院，其他学校逐渐适配中。'), findsOneWidget);
+    expect(find.text('登录账号后AI识别课表录入'), findsNothing);
     expect(find.text('尚未配置 DeepSeek Key，请先打开下方设置。'), findsOneWidget);
     expect(find.textContaining('只有你确认发送才会联网'), findsOneWidget);
     final open = tester.getRect(find.widgetWithText(FilledButton, '打开学校网页'));
@@ -361,4 +365,26 @@ void main() {
     expect((shortcut.center.dx - open.center.dx).abs(), lessThan(1));
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets(
+    'school account list tile leaves the school limit to the detail page',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(430, 1400));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        ScopedModel<MainStateModel>(
+          model: MainStateModel(),
+          child: MaterialApp(
+            theme: personalTheme(Brightness.light),
+            home: const SettingsView(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('学校账号导入课表'), findsOneWidget);
+      expect(find.text('登录账号后AI识别课表录入'), findsOneWidget);
+      expect(find.textContaining('暂只支持中国艺术研究院'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
 }

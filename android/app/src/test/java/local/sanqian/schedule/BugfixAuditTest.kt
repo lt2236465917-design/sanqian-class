@@ -156,6 +156,41 @@ class BugfixAuditTest {
     }
 
     @Test
+    fun storedPortalResultSurvivesFinishFailure() {
+        PortalResultBus.clear()
+        val payload = """{"timetableText":"5周日-上午课-虚拟教室1(主校区)"}"""
+        var finishes = 0
+        var detached = 0
+        val message = PortalResultHandoff.deliver(
+            json = payload,
+            offer = { PortalResultBus.offer(it) },
+            detachViews = { detached += 1 },
+            finish = {
+                finishes += 1
+                throw RuntimeException("TransactionTooLarge")
+            }
+        )
+        assertEquals(2, finishes)
+        assertEquals(1, detached)
+        assertEquals("课表已经读到，但页面没能关闭。请点底部「读取并识别」再试一次。", message)
+        assertEquals(payload, PortalResultBus.consume())
+
+        PortalResultBus.clear()
+        finishes = 0
+        detached = 0
+        val delivered = PortalResultHandoff.deliver(
+            json = payload,
+            offer = { PortalResultBus.offer(it) },
+            detachViews = { detached += 1 },
+            finish = { finishes += 1 }
+        )
+        assertNull(delivered)
+        assertEquals(1, finishes)
+        assertEquals(0, detached)
+        assertEquals(payload, PortalResultBus.consume())
+    }
+
+    @Test
     fun pendingResultsCompleteOnceWhenTheHostDetaches() {
         val bridge = PendingBridgeResults()
         val portal = FakeReply()

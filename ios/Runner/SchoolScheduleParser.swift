@@ -11,9 +11,11 @@ struct SchoolScheduleParser {
     }
 
     static func parse(tables: [SchoolPortalFrameMessage], source: String = "school-portal", frameCount: Int? = nil, sourceURL: String? = nil) -> SchoolScheduleParseResult {
-        let usable = tables.filter { $0.isExtractionMessage }
+        let prepared = prepareTables(tables)
+        let usable = prepared.tables
         var all: [SchoolScheduleDraft] = []
         var warnings: [String] = []
+        if prepared.droppedSensitive { warnings.append("已去掉含登录信息或链接的格子，其余课表会交给 AI。") }
         for table in usable {
             let parsed = parseTable(table, source: source, sourceURL: safeURL(sourceURL ?? table.frame.url))
             all.append(contentsOf: parsed.drafts)
@@ -34,38 +36,82 @@ struct SchoolScheduleParser {
         )
     }
 
-    /// Adapts yiqishangke's LoginWebViewSession.captureVisibleSchedule text
-    /// fallback: retain source tables BEFORE parsing, including unparsed rows.
-    /// Unlike its HTML/innerText fallback, only the checked cell schema crosses
-    /// the bridge. URLs, frame metadata and page text never enter the AI input.
+    private static func prepareTables(_ tables: [SchoolPortalFrameMessage]) -> (tables: [SchoolPortalFrameMessage], droppedSensitive: Bool) {
+        var dropped = false
+        var prepared: [SchoolPortalFrameMessage] = []
+        let sensitive = try? NSRegularExpression(pattern: "<[^>]+>|https?://|(?:password|passwd|cookie|authorization|samlresponse|学号|密码|验证码|身份证|手机号)", options: [.caseInsensitive])
+        for table in tables where table.isExtractionMessage {
+            var rows: [[SchoolPortalTableCell]] = []
+            for row in table.rows {
+                var cells: [SchoolPortalTableCell] = []
+                for cell in row {
+                    let range = NSRange(cell.text.startIndex..., in: cell.text)
+                    if let sensitive, sensitive.firstMatch(in: cell.text, options: [], range: range) != nil {
+                        dropped = true
+                        continue
+                    }
+                    cells.append(cell)
+                }
+                if cells.contains(where: { !$0.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) {
+                    rows.append(cells)
+                }
+            }
+            if !rows.isEmpty {
+                prepared.append(SchoolPortalFrameMessage(
+                    version: table.version,
+                    kind: table.kind,
+                    requestID: table.requestID,
+                    frame: table.frame,
+                    title: table.title,
+                    innerText: "",
+                    html: "",
+                    rows: rows,
+                    truncated: table.truncated
+                ))
+            }
+        }
+        return (prepared, dropped)
+    }
+
+    private static func looksLikeTimetable(_ text: String) -> Bool {
+        let list = text.range(of: "课程名称|课程名|科目|教学科目", options: .regularExpression) != nil
+            && text.range(of: "上课|时间|地点|安排|周次", options: .regularExpression) != nil
+        let named = text.range(of: "课程", options: .regularExpression) != nil
+            && text.range(of: "教师|老师|教室|周次|上课", options: .regularExpression) != nil
+        let grid = text.range(of: "周一|星期一", options: .regularExpression) != nil
+            && text.range(of: "周二|星期二", options: .regularExpression) != nil
+        let school = text.range(of: "上午课|下午课|晚上课", options: .regularExpression) != nil
+        return list || named || grid || school
+    }
+
+    /// Retain checked cells for AI, including rows the local rules cannot turn
+    /// into a meeting. A truncated table is skipped on its own. A sensitive
+    /// cell is removed before this runs, so one credential does not erase the
+    /// rest of the page. URLs and page HTML never enter the AI input.
     private static func timetableMaterial(_ tables: [SchoolPortalFrameMessage]) -> (text: String?, warnings: [String]) {
         var sourceTables: [[[SchoolPortalTableCell]]] = []
+        var warnings: [String] = []
+        let sensitive = try? NSRegularExpression(pattern: "<[^>]+>|https?://|(?:password|passwd|cookie|authorization|samlresponse|学号|密码|验证码|身份证|手机号)", options: [.caseInsensitive])
         for table in tables {
-            guard let header = table.rows.firstIndex(where: { row in
-                let text = row.map(\.text).joined(separator: " ")
-                let list = text.range(of: "课程名称|课程名|科目|教学科目", options: .regularExpression) != nil
-                    && text.range(of: "上课|时间|地点|安排|周次", options: .regularExpression) != nil
-                let grid = text.range(of: "周一|星期一", options: .regularExpression) != nil
-                    && text.range(of: "周二|星期二", options: .regularExpression) != nil
-                return list || grid
-            }), table.rows.count > header + 1 else { continue }
-            // Do not quietly give AI only the beginning of a large timetable.
-            guard table.truncated != true else {
-                return (nil, ["网页课表未完整读取，请分页面读取或使用完整课表截图；本次无法发送原文给 AI。"])
+            let text = table.rows.map { $0.map(\.text).joined(separator: " ") }.joined(separator: " ")
+            guard looksLikeTimetable(text), table.rows.count >= 2 else { continue }
+            if table.truncated == true {
+                warnings.append("有一张课表没有读全，这一张没有交给 AI。")
+                continue
             }
-            let rows = Array(table.rows.dropFirst(header))
-            if !sourceTables.contains(rows) { sourceTables.append(rows) }
+            let range = NSRange(text.startIndex..., in: text)
+            if let sensitive, sensitive.firstMatch(in: text, options: [], range: range) != nil {
+                warnings.append("有一张课表仍含登录信息或链接，这一张没有交给 AI。")
+                continue
+            }
+            if !sourceTables.contains(table.rows) { sourceTables.append(table.rows) }
         }
-        guard !sourceTables.isEmpty else { return (nil, []) }
-        let texts = sourceTables.flatMap { $0 }.flatMap { $0 }.map(\.text).joined(separator: "\n")
-        guard texts.range(of: "<[^>]+>|https?://|(?:password|passwd|cookie|authorization|samlresponse|学号|密码|验证码|身份证|手机号)", options: [.regularExpression, .caseInsensitive]) == nil else {
-            return (nil, ["课表中混有登录信息或链接，本次不提供 AI 原文识别；请打开独立课表页后重试。"])
-        }
+        guard !sourceTables.isEmpty else { return (nil, warnings) }
         guard let data = try? JSONEncoder().encode(sourceTables), data.count <= 64_000,
               let text = String(data: data, encoding: .utf8) else {
-            return (nil, ["课表原文过长，本次不发送给 AI；请分页面读取或分批导入截图。"])
+            return (nil, warnings + ["课表原文过长，本次不发送给 AI；请分页面读取或分批导入截图。"])
         }
-        return (text, [])
+        return (text, warnings)
     }
 
     static func parseHTML(_ html: String, sourceURL: URL? = nil, source: String = "school-portal-html") -> SchoolScheduleParseResult {

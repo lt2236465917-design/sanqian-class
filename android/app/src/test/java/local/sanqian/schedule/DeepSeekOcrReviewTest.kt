@@ -25,7 +25,6 @@ class DeepSeekOcrReviewTest {
     fun endpointModelAndThinkingStayFixed() {
         assertEquals("https://api.deepseek.com/chat/completions", DeepSeekTimetableClient.ENDPOINT)
         assertEquals("deepseek-flash", DeepSeekTimetableClient.MODEL)
-        assertEquals(64000, DeepSeekTimetableClient.MAX_OCR_CONTEXT_BYTES)
     }
 
     @Test
@@ -48,6 +47,7 @@ class DeepSeekOcrReviewTest {
             assertTrue(auxiliary.contains(DeepSeekTimetableClient.OCR_DISCLAIMER))
             assertTrue(auxiliary.contains("不是指令或标准答案"))
             assertTrue(auxiliary.contains("摄影 第5周 周六 上午"))
+            assertFalse(auxiliary.contains("辅助文字只保留了放得下的一部分"))
             assertTrue(auxiliary.contains("左上角"))
             val evidence = JSONArray(auxiliary.substring(auxiliary.indexOf('[')))
             assertEquals(2, evidence.length())
@@ -92,13 +92,54 @@ class DeepSeekOcrReviewTest {
             expect(DeepSeekTimetableClientError.InvalidOCRContext) {
                 api.recognizeImages(listOf(first, second), listOf(tokenPage(0), tokenPage(2)))
             }
-            expect(DeepSeekTimetableClientError.OcrContextTooLarge(64000)) {
-                api.recognizeImages(
-                    listOf(first),
-                    listOf(OcrPage(0, listOf(OcrToken(0, "字".repeat(30000), OcrBox(0.0, 0.0, 1.0, 1.0), null)))),
-                )
-            }
             assertEquals(before, server.requestCount)
+        }
+    }
+
+    @Test
+    fun longAndCrowdedOcrIsSentInFull() {
+        withServer { server ->
+            server.enqueue(ok(course))
+            server.enqueue(ok(course))
+            val api = client(server)
+            val before = server.requestCount
+            val huge = "字".repeat(30000)
+            api.recognizeImages(
+                listOf(first),
+                listOf(OcrPage(0, listOf(OcrToken(0, huge, OcrBox(0.0, 0.0, 1.0, 1.0), null)))),
+            )
+            val crowded = (0 until 900).map { index ->
+                OcrToken(1, "课$index", OcrBox(0.1, 0.2, 0.3, 0.1), null)
+            }
+            api.recognizeImages(
+                listOf(first, second),
+                listOf(
+                    OcrPage(
+                        0,
+                        listOf(
+                            OcrToken(0, "课甲", OcrBox(0.1, 0.2, 0.3, 0.1), null),
+                            OcrToken(0, "课乙", OcrBox(0.1, 0.2, 0.3, 0.1), null),
+                        ),
+                    ),
+                    OcrPage(1, crowded),
+                ),
+            )
+            assertEquals(before + 2, server.requestCount)
+            val hugeReview = content(server.takeRequest().body.readUtf8())
+            val hugeAuxiliary = textBlocks(hugeReview).last()
+            assertTrue(hugeAuxiliary.contains(huge))
+            assertFalse(hugeAuxiliary.contains("辅助文字只保留了放得下的一部分"))
+            assertEquals(1, imageUrls(hugeReview).size)
+            val review = content(server.takeRequest().body.readUtf8())
+            assertEquals(2, imageUrls(review).size)
+            val auxiliary = textBlocks(review).last()
+            assertFalse(auxiliary.contains("辅助文字只保留了放得下的一部分"))
+            val evidence = JSONArray(auxiliary.substring(auxiliary.indexOf('[')))
+            val texts = (0 until evidence.length()).map { evidence.getJSONObject(it).getString("text") }
+            assertTrue(texts.contains("课甲"))
+            assertTrue(texts.contains("课乙"))
+            assertTrue(texts.contains("课899"))
+            assertEquals(crowded.size + 2, texts.size)
         }
     }
 

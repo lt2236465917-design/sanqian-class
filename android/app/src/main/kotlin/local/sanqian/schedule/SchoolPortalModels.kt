@@ -258,6 +258,19 @@ fun SchoolScheduleParseResult.toChannelMap(): Map<String, Any?> {
     )
 }
 
+fun portalResultJson(result: SchoolScheduleParseResult): String {
+    return try {
+        (toJsonValue(result.toChannelMap()) as JSONObject).toString()
+    } catch (_: Throwable) {
+        val text = (result.timetableText ?: "").replace(Regex("[\\uD800-\\uDFFF]"), "")
+        JSONObject()
+            .put("courses", JSONArray())
+            .put("warnings", JSONArray().put("本机整理课表时出错，已改为把课表原文交给 AI。"))
+            .put("timetableText", text)
+            .toString()
+    }
+}
+
 fun encodeTimetableCells(tables: List<List<List<SchoolPortalTableCell>>>): ByteArray {
     val root = JSONArray()
     for (table in tables) {

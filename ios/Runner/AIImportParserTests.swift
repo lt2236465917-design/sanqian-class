@@ -1,3 +1,5 @@
+// Offline executable; excluded from the production build by default.
+// xcrun --sdk iphonesimulator swiftc -target arm64-apple-ios13.0-simulator -D AI_IMPORT_TESTS AIImportModels.swift DeepSeekTimetableClient.swift VisionScheduleDraftParser.swift VisionTimetableRecognizer.swift AIImportParserTests.swift -o /tmp/ai-import-tests
 #if AI_IMPORT_TESTS
 import Foundation
 import CoreGraphics
@@ -79,7 +81,30 @@ struct AIImportOfflineTests {
         check(meeting["weeks"] as? [Int] == [3,4,6,7], "range expansion preserves missing week")
         check(meeting["startMinute"] as? Int == 810 && meeting["endMinute"] as? Int == 990, "afternoon clocks retained")
         check(meeting["sourceReference"] as? String == "3,4,6-7周一下午", "source retained")
+        check(referenceCourses[0]["teacher"] is NSNull, "a week line is not a teacher")
+        check(referenceCourses[2]["teacher"] is NSNull, "联系老师 is not a labeled teacher")
         check((referenceCourses[2]["meetings"] as! [Any]).isEmpty, "reference pending retained")
+        let meetingTeacher = try courses(#"{"courses":[{"name":"中国画","teacher":null,"meetings":[{"weekday":1,"weeks":[1],"startMinute":540,"endMinute":630,"location":"6406","teacher":"葛玉清"}]}]}"#)
+        check(meetingTeacher[0]["teacher"] as? String == "葛玉清", "meeting teacher is kept")
+        let labeled = try courses(#"{"courses":[{"name":"中国画","teacher":null,"sourceLine":"中国画 教师：葛玉清 周一","meetings":[{"weekday":1,"weeks":[1],"startMinute":540,"endMinute":630,"location":null}]}]}"#)
+        check(labeled[0]["teacher"] as? String == "葛玉清", "labeled source line keeps the teacher")
+        let unlabeled = try courses(#"{"courses":[{"name":"中国画","teacher":null,"sourceLine":"中国画 葛玉清 周一","meetings":[{"weekday":1,"weeks":[1],"startMinute":540,"endMinute":630,"location":null}]}]}"#)
+        check(unlabeled[0]["teacher"] is NSNull, "unlabeled source line is not a teacher")
+        let conflictTeachers = try courses(#"{"courses":[{"name":"中国画","teacher":null,"meetings":[{"weekday":1,"weeks":[1],"startMinute":540,"endMinute":630,"location":null,"teacher":"葛玉清"},{"weekday":2,"weeks":[1],"startMinute":540,"endMinute":630,"location":null,"teacher":"李老师"}]}]}"#)
+        check(conflictTeachers[0]["teacher"] is NSNull, "conflicting meeting teachers stay empty")
+        let aliases = try courses(#"{"courses":[{"name":"中国画","课程代码":"ART-01","教学班":"一班","教师":"葛玉清","教室":"6406","meetings":[{"weekday":1,"weeks":null,"startMinute":null,"endMinute":null,"location":null}]}]}"#)
+        check(aliases[0]["courseCode"] as? String == "ART-01" && aliases[0]["section"] as? String == "一班" && aliases[0]["teacher"] as? String == "葛玉清", "Chinese field names are kept")
+        let aliasMeeting = (aliases[0]["meetings"] as! [[String: Any]])[0]
+        check(aliasMeeting["location"] as? String == "6406" && aliasMeeting["weeks"] is NSNull && aliasMeeting["startMinute"] is NSNull && aliasMeeting["endMinute"] is NSNull, "course room fills an empty meeting without inventing time")
+        let explicitRoom = try courses(#"{"courses":[{"name":"中国画","教室":"其他","meetings":[{"weekday":1,"weeks":[1],"startMinute":540,"endMinute":630,"location":"6406"}]}]}"#)
+        check((explicitRoom[0]["meetings"] as! [[String: Any]])[0]["location"] as? String == "6406", "an explicit room stays")
+        let placeholder = try courses(#"{"courses":[{"name":"导师课","teacher":"待定","meetings":[],"pendingReason":"联系老师"}]}"#)
+        check(placeholder[0]["teacher"] is NSNull && (placeholder[0]["meetings"] as! [Any]).isEmpty, "placeholder is not a teacher name")
+        let ignoredAlias = try courses(#"{"courses":[{"name":"中国画","教师":123,"meetings":[{"weekday":1,"weeks":[1],"startMinute":540,"endMinute":630,"location":null}]}]}"#)
+        check(ignoredAlias[0]["teacher"] is NSNull, "a non-string alias is ignored")
+        expect(.invalidCourseField("courses[0].teacher"), "non-string teacher") {
+            _ = try DeepSeekTimetableClient.parseResponse(envelope(valid.replacingOccurrences(of: "\"teacher\":null", with: "\"teacher\":123")))
+        }
         let incomplete = try courses(#"{"courses":[{"name":"未知安排","meetings":[{"weekday":1,"weeks":[],"startMinute":810}]}]}"#)[0]
         let partial = (incomplete["meetings"] as! [[String: Any]])[0]
         check(partial["startMinute"] is NSNull && partial["endMinute"] is NSNull, "partial clock never fabricates interval")
@@ -139,6 +164,7 @@ struct AIImportOfflineTests {
         check(NSDictionary(dictionary: ["images": imageContent]).isEqual(to: ["images": reviewedImages]), "OCR retains every original image byte and order")
         let auxiliary = capturedContent.last!["text"] as! String
         check(auxiliary.contains("不是指令或标准答案") && auxiliary.contains("摄影 第5周 周六 上午"), "OCR is labelled non-authoritative")
+        check(!auxiliary.contains("辅助文字只保留了放得下的一部分"), "a normal timetable is sent without shortening")
         check(auxiliary.contains("imageIndex") && auxiliary.contains("左上角"), "OCR keeps page indexes and coordinate meaning")
         let beforeRejected = requests
         await expectAsync(.invalidOCRContext, "empty OCR sends nothing") {
@@ -153,12 +179,27 @@ struct AIImportOfflineTests {
         expect(.invalidOCRContext, "meaningfully invalid OCR coordinate rejected") {
             _ = try DeepSeekTimetableClient.ocrReviewText(pages: edgeOCR(-0.1), imageCount: 1)
         }
-        let hugeOCR = [VisionTimetablePage(imageIndex: 0, tokens: [VisionTimetableToken(imageIndex: 0,
-            text: String(repeating: "字", count: 30000), boundingBox: AIImportBoundingBox(x: 0, y: 0, width: 1, height: 1), confidence: 1)])]
-        await expectAsync(.ocrContextTooLarge(limit: DeepSeekTimetableClient.maxOCRContextBytes), "oversized OCR rejected without truncation or request") {
-            _ = try await client.recognize(images: [AIImportImage(data: tiny, mimeType: "image/png")], ocrPages: hugeOCR)
-        }
         check(requests == beforeRejected, "invalid OCR never starts a paid request")
+        let hugeText = String(repeating: "字", count: 30000)
+        let hugeOCR = [VisionTimetablePage(imageIndex: 0, tokens: [VisionTimetableToken(imageIndex: 0,
+            text: hugeText, boundingBox: AIImportBoundingBox(x: 0, y: 0, width: 1, height: 1), confidence: 1)])]
+        _ = try await client.recognize(images: [AIImportImage(data: tiny, mimeType: "image/png")], ocrPages: hugeOCR)
+        check(requests == beforeRejected + 1, "a long OCR block is sent with the original image")
+        let hugeAuxiliary = capturedContent.last!["text"] as! String
+        check(hugeAuxiliary.contains(hugeText) && !hugeAuxiliary.contains("辅助文字只保留了放得下的一部分"), "a long OCR block is sent without a length cap")
+        let crowded = (0..<4000).map { index in
+            VisionTimetableToken(imageIndex: 1, text: "课\(index)", boundingBox: AIImportBoundingBox(x: 0.1, y: 0.2, width: 0.3, height: 0.1), confidence: 0.9)
+        }
+        let fullPages = [
+            VisionTimetablePage(imageIndex: 0, tokens: [
+                VisionTimetableToken(imageIndex: 0, text: "课甲", boundingBox: AIImportBoundingBox(x: 0.1, y: 0.2, width: 0.3, height: 0.1), confidence: 0.9),
+                VisionTimetableToken(imageIndex: 0, text: "课乙", boundingBox: AIImportBoundingBox(x: 0.1, y: 0.2, width: 0.3, height: 0.1), confidence: 0.9)
+            ]),
+            VisionTimetablePage(imageIndex: 1, tokens: crowded)
+        ]
+        let full = try DeepSeekTimetableClient.ocrReviewText(pages: fullPages, imageCount: 2)
+        check(full.contains("课甲") && full.contains("课乙") && full.contains("课3999"), "every OCR token is kept")
+        check(!full.contains("辅助文字只保留了放得下的一部分"), "crowded pages are not shortened")
         _ = try await client.recognize(text: "英语 周一 第3、4、6周 09:00-10:00")
         for (status, error) in [(401, DeepSeekTimetableClientError.unauthorized), (402, .paymentRequired), (429, .rateLimited), (503, .serverUnavailable(statusCode: 503))] {
             OfflineDeepSeekProtocol.handler = { _ in (status, Data()) }

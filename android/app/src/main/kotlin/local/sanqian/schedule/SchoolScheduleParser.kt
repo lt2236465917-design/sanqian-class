@@ -14,11 +14,19 @@ object SchoolScheduleParser {
         frameCount: Int? = null,
         sourceURL: String? = null
     ): SchoolScheduleParseResult {
-        val usable = tables.filter { it.isExtractionMessage }
+        val prepared = prepareTables(tables)
+        val usable = prepared.tables
         val all = mutableListOf<SchoolScheduleDraft>()
         val warnings = mutableListOf<String>()
+        if (prepared.droppedSensitive) {
+            warnings.add("已去掉含登录信息或链接的格子，其余课表会交给 AI。")
+        }
         for (table in usable) {
-            val parsed = parseTable(table, source, SchoolPortalSecurity.sanitizedURL(sourceURL ?: table.frame.url))
+            val parsed = try {
+                parseTable(table, source, SchoolPortalSecurity.sanitizedURL(sourceURL ?: table.frame.url))
+            } catch (_: Throwable) {
+                emptyList<SchoolScheduleDraft>() to listOf("有一张课表没能在本机整理，原文仍会交给 AI。")
+            }
             all.addAll(parsed.first)
             warnings.addAll(parsed.second)
         }
@@ -37,6 +45,44 @@ object SchoolScheduleParser {
             warnings = warnings.distinct(),
             timetableText = material.first
         )
+    }
+
+    private data class PreparedTables(
+        val tables: List<SchoolPortalFrameMessage>,
+        val droppedSensitive: Boolean
+    )
+
+    private fun prepareTables(tables: List<SchoolPortalFrameMessage>): PreparedTables {
+        var dropped = false
+        val prepared = mutableListOf<SchoolPortalFrameMessage>()
+        for (table in tables) {
+            if (!table.isExtractionMessage) continue
+            val rows = mutableListOf<List<SchoolPortalTableCell>>()
+            for (row in table.rows) {
+                val cells = mutableListOf<SchoolPortalTableCell>()
+                for (cell in row) {
+                    if (sensitiveMaterial.containsMatchIn(cell.text)) {
+                        dropped = true
+                        continue
+                    }
+                    cells.add(cell)
+                }
+                if (cells.any { it.text.isNotBlank() }) rows.add(cells)
+            }
+            if (rows.isNotEmpty()) prepared.add(table.copy(rows = rows, innerText = "", html = ""))
+        }
+        return PreparedTables(prepared, dropped)
+    }
+
+    private fun looksLikeTimetable(text: String): Boolean {
+        val list = Regex("课程名称|课程名|科目|教学科目").containsMatchIn(text) &&
+            Regex("上课|时间|地点|安排|周次").containsMatchIn(text)
+        val named = Regex("课程").containsMatchIn(text) &&
+            Regex("教师|老师|教室|周次|上课").containsMatchIn(text)
+        val grid = Regex("周一|星期一").containsMatchIn(text) &&
+            Regex("周二|星期二").containsMatchIn(text)
+        val school = Regex("上午课|下午课|晚上课").containsMatchIn(text)
+        return list || named || grid || school
     }
 
     fun parse(message: SchoolPortalFrameMessage): SchoolScheduleParseResult {
@@ -66,31 +112,26 @@ object SchoolScheduleParser {
 
     private fun timetableMaterial(tables: List<SchoolPortalFrameMessage>): Pair<String?, List<String>> {
         val sourceTables = mutableListOf<List<List<SchoolPortalTableCell>>>()
+        val warnings = mutableListOf<String>()
         for (table in tables) {
-            val header = table.rows.indexOfFirst { row ->
-                val text = row.joinToString(" ") { it.text }
-                val list = Regex("课程名称|课程名|科目|教学科目").containsMatchIn(text) &&
-                    Regex("上课|时间|地点|安排|周次").containsMatchIn(text)
-                val grid = Regex("周一|星期一").containsMatchIn(text) && Regex("周二|星期二").containsMatchIn(text)
-                list || grid
-            }
-            if (header < 0 || table.rows.size <= header + 1) continue
+            val text = table.rows.joinToString(" ") { row -> row.joinToString(" ") { it.text } }
+            if (!looksLikeTimetable(text) || table.rows.size < 2) continue
             if (table.truncated == true) {
-                return null to listOf("网页课表未完整读取，请分页面读取或使用完整课表截图；本次无法发送原文给 AI。")
+                warnings.add("有一张课表没有读全，这一张没有交给 AI。")
+                continue
             }
-            val rows = table.rows.drop(header)
-            if (sourceTables.none { it == rows }) sourceTables.add(rows)
+            if (sensitiveMaterial.containsMatchIn(text)) {
+                warnings.add("有一张课表仍含登录信息或链接，这一张没有交给 AI。")
+                continue
+            }
+            if (sourceTables.none { it == table.rows }) sourceTables.add(table.rows)
         }
-        if (sourceTables.isEmpty()) return null to emptyList()
-        val texts = sourceTables.flatten().flatten().joinToString("\n") { it.text }
-        if (sensitiveMaterial.containsMatchIn(texts)) {
-            return null to listOf("课表中混有登录信息或链接，本次不提供 AI 原文识别；请打开独立课表页后重试。")
-        }
+        if (sourceTables.isEmpty()) return null to warnings
         val data = encodeTimetableCells(sourceTables)
         if (data.size > 64_000) {
-            return null to listOf("课表原文过长，本次不发送给 AI；请分页面读取或分批导入截图。")
+            return null to (warnings + "课表原文过长，本次不发送给 AI；请分页面读取或分批导入截图。")
         }
-        return String(data, Charsets.UTF_8) to emptyList()
+        return String(data, Charsets.UTF_8) to warnings
     }
 
     private fun parseTable(

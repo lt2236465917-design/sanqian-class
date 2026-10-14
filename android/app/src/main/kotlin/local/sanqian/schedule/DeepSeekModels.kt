@@ -32,7 +32,6 @@ sealed class DeepSeekTimetableClientError(message: String) : Exception(message) 
         DeepSeekTimetableClientError("AI 返回的课表字段格式不正确（$path），本次未保存课程；请重试")
     object InvalidTimetableText : DeepSeekTimetableClientError("请仅提供已提取的课表文字，勿包含登录页、链接或凭据")
     object InvalidOCRContext : DeepSeekTimetableClientError("本机文字识别未得到可用复核依据，当前结果已保留")
-    class OcrContextTooLarge(val limit: Int) : DeepSeekTimetableClientError("复核文字过多，请减少每批图片数量；当前结果已保留")
     object TruncatedResponse : DeepSeekTimetableClientError("AI 结果过长被截断，请减少每批图片数量或分页面识别；本次未保存课程")
     class ApiError(statusCode: Int) : DeepSeekTimetableClientError("DeepSeek 请求失败")
 }
