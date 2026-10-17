@@ -172,15 +172,12 @@ class _ImportReviewViewState extends State<ImportReviewView> {
     }
     // Malformed source metadata must not be treated as an unowned legacy table.
     if (key == null && table['metadata']['import_source_key'] != null) return;
-    var filled = false;
     if (key != null) {
       if (!_schoolEdited && key[3] is String) {
         _school.text = key[3];
-        filled = true;
       }
       if (!_termEdited && key[4] is String) {
         _term.text = key[4];
-        filled = true;
       }
     }
     final raw = table['metadata']['semester_start_monday'];
@@ -192,9 +189,7 @@ class _ImportReviewViewState extends State<ImportReviewView> {
         monday.year <= 2040 &&
         raw == monday.toIso8601String().split('T').first) {
       _monday = monday;
-      filled = true;
     }
-    if (filled) _metadataNote = '已带入“${table['name']}”的已保存信息，请核对学期与开学日期。';
   }
 
   List<Map<String, dynamic>> _copyCourses(List<Map<String, dynamic>> courses) =>
@@ -371,26 +366,14 @@ class _ImportReviewViewState extends State<ImportReviewView> {
                   ? '复核差异'
                   : '核对 AI 识别结果',
             ),
-            content: withOCR
-                ? _recheckDifferenceContent(
-                    reviewed,
-                    changes,
-                    warnings: prepared.warnings,
-                    withOCR: true,
-                  )
-                : recheck
-                ? _recheckDifferenceContent(reviewed, changes)
+            content: withOCR || recheck
+                ? _recheckDifferenceContent(reviewed)
                 : SizedBox(
                     width: 420,
                     child: SingleChildScrollView(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            '当前 ${_courses.length} 门课程 · 复核整理后 ${reviewed.length} 门',
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                          const SizedBox(height: 12),
                           const Text('采用后将替换当前核对内容，包括手动修改；正式课表需确认保存后才会改变。'),
                           if (prepared.warnings.isNotEmpty ||
                               changes.isNotEmpty) ...[
@@ -475,11 +458,6 @@ class _ImportReviewViewState extends State<ImportReviewView> {
     ]);
   }
 
-  String _courseLabel(Map course) {
-    final name = '${course['name'] ?? ''}'.trim();
-    return name.isEmpty ? '未命名课程' : name;
-  }
-
   String _fieldText(String key, dynamic raw) {
     if (raw == null || raw == '' || raw is List && raw.isEmpty) return '待定';
     if (key == 'startMinute' || key == 'endMinute') return _clock(raw);
@@ -490,18 +468,45 @@ class _ImportReviewViewState extends State<ImportReviewView> {
     return '$raw';
   }
 
-  String _arrangement(Map meeting) {
-    final weeks = meeting['weeks'];
-    final weekText = weeks is List && weeks.isNotEmpty
-        ? (List<int>.from(weeks)..sort()).join('、')
-        : '周次待定';
-    return '星期 ${meeting['weekday'] ?? '待定'} · $weekText · '
-        '${_clock(meeting['startMinute'])}–${_clock(meeting['endMinute'])} · '
-        '${meeting['location'] ?? '地点待定'}';
+  String _recheckName(Map course) => '${course['name'] ?? ''}'
+      .replaceAll(RegExp(r'\s+'), '')
+      .replaceAll('（', '(')
+      .replaceAll('）', ')')
+      .replaceFirst(RegExp(r'[-－]\d+$'), '')
+      .toLowerCase();
+
+  String _recheckSection(Map course) {
+    final explicit = '${course['section'] ?? ''}'.trim();
+    return explicit.isNotEmpty
+        ? explicit
+        : RegExp(
+                r'[-－](\d+)$',
+              ).firstMatch('${course['name'] ?? ''}'.trim())?.group(1) ??
+              '';
   }
 
-  // Follow-up review lists field and arrangement changes against the current draft.
-  List<String> _recheckDifferenceLines(List<Map<String, dynamic>> candidates) {
+  bool _recheckSameCourse(Map before, Map after) {
+    var sharedId = false;
+    for (final field in ['stableId', 'courseCode']) {
+      final left = '${before[field] ?? ''}'.trim().toLowerCase();
+      final right = '${after[field] ?? ''}'.trim().toLowerCase();
+      if (left.isNotEmpty && right.isNotEmpty) {
+        if (left != right) return false;
+        sharedId = true;
+      }
+    }
+    final leftSection = _recheckSection(before);
+    final rightSection = _recheckSection(after);
+    if (leftSection.isNotEmpty &&
+        rightSection.isNotEmpty &&
+        leftSection != rightSection) {
+      return false;
+    }
+    return sharedId || _recheckName(before) == _recheckName(after);
+  }
+
+  // Summarize draft differences with course names and user-facing categories.
+  String _recheckDifferenceSummary(List<Map<String, dynamic>> candidates) {
     const courseFields = {
       'name': '课程名称',
       'teacher': '教师',
@@ -510,118 +515,132 @@ class _ImportReviewViewState extends State<ImportReviewView> {
       'pendingReason': '待定说明',
     };
     const meetingFields = {
-      'weekday': '星期',
-      'weeks': '周次',
-      'startMinute': '开始时间',
-      'endMinute': '结束时间',
+      'weekday': '上课时间、日期',
+      'weeks': '上课时间、日期',
+      'startMinute': '上课时间、日期',
+      'endMinute': '上课时间、日期',
       'location': '教室',
-      'periodIndex': '开始节次',
-      'periodCount': '节次跨度',
+      'periodIndex': '上课时间、日期',
+      'periodCount': '上课时间、日期',
     };
     final paired = <Map<String, dynamic>>{};
-    final lines = <String>[];
+    final changedFields = <String>{};
+    final added = <Map<String, dynamic>>[];
+    final changed = <Map<String, dynamic>>[];
     for (final candidate in candidates) {
-      final label = _courseLabel(candidate);
       final candidateKey = _recognitionCourseKey(candidate);
-      final matches = _courses
+      var matches = _courses
           .where((course) => _recognitionCourseKey(course) == candidateKey)
           .toList();
       final sameKeyCount = candidates
           .where((course) => _recognitionCourseKey(course) == candidateKey)
           .length;
-      if (matches.length != 1 || sameKeyCount != 1) {
-        lines.add('新增：$label');
+      if (matches.isEmpty && sameKeyCount == 1) {
+        // Reserve exact matches, then allow only a unique compatible course.
+        // Recognition can add a code or move a class number into the name.
+        matches = _courses.where((course) {
+          return !paired.contains(course) &&
+              _recheckSameCourse(course, candidate) &&
+              !candidates.any(
+                (item) =>
+                    _recognitionCourseKey(item) ==
+                    _recognitionCourseKey(course),
+              );
+        }).toList();
+        if (matches.length == 1 &&
+            candidates
+                    .where((item) => _recheckSameCourse(matches.single, item))
+                    .length !=
+                1) {
+          matches = [];
+        }
+      }
+      if (matches.length != 1 ||
+          sameKeyCount != 1 ||
+          paired.contains(matches.single)) {
+        added.add(candidate);
         continue;
       }
       final before = matches.single;
       paired.add(before);
+      final fields = <String>{};
       void addFields(Map left, Map right, Map<String, String> labels) {
         for (final item in labels.entries) {
-          final oldValue = _fieldText(item.key, left[item.key]);
-          final newValue = _fieldText(item.key, right[item.key]);
+          String value(Map course) => switch (item.key) {
+            'name' => _recheckName(course),
+            'section' => _recheckSection(course),
+            _ => _fieldText(item.key, course[item.key]),
+          };
+          final oldValue = value(left);
+          final newValue = value(right);
           if (oldValue != newValue) {
-            lines.add('$label · ${item.value}：$oldValue → $newValue');
+            fields.add(item.value);
           }
         }
       }
 
       addFields(before, candidate, courseFields);
-      final oldMeetings = List<Map>.from(before['meetings'] ?? []);
-      final newMeetings = List<Map>.from(candidate['meetings'] ?? []);
-      if (oldMeetings.length == 1 && newMeetings.length == 1) {
-        addFields(oldMeetings.single, newMeetings.single, meetingFields);
-      } else {
-        String meetingKey(Map meeting) => ScheduleImportMeetingDraft.fromJson(
-          Map<String, dynamic>.from(meeting),
-        ).meetingKey;
-        for (final meeting in oldMeetings) {
-          if (!newMeetings.any(
-            (item) => meetingKey(item) == meetingKey(meeting),
-          )) {
-            lines.add('未保留：$label · ${_arrangement(meeting)}');
+      // Splitting the same weeks into separate rows is not a schedule change.
+      List<Map> expandedMeetings(Map course) => [
+        for (final meeting in List<Map>.from(course['meetings'] ?? []))
+          if ((meeting['weeks'] as List?)?.isNotEmpty ?? false)
+            for (final week in meeting['weeks'])
+              {
+                ...meeting,
+                'weeks': [week],
+              }
+          else
+            meeting,
+      ];
+      final oldMeetings = expandedMeetings(before);
+      final newMeetings = expandedMeetings(candidate);
+      String meetingKey(Map meeting) => ScheduleImportMeetingDraft.fromJson(
+        Map<String, dynamic>.from(meeting),
+      ).meetingKey;
+      final oldKeys = oldMeetings.map(meetingKey).toSet();
+      final newKeys = newMeetings.map(meetingKey).toSet();
+      if (oldKeys.length != newKeys.length || !oldKeys.containsAll(newKeys)) {
+        final arrangementFields = <String>{};
+        for (final item in meetingFields.entries) {
+          Set<String> values(List<Map> meetings) => meetings
+              .map((meeting) => _fieldText(item.key, meeting[item.key]))
+              .toSet();
+          final oldValues = values(oldMeetings);
+          final newValues = values(newMeetings);
+          if (oldValues.length != newValues.length ||
+              !oldValues.containsAll(newValues)) {
+            arrangementFields.add(item.value);
           }
         }
-        for (final meeting in newMeetings) {
-          if (!oldMeetings.any(
-            (item) => meetingKey(item) == meetingKey(meeting),
-          )) {
-            lines.add('新增：$label · ${_arrangement(meeting)}');
-          }
-        }
+        fields.addAll(arrangementFields.isEmpty ? {'上课安排'} : arrangementFields);
+      }
+      if (fields.isNotEmpty) {
+        changed.add(candidate);
+        changedFields.addAll(fields);
       }
     }
-    for (final course in _courses.where((course) => !paired.contains(course))) {
-      lines.add('未保留：${_courseLabel(course)}');
+    final removed = _courses
+        .where((course) => !paired.contains(course))
+        .toList();
+    String names(List<Map<String, dynamic>> courses) {
+      final labels = courses.take(2).map((course) => '《${course['name']}》');
+      return '${labels.join('、')}${courses.length > 2 ? '等 ${courses.length} 门课程' : ''}';
     }
-    return lines;
+
+    final parts = [
+      if (added.isNotEmpty) '新增${names(added)}',
+      if (removed.isNotEmpty) '未保留${names(removed)}',
+      if (changed.isNotEmpty) '${names(changed)}的${changedFields.join('、')}有调整',
+    ];
+    return parts.isEmpty ? '' : '${parts.join('；')}。';
   }
 
-  Widget _recheckDifferenceContent(
-    List<Map<String, dynamic>> reviewed,
-    List<String> changes, {
-    List<String> warnings = const [],
-    bool withOCR = false,
-  }) {
-    final lines = _recheckDifferenceLines(reviewed);
-    final notes = {...lines, ...changes}.toList();
+  Widget _recheckDifferenceContent(List<Map<String, dynamic>> reviewed) {
+    final summary = _recheckDifferenceSummary(reviewed);
     return SizedBox(
       width: 420,
       child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (withOCR) ...[
-              Text('当前 ${_courses.length} 门课程 · 复核后 ${reviewed.length} 门'),
-              const SizedBox(height: 12),
-              const Text('采用后将替换当前核对内容，包括手动修改；正式课表需确认保存后才会改变。'),
-              const SizedBox(height: 12),
-            ],
-            Text(
-              notes.isEmpty
-                  ? withOCR
-                        ? '本次复核未发现课程或安排变化，请继续核对原图。'
-                        : '二次复核与第一次识别结果一致。'
-                  : withOCR
-                  ? '与当前核对内容的不同：'
-                  : '与第一次识别结果的不同：',
-            ),
-            if (notes.isNotEmpty) const SizedBox(height: 12),
-            for (final line in notes)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Text(line),
-              ),
-            if (warnings.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              const Text('仍需核对：'),
-              for (final warning in warnings.toSet())
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text(warning),
-                ),
-            ],
-          ],
-        ),
+        child: Text(summary.isEmpty ? '本次复核未发现课程安排变化。' : summary),
       ),
     );
   }

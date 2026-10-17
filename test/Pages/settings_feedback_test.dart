@@ -383,6 +383,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('学校账号导入课表'), findsOneWidget);
       expect(find.text('登录账号后AI识别课表录入'), findsOneWidget);
+      expect(find.textContaining('导入内置课表'), findsNothing);
       expect(find.textContaining('暂只支持中国艺术研究院'), findsNothing);
       expect(tester.takeException(), isNull);
     },

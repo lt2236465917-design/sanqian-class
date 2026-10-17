@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../Components/ScheduleDesign.dart';
 
@@ -6,7 +5,6 @@ import '../../Utils/States/MainState.dart';
 import '../../Utils/ScheduleFeedback.dart';
 import '../About/AboutView.dart';
 import '../AddCourse/AddCourseView.dart';
-import '../Import/ScreenshotImportView.dart';
 import '../Import/SchoolAccountView.dart';
 import '../Import/PhotoScheduleImportView.dart';
 import 'DeepSeekSettingsView.dart';
@@ -86,18 +84,6 @@ class SettingsView extends StatelessWidget {
                     ),
                   ),
                   const Divider(height: 1, indent: 18, endIndent: 18),
-                  if (kDebugMode) ...[
-                    tile(
-                      Icons.photo_library_outlined,
-                      '导入内置课表（调试）',
-                      '中国艺术研究院 · 2026 秋季，重复导入保留修改',
-                      () => open(
-                        const ScreenshotImportView(),
-                        successMessage: '已打开内置课表，返回首页即可查看。',
-                      ),
-                    ),
-                    const Divider(height: 1, indent: 18, endIndent: 18),
-                  ],
                   tile(
                     Icons.add_rounded,
                     '手动添加课程',

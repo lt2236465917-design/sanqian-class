@@ -349,7 +349,7 @@ void main() {
   );
 
   testWidgets(
-    'completed portal review offers a recheck that lists only differences',
+    'completed portal review summarizes changes without individual values',
     (tester) async {
       await showReview(tester);
       await send(tester);
@@ -359,7 +359,12 @@ void main() {
 
       recognize = (_) async => {
         'courses': [
-          {...course('规则遗漏课程'), 'teacher': '复核教师'},
+          {
+            ...course('规则遗漏课程-1'),
+            'teacher': '复核教师',
+            'courseCode': 'C1',
+            'section': '1',
+          },
           course('复核新增课程'),
         ],
       };
@@ -371,9 +376,18 @@ void main() {
       await tester.pumpAndSettle();
       final dialog = find.byType(AlertDialog);
       expect(find.text('复核差异'), findsOneWidget);
-      expect(find.text('规则遗漏课程 · 教师：待定 → 复核教师'), findsOneWidget);
-      expect(find.text('新增：复核新增课程'), findsOneWidget);
-      expect(find.text('与第一次识别结果的不同：'), findsOneWidget);
+      expect(
+        find.text('新增《复核新增课程》；《规则遗漏课程-1》的教师、课程编码、教学班有调整。'),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: dialog, matching: find.textContaining('复核教师')),
+        findsNothing,
+      );
+      expect(
+        find.descendant(of: dialog, matching: find.textContaining('复核后')),
+        findsNothing,
+      );
       expect(
         find.descendant(of: dialog, matching: find.text('当前核对内容')),
         findsNothing,
@@ -413,7 +427,11 @@ void main() {
     await tester.tap(find.text('发送并复核'));
     await tester.pumpAndSettle();
     final dialog = find.byType(AlertDialog);
-    expect(find.text('二次复核与第一次识别结果一致。'), findsOneWidget);
+    expect(find.text('本次复核未发现课程安排变化。'), findsOneWidget);
+    expect(
+      find.descendant(of: dialog, matching: find.textContaining('复核后')),
+      findsNothing,
+    );
     expect(
       find.descendant(of: dialog, matching: find.text('AI 返回内容')),
       findsNothing,
@@ -499,6 +517,7 @@ void main() {
         '2026 秋季',
       );
       expect(find.text('2026-9-7'), findsOneWidget);
+      expect(find.textContaining('已带入'), findsNothing);
       await tester.enterText(field('学期名称'), '手动学期');
       await tester.pumpAndSettle();
       expect(find.text('选择学校校历中第一周的周一'), findsOneWidget);
@@ -772,8 +791,8 @@ void main() {
       },
     );
     expect(find.text('复核结果'), findsOneWidget);
-    expect(find.text('新增：规则遗漏课程'), findsOneWidget);
-    expect(find.text('未保留：摄影'), findsOneWidget);
+    expect(find.text('新增《规则遗漏课程》；未保留《摄影》。'), findsOneWidget);
+    expect(find.textContaining('复核后'), findsNothing);
     await tester.tap(find.text('取消'));
     await tester.pumpAndSettle();
     expect(find.text('摄影'), findsOneWidget);
@@ -781,6 +800,48 @@ void main() {
     expect(find.text('AI 复核课表'), findsNothing);
     expect(await db.query('Course'), isEmpty);
   });
+
+  testWidgets(
+    'OCR regrouping the same weeks only shows the no-change message',
+    (tester) async {
+      final original = {...course('摄影'), 'courseCode': 'C1', 'section': '1'};
+      final meeting = (original['meetings'] as List).single as Map;
+      recognize = (_) async => {
+        'courses': [
+          {
+            ...original,
+            'name': '摄影-1',
+            'meetings': [
+              {
+                ...meeting,
+                'weeks': [6],
+              },
+              {
+                ...meeting,
+                'weeks': [4, 3],
+              },
+            ],
+          },
+        ],
+      };
+      await showReview(
+        tester,
+        source: 'photos',
+        courses: [original, original],
+        imagePaths: ['/fixture/one.png'],
+      );
+      await tester.tap(find.widgetWithText(OutlinedButton, 'AI 复核课表'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('发送并复核'));
+      await tester.pumpAndSettle();
+      expect(find.text('本次复核未发现课程安排变化。'), findsOneWidget);
+      expect(find.textContaining('复核后'), findsNothing);
+      expect(find.textContaining('有调整'), findsNothing);
+      await tester.tap(find.text('取消'));
+      await tester.pumpAndSettle();
+      expect(await db.query('Course'), isEmpty);
+    },
+  );
 
   testWidgets(
     'OCR changes stay in review outside the compact save confirmation',
@@ -840,11 +901,10 @@ void main() {
       await tester.tap(find.text('发送并复核'));
       await tester.pumpAndSettle();
       expect(find.textContaining('已经很完整'), findsNothing);
-      expect(find.text('摄影 · 教师：原教师 → 复核教师'), findsOneWidget);
-      expect(find.text('未保留：导师课'), findsOneWidget);
-      expect(find.textContaining('未保留：摄影 · 星期 6'), findsOneWidget);
-      expect(find.textContaining('3 条原有安排未保留'), findsOneWidget);
-      expect(find.textContaining('采用后将替换当前核对内容'), findsOneWidget);
+      expect(find.text('未保留《导师课》；《摄影》的教师、上课时间、日期有调整。'), findsOneWidget);
+      expect(find.textContaining('原教师 → 复核教师'), findsNothing);
+      expect(find.textContaining('3 条原有安排未保留'), findsNothing);
+      expect(find.textContaining('采用后将替换当前核对内容'), findsNothing);
       await tester.tap(find.text('采用'));
       await tester.pumpAndSettle();
       expect(find.text('AI 复核课表'), findsNothing);
