@@ -709,12 +709,23 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
   Future<void> _openWeekDetail(PersonalSchedule schedule) =>
       Navigator.of(context).push<void>(
         CupertinoPageRoute<void>(
-          builder: (_) => WeekScheduleDetailPage(
-            schedule: schedule,
-            week: schedule.weekAt(_weekDay),
-            now: _clock,
-            colorForCourse: _miniCourseColor,
-            onCourseTap: (course) => _details(course, schedule),
+          builder: (_) => StatefulBuilder(
+            builder: (detailContext, refreshDetail) {
+              final current = _schedule ?? schedule;
+              return WeekScheduleDetailPage(
+                schedule: current,
+                week: current.weekAt(_weekDay),
+                now: _clock,
+                colorForCourse: _miniCourseColor,
+                onCourseTap: (course) => _details(
+                  course,
+                  current,
+                  onChanged: () {
+                    if (detailContext.mounted) refreshDetail(() {});
+                  },
+                ),
+              );
+            },
           ),
         ),
       );
@@ -1177,7 +1188,11 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
     ].join('\n');
   }
 
-  void _details(Course course, PersonalSchedule schedule) {
+  void _details(
+    Course course,
+    PersonalSchedule schedule, {
+    VoidCallback? onChanged,
+  }) {
     final facts = SavedCourseFacts.fromCourse(course);
     final info = _courseInfo(course);
     final period = ClassTimeUtil.rangeLabel(
@@ -1222,6 +1237,7 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
                         onPressed: () async {
                           Navigator.pop(context);
                           await _open(EditCourseView(course: course));
+                          onChanged?.call();
                         },
                         icon: const Icon(Icons.edit_outlined, size: 18),
                         label: const Text('编辑'),

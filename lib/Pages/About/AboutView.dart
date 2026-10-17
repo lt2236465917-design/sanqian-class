@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../Resources/PersonalTheme.dart';
 
 class AboutView extends StatelessWidget {
   const AboutView({super.key});
-  static const upstream =
-      'https://github.com/WheretoSleepinNJU/NJU-Class-Shedule-Flutter';
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -50,34 +47,48 @@ class AboutView extends StatelessWidget {
             style: TextStyle(height: 1.8),
           ),
           const SizedBox(height: 14),
-          OutlinedButton.icon(
-            icon: const Icon(Icons.open_in_new_rounded),
-            label: const Text('查看原项目'),
-            onPressed: () async {
-              final opened = await launchUrl(
-                Uri.parse(upstream),
-                mode: LaunchMode.externalApplication,
-              );
-              if (!opened && context.mounted) {
-                ScaffoldMessenger.of(
-                  context,
-                ).showSnackBar(const SnackBar(content: Text('暂时无法打开项目地址')));
-              }
-            },
-          ),
           TextButton(
             onPressed: () => Navigator.push(
               context,
+              MaterialPageRoute(
+                builder: (_) => const _OpenSourceLicensesView(),
+              ),
+            ),
+            child: const Text('开源许可与致谢'),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+class _OpenSourceLicensesView extends StatelessWidget {
+  const _OpenSourceLicensesView();
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('开源许可与致谢')),
+    body: SafeArea(
+      child: ListView(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        children: [
+          ListTile(
+            title: const Text('Apache-2.0 许可证'),
+            subtitle: const Text('上游项目的开源许可证'),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => Navigator.push(
+              context,
               MaterialPageRoute(builder: (_) => const _SourceLicenseView()),
             ),
-            child: const Text('Apache-2.0 许可证'),
           ),
-          TextButton(
-            onPressed: () => showLicensePage(
+          ListTile(
+            title: const Text('第三方开源许可证'),
+            subtitle: const Text('Flutter 及依赖库的许可与致谢'),
+            trailing: const Icon(Icons.chevron_right_rounded),
+            onTap: () => showLicensePage(
               context: context,
               applicationName: personalAppName,
             ),
-            child: const Text('第三方开源许可证'),
           ),
         ],
       ),

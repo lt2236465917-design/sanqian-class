@@ -7,6 +7,9 @@ import 'package:sanqian_class/Models/Db/DbHelper.dart';
 import 'package:sanqian_class/Models/CourseModel.dart';
 import 'package:sanqian_class/Models/CourseTableModel.dart';
 import 'package:sanqian_class/Pages/AddCourse/EditCourseView.dart';
+import 'package:sanqian_class/Pages/Personal/PersonalHomeView.dart';
+import 'package:sanqian_class/Models/PersonalSchedule.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -14,6 +17,7 @@ void main() {
   late Database db;
   late Course course;
   setUp(() async {
+    SharedPreferences.setMockInitialValues({});
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfiNoIsolate;
     folder = await Directory.systemTemp.createTemp('edit-course-');
@@ -90,6 +94,85 @@ void main() {
       await tester.pumpWidget(const SizedBox());
       expect(course.name, '原课程');
       expect(await db.query('Course'), before);
+    },
+  );
+  testWidgets('full week refreshes after saving an edited course', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(430, 1200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PersonalHomeView(
+          clock: () => DateTime(2026, 9, 9, 8),
+          loader: () async => PersonalSchedule(
+            tableId: course.tableId!,
+            name: '秋季',
+            firstMonday: DateTime(2026, 9, 7),
+            periods: await CourseTableProvider().getClassTimeList(
+              course.tableId!,
+            ),
+            courses: (await db.query('Course')).map(Course.fromMap).toList(),
+          ),
+        ),
+      ),
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 30)),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('tab-week')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Semantics &&
+            widget.properties.identifier == 'week-overview-open-detail',
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('原课程').hitTestable());
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('编辑'));
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 30)),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(field('课程名称'), '新课程');
+    await save(tester);
+    expect(find.text('完整周表'), findsOneWidget);
+    expect(find.text('新课程').hitTestable(), findsOneWidget);
+    expect(find.text('原课程').hitTestable(), findsNothing);
+    expect((await db.query('Course')).first['name'], '新课程');
+    expect(tester.takeException(), isNull);
+  });
+  testWidgets(
+    'delete requires confirmation and removes only selected arrangement',
+    (tester) async {
+      final before = await db.query('Course');
+      await show(tester);
+      await tester.scrollUntilVisible(
+        find.text('删除课程'),
+        400,
+        scrollable: find
+            .descendant(
+              of: find.byType(ListView),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
+      await tester.tap(find.text('删除课程'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('取消'));
+      await tester.pumpAndSettle();
+      expect(await db.query('Course'), before);
+      await tester.tap(find.text('删除课程'));
+      await tester.pumpAndSettle();
+      await tester.runAsync(() => tester.tap(find.text('删除')));
+      await tester.pumpAndSettle();
+      expect(await db.query('Course'), [before.last]);
     },
   );
   testWidgets(

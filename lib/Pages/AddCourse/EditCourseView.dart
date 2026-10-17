@@ -110,6 +110,46 @@ class _EditCourseViewState extends State<EditCourseView> {
     }
   }
 
+  Future<void> _delete() async {
+    if (_saving || widget.course.id == null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('删除这条课程安排？'),
+        content: Text(
+          '将删除“${widget.course.name ?? '未命名课程'}”的这条安排，同名课程的其他安排不受影响。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted || _saving) return;
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      final deleted = await CourseProvider().delete(widget.course.id!);
+      if (deleted != 1) throw StateError('course_missing');
+      if (mounted) Navigator.pop(context, true);
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _saving = false;
+          _error = '删除未完成，请重试。';
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('编辑课程')),
@@ -238,6 +278,15 @@ class _EditCourseViewState extends State<EditCourseView> {
           FilledButton(
             onPressed: _saving || widget.course.id == null ? null : _save,
             child: Text(_saving ? '正在保存…' : '保存课程'),
+          ),
+          const SizedBox(height: 8),
+          TextButton.icon(
+            onPressed: _saving || widget.course.id == null ? null : _delete,
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
+            icon: const Icon(Icons.delete_outline),
+            label: const Text('删除课程'),
           ),
         ],
       ),
