@@ -1,3 +1,4 @@
+import '../../Components/ScheduleFeedbackNotice.dart';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -18,6 +19,7 @@ class ScreenshotImportView extends StatefulWidget {
 class _ScreenshotImportViewState extends State<ScreenshotImportView> {
   late final Future<ScreenshotSchedule> _schedule = _load();
   bool _importing = false;
+  String? _importError;
 
   Future<ScreenshotSchedule> _load() async => ScreenshotSchedule.fromJson(
     jsonDecode(await rootBundle.loadString(ScreenshotSchedule.assetPath))
@@ -25,7 +27,10 @@ class _ScreenshotImportViewState extends State<ScreenshotImportView> {
   );
 
   Future<void> _import(ScreenshotSchedule schedule) async {
-    setState(() => _importing = true);
+    setState(() {
+      _importing = true;
+      _importError = null;
+    });
     try {
       final model = MainStateModel.of(context);
       final id = await ScreenshotScheduleImporter.importOrOpen(schedule);
@@ -34,9 +39,7 @@ class _ScreenshotImportViewState extends State<ScreenshotImportView> {
       if (mounted) Navigator.of(context).pop(true);
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('课表导入失败，请重试。')));
+        setState(() => _importError = '课表导入失败，请重试。');
       }
     } finally {
       if (mounted) setState(() => _importing = false);
@@ -116,13 +119,24 @@ class _ScreenshotImportViewState extends State<ScreenshotImportView> {
                   ],
                 ),
               ),
+              if (_importError != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: ScheduleInlineFeedback(message: _importError!),
+                ),
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: SizedBox(
                   width: double.infinity,
                   child: FilledButton(
                     onPressed: _importing ? null : () => _import(schedule),
-                    child: Text(_importing ? '正在导入…' : '导入 / 更新本地课表'),
+                    child: Text(
+                      _importing
+                          ? '正在导入…'
+                          : _importError != null
+                          ? '重试导入'
+                          : '导入 / 更新本地课表',
+                    ),
                   ),
                 ),
               ),

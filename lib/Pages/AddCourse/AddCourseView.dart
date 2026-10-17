@@ -1,3 +1,4 @@
+import '../../Components/ScheduleFeedbackNotice.dart';
 import '../../Components/ScheduleDesign.dart';
 import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -9,7 +10,6 @@ import '../../generated/l10n.dart';
 import 'package:flutter/material.dart';
 import '../../Resources/Constant.dart';
 import '../../Resources/Config.dart';
-import '../../Components/Dialog.dart';
 import 'AddCoursePresenter.dart';
 
 import 'Widgets/WeekNodeDialog.dart';
@@ -36,6 +36,7 @@ class _AddViewState extends State<AddView> {
   final FocusNode placeTextFieldNode = FocusNode();
   bool _classNameIsValid = true;
   bool _saving = false;
+  String? _saveError;
   List<Map>? _periods;
 
   @override
@@ -278,10 +279,20 @@ class _AddViewState extends State<AddView> {
                   ),
                   const Padding(padding: EdgeInsets.all(10)),
                   const Padding(padding: EdgeInsets.all(10)),
+                  if (_saveError != null) ...[
+                    ScheduleInlineFeedback(message: _saveError!),
+                    const SizedBox(height: 12),
+                  ],
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton(
-                      child: Text(_saving ? '正在保存…' : S.of(context).add_class),
+                      child: Text(
+                        _saving
+                            ? '正在保存…'
+                            : _saveError != null
+                            ? '重试保存'
+                            : S.of(context).add_class,
+                      ),
                       onPressed: _saving
                           ? null
                           : () async {
@@ -292,49 +303,22 @@ class _AddViewState extends State<AddView> {
                                 return;
                               }
                               if (_node['startTime'] > _node['endTime']) {
-                                showDialog<String>(
-                                  context: context,
-                                  builder: (BuildContext context) {
-                                    return MDialog(
-                                      S
-                                          .of(context)
-                                          .class_num_invalid_dialog_title,
-                                      Text(
-                                        S
-                                            .of(context)
-                                            .class_num_invalid_dialog_content,
-                                      ),
-                                      widgetOKAction: () {
-                                        Navigator.of(context).pop();
-                                      },
-                                    );
-                                  },
+                                setState(
+                                  () => _saveError = '开始时间需要早于结束时间，请调整上课时间。',
                                 );
                                 return;
                               }
                               if (_node['startWeek'] > _node['endWeek']) {
-                                showDialog<String>(
-                                  context: context,
-                                  builder: (BuildContext context) {
-                                    return MDialog(
-                                      S
-                                          .of(context)
-                                          .week_num_invalid_dialog_title,
-                                      Text(
-                                        S
-                                            .of(context)
-                                            .week_num_invalid_dialog_content,
-                                      ),
-                                      widgetOKAction: () {
-                                        Navigator.of(context).pop();
-                                      },
-                                    );
-                                  },
+                                setState(
+                                  () => _saveError = '开始周不能晚于结束周，请调整上课周次。',
                                 );
                                 return;
                               }
                               FocusScope.of(context).unfocus();
-                              setState(() => _saving = true);
+                              setState(() {
+                                _saving = true;
+                                _saveError = null;
+                              });
                               try {
                                 final result = await _presenter.addCourse(
                                   context,
@@ -347,17 +331,13 @@ class _AddViewState extends State<AddView> {
                                 if (result) {
                                   Navigator.of(context).pop(true);
                                 } else {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('课程未保存，请检查上课周次后重试。'),
-                                    ),
+                                  setState(
+                                    () => _saveError = '课程未保存，请检查上课周次后重试。',
                                   );
                                 }
                               } catch (_) {
                                 if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('保存失败，请重试。')),
-                                  );
+                                  setState(() => _saveError = '保存失败，请重试。');
                                 }
                               } finally {
                                 if (mounted) {

@@ -77,7 +77,6 @@ class _WeekTimeNodeDialogState extends State<WeekTimeNodeDialog> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text('星期'),
             ScheduleWheel(
               items: [
                 for (var i = 0; i < 7; i++) Constant.WEEK_WITHOUT_BIAS[i],
@@ -88,38 +87,44 @@ class _WeekTimeNodeDialogState extends State<WeekTimeNodeDialog> {
             const SizedBox(height: 8),
             const Row(
               children: [
-                Expanded(child: Text('开始 · 时')),
-                Expanded(child: Text('开始 · 分')),
-                Expanded(child: Text('结束 · 时')),
-                Expanded(child: Text('结束 · 分')),
+                Expanded(child: Text('开始时间', textAlign: TextAlign.center)),
+                Expanded(child: Text('结束时间', textAlign: TextAlign.center)),
               ],
             ),
             Row(
               children: [
                 Expanded(
                   child: ScheduleWheel(
-                    items: [for (var i = 0; i < 24; i++) i.toString().padLeft(2, '0')],
+                    items: [
+                      for (var i = 0; i < 24; i++) i.toString().padLeft(2, '0'),
+                    ],
                     initialItem: _startHour,
                     onChanged: (value) => setState(() => _startHour = value),
                   ),
                 ),
                 Expanded(
                   child: ScheduleWheel(
-                    items: [for (var i = 0; i < 60; i++) i.toString().padLeft(2, '0')],
+                    items: [
+                      for (var i = 0; i < 60; i++) i.toString().padLeft(2, '0'),
+                    ],
                     initialItem: _startMinute,
                     onChanged: (value) => setState(() => _startMinute = value),
                   ),
                 ),
                 Expanded(
                   child: ScheduleWheel(
-                    items: [for (var i = 0; i < 24; i++) i.toString().padLeft(2, '0')],
+                    items: [
+                      for (var i = 0; i < 24; i++) i.toString().padLeft(2, '0'),
+                    ],
                     initialItem: _endHour,
                     onChanged: (value) => setState(() => _endHour = value),
                   ),
                 ),
                 Expanded(
                   child: ScheduleWheel(
-                    items: [for (var i = 0; i < 60; i++) i.toString().padLeft(2, '0')],
+                    items: [
+                      for (var i = 0; i < 60; i++) i.toString().padLeft(2, '0'),
+                    ],
                     initialItem: _endMinute,
                     onChanged: (value) => setState(() => _endMinute = value),
                   ),

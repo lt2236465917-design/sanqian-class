@@ -1,3 +1,4 @@
+import '../../Components/ScheduleFeedbackNotice.dart';
 import '../../Components/ScheduleDesign.dart';
 import 'dart:convert';
 
@@ -19,6 +20,8 @@ class _ManageTableViewState extends State<ManageTableView> {
   late Future<List> _tables = _loadTables();
   int? _selectedId, _selectingId;
   bool _busy = false;
+  String? _operationError;
+  VoidCallback? _retry;
   bool get _locked => _busy || _selectingId != null;
 
   Future<List> _loadTables() async {
@@ -30,7 +33,10 @@ class _ManageTableViewState extends State<ManageTableView> {
 
   Future<bool> _rename(int id, String name) async {
     if (_locked) return false;
-    setState(() => _busy = true);
+    setState(() {
+      _busy = true;
+      _operationError = null;
+    });
     try {
       await _provider.rename(id, name);
       if (mounted) {
@@ -38,35 +44,37 @@ class _ManageTableViewState extends State<ManageTableView> {
         setState(() {
           _tables = _loadTables();
         });
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('课表名称已保存')));
+        ScheduleFeedbackNotice.show(context, '课表名称已保存');
       }
       return true;
     } catch (_) {
-      _error();
+      _error(() => _rename(id, name));
       return false;
     } finally {
       if (mounted) setState(() => _busy = false);
     }
   }
 
-  void _error() {
+  void _error(VoidCallback retry) {
     if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('操作未完成，请重试。')));
+      setState(() {
+        _operationError = '操作未完成，请重试。';
+        _retry = retry;
+      });
     }
   }
 
   Future<void> _select(int id) async {
     if (_locked || id == _selectedId) return;
-    setState(() => _selectingId = id);
+    setState(() {
+      _selectingId = id;
+      _operationError = null;
+    });
     try {
       await MainStateModel.of(context).changeclassTable(id);
       if (mounted) setState(() => _selectedId = id);
     } catch (_) {
-      _error();
+      _error(() => _select(id));
     } finally {
       if (mounted) setState(() => _selectingId = null);
     }
@@ -78,7 +86,10 @@ class _ManageTableViewState extends State<ManageTableView> {
       builder: (_) => const AddDialog(),
     );
     if (name == null || name.trim().isEmpty || !mounted) return;
-    setState(() => _busy = true);
+    setState(() {
+      _busy = true;
+      _operationError = null;
+    });
     try {
       final current = await loadPersonalSchedule();
       // Share the current semester and clock periods, not the source import identity.
@@ -101,12 +112,10 @@ class _ManageTableViewState extends State<ManageTableView> {
           _selectedId = table.id;
           _tables = _loadTables();
         });
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('新课表已创建并切换')));
+        ScheduleFeedbackNotice.show(context, '新课表已创建并切换');
       }
     } catch (_) {
-      _error();
+      _error(_add);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -131,7 +140,10 @@ class _ManageTableViewState extends State<ManageTableView> {
       ),
     );
     if (confirmed != true || !mounted) return;
-    setState(() => _busy = true);
+    setState(() {
+      _busy = true;
+      _operationError = null;
+    });
     try {
       await _provider.delete(table['id'] as int);
       if (mounted) {
@@ -140,7 +152,7 @@ class _ManageTableViewState extends State<ManageTableView> {
         });
       }
     } catch (_) {
-      _error();
+      _error(() => _delete(table));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -189,6 +201,14 @@ class _ManageTableViewState extends State<ManageTableView> {
                 description: '点击名称框切换课表，也可直接修改名称。当前使用的课表会显示对勾。',
               ),
               const SizedBox(height: 24),
+              if (_operationError != null) ...[
+                ScheduleInlineFeedback(
+                  message: _operationError!,
+                  actionLabel: '重试',
+                  onAction: _locked ? null : _retry,
+                ),
+                const SizedBox(height: 12),
+              ],
               for (final table in snapshot.data!)
                 Padding(
                   key: ValueKey(table['id']),

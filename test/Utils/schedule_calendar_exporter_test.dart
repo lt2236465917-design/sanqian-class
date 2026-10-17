@@ -78,6 +78,12 @@ void main() {
       expect(await exporter.export(schedule), 73);
       expect(calendar.created, 1);
       expect(calendar.events, hasLength(73));
+      expect(
+        calendar.events.values.every(
+          (event) => event.status == EventStatus.Confirmed,
+        ),
+        isTrue,
+      );
       final english = calendar.events.values
           .where((e) => e.title!.contains('英语'))
           .toList();

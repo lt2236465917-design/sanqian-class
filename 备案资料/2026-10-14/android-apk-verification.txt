@@ -1,0 +1,20 @@
+Verifies
+Verified using v1 scheme (JAR signing): false
+Verified using v2 scheme (APK Signature Scheme v2): true
+Verified using v3 scheme (APK Signature Scheme v3): false
+Verified using v3.1 scheme (APK Signature Scheme v3.1): false
+Verified using v4 scheme (APK Signature Scheme v4): false
+Verified for SourceStamp: false
+Number of signers: 1
+Signer #1 certificate DN: CN=Sanqian, OU=Schedule, O=Sanqian, C=CN
+Signer #1 certificate SHA-256 digest: 0bf510279f816cf61685be14a24dd09547577b9bd14406f6927a208cd8fc688a
+Signer #1 certificate SHA-1 digest: d3a101ec9c2adef8e4c199a7647332e344a1cda9
+Signer #1 certificate MD5 digest: d69a21f2b351a885c8f5e8ed0b070e4c
+Signer #1 key algorithm: RSA
+Signer #1 key size (bits): 2048
+Signer #1 public key SHA-256 digest: d5eed2d4ec323be926aa8d22888f75b8e0f479913aaa0d2c2bd798189c55c97d
+Signer #1 public key SHA-1 digest: a856c94811908169ec2bd85f656c7c9f822f02fd
+Signer #1 public key MD5 digest: d403c9f0d1b9b03d08ea469e12f61503
+
+package: name='local.sanqian.schedule' versionCode='3' versionName='1.0.0' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'
+Configured keystore certificate matches APK signer: true

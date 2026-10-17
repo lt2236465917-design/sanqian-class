@@ -1,0 +1,17 @@
+{
+  "apk_path": "/Users/zhuanzmima0000/Desktop/NJU-Class-Shedule-Flutter-visual/build/app/outputs/flutter-apk/app-release.apk",
+  "apk_sha256": "93ff590945358f22f92568b1745f932013014da0a2315bcabd49e1051a790c36",
+  "package_name": "local.sanqian.schedule",
+  "version_name": "1.0.0",
+  "version_code": 3,
+  "certificate_md5": "d69a21f2b351a885c8f5e8ed0b070e4c",
+  "certificate_sha1": "d3a101ec9c2adef8e4c199a7647332e344a1cda9",
+  "certificate_sha256": "0bf510279f816cf61685be14a24dd09547577b9bd14406f6927a208cd8fc688a",
+  "rsa_public_modulus_hex": "92fd972dffd22ce061635e8c94571e9af67aca814e908cc25b7d5dfaa11402b0d6a105246a2c90ddfc310e59f3009799377afc53e1f2dd66251e54d87714ec4f926ef93338fd7afd612443a505bed0e1c843dd2ffada1b7af225024fb2ac535cd568015f5c8367d6638b86505af2de44a0acea91c00aa8bb5f21d0e7af2b8e6974535062c0d6b41f1e859efe0c4089402da2813ac921ae62146b6a78f711f732177d23df199f03f28fc1e4832c1805862ea958b2c536aecfc71b671a6efef5ac80cd341b5e0e78c2a291278bd97ca4141f2752478a72291446f29f05a552bb418c3ece90d663f145a8081f466a37b76996c0e20d57ce540e36b392e1e1443df5",
+  "key_algorithm": "RSA",
+  "key_bits": 2048,
+  "configured_keystore_matches": true,
+  "source_head": "6363d5b2adbf62ff2a650e23be5b89d8eb4fd9d3",
+  "apk_source_commit_match": "NOT_VERIFIED",
+  "apk_modified_at": "2026-10-14T07:38:04.813012+08:00"
+}

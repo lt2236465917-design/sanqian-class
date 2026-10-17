@@ -1,0 +1,28 @@
+{
+  "bundle_id": "local.sanqian.schedule",
+  "version": "1.0.0",
+  "build": "3",
+  "team_name": "Xinyu Li",
+  "team_id": [
+    "ZPAU8L65J4"
+  ],
+  "profile_name": "iOS Team Provisioning Profile: local.sanqian.schedule",
+  "profile_creation": "2026-09-30T14:00:31Z",
+  "profile_expiration": "2027-09-30T14:00:31Z",
+  "application_identifier": "ZPAU8L65J4.local.sanqian.schedule",
+  "development_get_task_allow": true,
+  "provisioned_device_count": 1,
+  "certificates": [
+    {
+      "subject": "subject= /UID=54Q3VHA4Q2/CN=Apple Development: Xinyu Li (33JLA2B6ZJ)/OU=ZPAU8L65J4/O=Xinyu Li/C=US",
+      "sha1": "b9ea5abfbfd881a65b548fa8f5664566b6b4ac08",
+      "note": "Development profile certificate; not approved as final distribution filing information"
+    }
+  ],
+  "distribution_certificates_found_in_keychain_search_list": {
+    "Apple Distribution": 0,
+    "iPhone Distribution": 0
+  },
+  "apple_portal_status": "NOT_VERIFIED: browser inventory timed out; Chrome tab request failed with nodeRepl.fetch request failed; no portal access completed",
+  "user_confirmed_final_team": "Xinyu Li / ZPAU8L65J4"
+}

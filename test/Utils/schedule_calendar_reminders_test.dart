@@ -159,6 +159,12 @@ void main() {
       expect(result['count'], 219);
       expect(calendar.events.length, 73);
       expect(
+        calendar.events.values.every(
+          (event) => event.status == EventStatus.Confirmed,
+        ),
+        isTrue,
+      );
+      expect(
         calendar.events.values.every((e) => e.reminders!.length == 3),
         true,
       );

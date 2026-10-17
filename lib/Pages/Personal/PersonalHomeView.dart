@@ -1,3 +1,5 @@
+import '../../Models/WidgetLaunchTarget.dart';
+import '../../Components/ScheduleFeedbackNotice.dart';
 import 'dart:async';
 import 'dart:convert';
 
@@ -27,7 +29,13 @@ enum _ScheduleTab { today, week, month }
 class PersonalHomeView extends StatefulWidget {
   final Future<PersonalSchedule> Function()? loader;
   final DateTime Function()? clock;
-  const PersonalHomeView({super.key, this.loader, this.clock});
+  final ValueNotifier<WidgetLaunchTarget?>? widgetTarget;
+  const PersonalHomeView({
+    super.key,
+    this.loader,
+    this.clock,
+    this.widgetTarget,
+  });
 
   @override
   State<PersonalHomeView> createState() => _PersonalHomeViewState();
@@ -58,8 +66,39 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
     _now = _clock;
     _weekDay = _monthDay = PersonalSchedule.day(_now);
     WidgetsBinding.instance.addObserver(this);
+    widget.widgetTarget?.addListener(_consumeWidgetTarget);
     _load();
     _timer = Timer.periodic(const Duration(minutes: 1), (_) => _tick());
+  }
+
+  void _consumeWidgetTarget() {
+    final target = widget.widgetTarget?.value;
+    final schedule = _schedule;
+    if (target == null || schedule == null || !mounted) return;
+    widget.widgetTarget?.value = null;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final date = target.date ?? PersonalSchedule.day(_clock);
+      setState(() {
+        _tab = PersonalSchedule.sameDay(date, _clock)
+            ? _ScheduleTab.today
+            : _ScheduleTab.month;
+        _monthDay = date;
+      });
+      if (target.occurrence == null) return;
+      final matches = schedule.occurrences.where(
+        (item) =>
+            '${schedule.tableId}.${item.course.id}.${item.week}' ==
+                target.occurrence &&
+            PersonalSchedule.sameDay(item.date, date),
+      );
+      if (matches.isEmpty || target.tableId != schedule.tableId) {
+        ScheduleFeedbackNotice.show(context, '这条课程安排已变化，请查看当前课表。');
+        return;
+      }
+      _details(matches.first.course, schedule);
+    });
+    WidgetsBinding.instance.ensureVisualUpdate();
   }
 
   void _tick() {
@@ -94,20 +133,18 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
         _now = _clock;
         _error = null;
       });
+      _consumeWidgetTarget();
       if (widget.loader == null) {
         unawaited(
           ScheduleDerivedDataService.sync(data).then((result) {
             final message = result['widgetError'];
             if (!mounted) return;
             if (message is! String || message.isEmpty) {
-              _widgetNotice = null;
+              if (_widgetNotice != null) setState(() => _widgetNotice = null);
               return;
             }
             if (message == _widgetNotice) return;
-            _widgetNotice = message;
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(SnackBar(content: Text(message)));
+            setState(() => _widgetNotice = message);
           }, onError: (Object _) {}),
         );
       }
@@ -127,6 +164,7 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    widget.widgetTarget?.removeListener(_consumeWidgetTarget);
     _timer?.cancel();
     for (final scroll in _scrolls) {
       scroll.dispose();
@@ -349,7 +387,17 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
           22,
           24 + MediaQuery.paddingOf(pageContext).bottom,
         ),
-        children: children,
+        children: [
+          if (_widgetNotice != null) ...[
+            ScheduleInlineFeedback(
+              message: _widgetNotice!,
+              actionLabel: '重试同步',
+              onAction: () => _load(),
+            ),
+            const SizedBox(height: 16),
+          ],
+          ...children,
+        ],
       ),
     ),
   );
@@ -880,13 +928,6 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
               ),
           ],
         ),
-      const SizedBox(height: 12),
-      Center(
-        child: Text(
-          '圆点表示当天有课',
-          style: TextStyle(fontSize: 11, color: _colors.onSurfaceVariant),
-        ),
-      ),
       const SizedBox(height: 24),
       _sectionHeading(
         '${_date(_monthDay)} · 星期${_weekdays[_monthDay.weekday - 1]}',

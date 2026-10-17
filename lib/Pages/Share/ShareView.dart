@@ -1,3 +1,4 @@
+import '../../Components/ScheduleFeedbackNotice.dart';
 import '../../Components/ScheduleDesign.dart';
 import 'package:flutter/material.dart';
 
@@ -19,20 +20,68 @@ class ShareView extends StatefulWidget {
 
 class _ShareViewState extends State<ShareView> {
   bool _busy = false;
+  String? _error;
+  bool _permissionDenied = false;
+  Future<void> Function()? _activeOperation, _failedOperation;
+
+  void _showError(String message, {bool permissionDenied = false}) {
+    if (!mounted) return;
+    setState(() {
+      _error = message;
+      _permissionDenied = permissionDenied;
+      _failedOperation = _activeOperation;
+    });
+  }
+
+  Future<void> _openSettings() async {
+    try {
+      final opened = await ScheduleCalendarExporter.settingsChannel
+          .invokeMethod<bool>('openAppSettings');
+      if (opened == false && mounted) {
+        setState(() => _error = '暂时无法打开系统设置，请手动前往设置中允许日历访问。');
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _error = '暂时无法打开系统设置，请手动前往设置中允许日历访问。');
+      }
+    }
+  }
+
+  Widget _feedbackFor(Future<void> Function() operation) {
+    if (_error == null || _failedOperation != operation) {
+      return const SizedBox.shrink();
+    }
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: ScheduleInlineFeedback(
+        message: _error!,
+        actionLabel: _permissionDenied ? '去设置' : '重试',
+        onAction: _busy
+            ? null
+            : _permissionDenied
+            ? _openSettings
+            : () => _run(operation),
+      ),
+    );
+  }
 
   void _message(String text) {
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+      ScheduleFeedbackNotice.show(context, text);
     }
   }
 
   Future<void> _run(Future<void> Function() operation) async {
     if (_busy) return;
-    setState(() => _busy = true);
+    setState(() {
+      _busy = true;
+      _error = null;
+      _activeOperation = operation;
+    });
     try {
       await operation();
     } catch (_) {
-      _message('操作未完成，请重试。原有课表已保留。');
+      _showError('操作未完成，请重试。原有课表已保留。');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -59,24 +108,28 @@ class _ShareViewState extends State<ShareView> {
             subtitle: '生成二维码，或复制完整分享串',
             onTap: _busy ? null : () => _run(_exportClassTable),
           ),
+          _feedbackFor(_exportClassTable),
           ScheduleActionTile(
             icon: Icons.qr_code_scanner_rounded,
             title: '导入课表',
             subtitle: '扫码、选择二维码图片或粘贴分享串',
             onTap: _busy ? null : () => _run(_importFromQr),
           ),
+          _feedbackFor(_importFromQr),
           ScheduleActionTile(
             icon: Icons.event_available_outlined,
             title: '导出到系统日历',
             subtitle: '按课表日期导出。再次导出会更新课程，并移除已经不在课表里的日程',
             onTap: _busy ? null : () => _run(_exportToSystemCalendar),
           ),
+          _feedbackFor(_exportToSystemCalendar),
           ScheduleActionTile(
             icon: Icons.event_busy_outlined,
             title: '撤销系统日历中的课程',
             subtitle: '删除本应用导出的课程日程，不影响你自己添加的日程',
             onTap: _busy ? null : () => _run(_revokeCalendarExport),
           ),
+          _feedbackFor(_revokeCalendarExport),
         ],
       ),
     ),
@@ -87,7 +140,7 @@ class _ShareViewState extends State<ShareView> {
     final rows = await CourseProvider().getAllCourses(index);
     final table = await CourseTableProvider().getCourseTable(index);
     if (table == null || rows.isEmpty) {
-      _message('当前课表还没有课程，请先导入或添加课程。');
+      _showError('当前课表还没有课程，请先导入或添加课程。');
       return;
     }
     final schedule = await loadPersonalSchedule();
@@ -167,7 +220,7 @@ class _ShareViewState extends State<ShareView> {
       final count = await ScheduleCalendarExporter().revoke(schedule);
       _message(count == 0 ? '系统日历里没有本应用导出的课程。' : '已从系统日历移除 $count 次课程。');
     } on CalendarExportException catch (error) {
-      _message(error.message);
+      _showError(error.message, permissionDenied: error.permissionDenied);
     }
   }
 
@@ -176,7 +229,7 @@ class _ShareViewState extends State<ShareView> {
     final entries = ScheduleCalendarExporter.exportable(schedule);
     if (!mounted) return;
     if (entries.isEmpty) {
-      _message('没有可导出的课程，请先填写上课日期和起止时间。');
+      _showError('没有可导出的课程，请先填写上课日期和起止时间。');
       return;
     }
     final skipped =
@@ -207,30 +260,9 @@ class _ShareViewState extends State<ShareView> {
       final count = await ScheduleCalendarExporter().export(schedule);
       _message('已成功写入 $count 次课程。');
     } on CalendarExportException catch (error) {
-      if (!mounted) return;
-      await showDialog<void>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('导出未完成'),
-          content: Text(
-            '${error.savedCount > 0 ? '已写入 ${error.savedCount} 次课程。\n' : ''}${error.message}',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('知道了'),
-            ),
-            if (error.permissionDenied)
-              TextButton(
-                onPressed: () async {
-                  Navigator.pop(context);
-                  await ScheduleCalendarExporter.settingsChannel
-                      .invokeMethod<bool>('openAppSettings');
-                },
-                child: const Text('去设置'),
-              ),
-          ],
-        ),
+      _showError(
+        '${error.savedCount > 0 ? '已写入 ${error.savedCount} 次课程。\n' : ''}${error.message}',
+        permissionDenied: error.permissionDenied,
       );
     }
   }

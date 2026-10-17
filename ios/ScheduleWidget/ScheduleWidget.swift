@@ -42,6 +42,7 @@ struct ScheduleEntry: TimelineEntry {
     let errorMessage: String?
     let relevance: TimelineEntryRelevance?  // Smart Stack 优先级评分
     let arrivedCourse: WidgetCourse?
+    var personalEntry: PersonalWidgetEntry? = nil
 
     var hasData: Bool {
         return widgetData != nil
@@ -312,6 +313,10 @@ struct Provider: TimelineProvider {
     }
 
     func getSnapshot(in context: Context, completion: @escaping (ScheduleEntry) -> Void) {
+        if [.systemSmall, .systemMedium, .systemLarge].contains(context.family) {
+            PersonalWidgetProvider().getSnapshot(in: context) { completion(self.desktopEntry($0)) }
+            return
+        }
         let entry = loadEntry()
         completion(entry)
     }
@@ -329,6 +334,12 @@ struct Provider: TimelineProvider {
                     userConfig: LiveActivityConfig.load()
                 )
             }
+        }
+        if [.systemSmall, .systemMedium, .systemLarge].contains(context.family) {
+            PersonalWidgetProvider().getTimeline(in: context) { timeline in
+                completion(Timeline(entries: timeline.entries.map(self.desktopEntry), policy: timeline.policy))
+            }
+            return
         }
         var entries: [ScheduleEntry] = [currentEntry]
 
@@ -360,6 +371,11 @@ struct Provider: TimelineProvider {
         print("✅ [Widget] ========== Timeline Generated ==========")
 
         completion(timeline)
+    }
+
+    private func desktopEntry(_ personal: PersonalWidgetEntry) -> ScheduleEntry {
+        ScheduleEntry(date: personal.date, widgetData: nil, errorMessage: nil,
+                      relevance: nil, arrivedCourse: nil, personalEntry: personal)
     }
 
     // MARK: - Data Loading

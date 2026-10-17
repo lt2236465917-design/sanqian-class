@@ -1,4 +1,5 @@
 import '../../Components/ScheduleDesign.dart';
+import '../../Components/ScheduleFeedbackNotice.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../Utils/ScheduleDerivedDataService.dart';
@@ -20,6 +21,7 @@ class _DeepSeekSettingsViewState extends State<DeepSeekSettingsView> {
   bool _keyMasked = false;
   String? _visibleMask;
   String _message = '';
+  String? _openError;
   VoidCallback? _retry;
   @override
   void initState() {
@@ -64,9 +66,8 @@ class _DeepSeekSettingsViewState extends State<DeepSeekSettingsView> {
       String? preview;
       if (value) {
         try {
-          preview = await ScheduleDerivedDataService.channel.invokeMethod<String>(
-            'apiKeyPreview',
-          );
+          preview = await ScheduleDerivedDataService.channel
+              .invokeMethod<String>('apiKeyPreview');
         } catch (_) {
           preview = null;
         }
@@ -155,15 +156,19 @@ class _DeepSeekSettingsViewState extends State<DeepSeekSettingsView> {
   }
 
   Future<void> _openCreatePage() async {
-    final opened = await launchUrl(
-      _createKey,
-      mode: LaunchMode.externalApplication,
-    );
-    if (!opened && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('暂时无法打开 DeepSeek 开放平台，请稍后重试。')),
+    setState(() => _openError = null);
+    try {
+      final opened = await launchUrl(
+        _createKey,
+        mode: LaunchMode.externalApplication,
       );
+      if (opened || !mounted) return;
+    } catch (_) {
+      if (!mounted) return;
     }
+    setState(() {
+      _openError = '暂时无法打开 DeepSeek 开放平台，请稍后重试。';
+    });
   }
 
   @override
@@ -250,14 +255,22 @@ class _DeepSeekSettingsViewState extends State<DeepSeekSettingsView> {
             icon: const Icon(Icons.open_in_new_rounded),
             label: const Text('打开 DeepSeek 开放平台'),
           ),
+          if (_openError != null) ...[
+            const SizedBox(height: 12),
+            ScheduleInlineFeedback(
+              message: _openError!,
+              actionLabel: '重试',
+              onAction: _busy ? null : _openCreatePage,
+            ),
+          ],
           const ScheduleSection('安全提醒'),
-          const ScheduleNotice(
-            'Key 只写入本机安全存储。保存之后，填写框只显示脱敏后的 Key，不显示原文。\n'
-            '不要把 Key 告诉他人，也不要放进截图、聊天或邮件。\n'
-            '只有你在导入页确认识别后，课表图片或网页课表原文才会发给 DeepSeek，费用从你的 DeepSeek 账户扣除。\n'
-            '学校账号、密码和验证码不会随识别发送。\n'
+          const ScheduleNotice.numbered([
+            'Key 只写入本机安全存储。保存之后，填写框只显示脱敏后的 Key，不显示原文。',
+            '不要把 Key 告诉他人，也不要放进截图、聊天或邮件。',
+            '只有你在导入页确认识别后，课表图片或网页课表原文才会发给 DeepSeek，费用从你的 DeepSeek 账户扣除。',
+            '学校账号、密码和验证码不会随识别发送。',
             '删除 Key 后，下次识别前需要重新保存。',
-          ),
+          ]),
         ],
       ),
     ),

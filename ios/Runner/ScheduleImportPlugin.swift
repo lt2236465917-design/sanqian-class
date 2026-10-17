@@ -112,7 +112,10 @@ final class ScheduleImportPlugin: NSObject, FlutterPlugin {
                             "revision": args["revision"] ?? "", "generatedAtMs": args["generatedAtMs"] ?? 0,
                             "occurrences": args["occurrences"] ?? []]
                         try JSONSerialization.data(withJSONObject: safe).write(to: folder.appendingPathComponent("personal-schedule.json"), options: .atomic)
-                        if #available(iOS 14.0, *) { WidgetCenter.shared.reloadTimelines(ofKind: "SanqianPersonalSchedule") }
+                        if #available(iOS 14.0, *) {
+                            WidgetCenter.shared.reloadTimelines(ofKind: "SanqianPersonalSchedule")
+                            WidgetCenter.shared.reloadTimelines(ofKind: "ScheduleWidget")
+                        }
                     } catch { widgetError = "共享课表写入失败" }
                 } else { widgetError = "App Group 尚不可用" }
                 result(["widgetError": widgetError as Any? ?? NSNull()])

@@ -4,7 +4,7 @@ import '../../Components/ScheduleDesign.dart';
 import '../../Models/PersonalSchedule.dart';
 import '../../Utils/ScheduleDerivedDataService.dart';
 
-/// Controls only the registered personal schedule widget, not the legacy widget.
+/// Synchronizes desktop widgets from the currently selected schedule.
 class WidgetSettingsView extends StatefulWidget {
   const WidgetSettingsView({super.key});
   @override
@@ -62,13 +62,13 @@ class _WidgetSettingsViewState extends State<WidgetSettingsView> {
               icon: Icons.widgets_outlined,
               eyebrow: '无需打开 App',
               title: '下一节课，就在桌面',
-              description: '小尺寸突出下一节，中尺寸展示今日剩余课程。时间、地点和上课状态来自当前课表。',
+              description: '小尺寸看下一节，中尺寸看重点课程和后续安排，大尺寸看今日时间轴。点击课程可查看详情。',
             ),
             const ScheduleSection('添加到桌面'),
             ScheduleNotice(
               ios
-                  ? 'iOS 17 及以上：长按桌面空白处 → 编辑 → 添加小组件。搜索“三千上课”可加小尺寸或中尺寸；搜索“课程表”还可加大尺寸和锁屏。临近上课时，锁屏和灵动岛会显示倒计时。'
-                  : '长按桌面空白处 → 小组件，找到“三千上课”，选择小尺寸或中尺寸并拖到桌面。不同启动器的操作名称可能不同。',
+                  ? 'iOS 17 及以上：长按桌面空白处 → 编辑 → 添加小组件。搜索“三千上课”可添加小、中、大尺寸；“课程表”使用同样的桌面布局，并保留锁屏组件。临近上课时，锁屏和灵动岛会显示倒计时。'
+                  : '长按桌面空白处 → 小组件，找到“三千上课”，添加后拖动边框，可调整为小尺寸、中尺寸或大尺寸。不同启动器的操作名称可能不同。',
             ),
             const ScheduleSection('与当前课表同步'),
             const Text(

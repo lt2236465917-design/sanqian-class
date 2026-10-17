@@ -12,6 +12,40 @@ import 'package:sanqian_class/Utils/CourseWeeks.dart';
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
+  testWidgets('manual timetable clocks are not described as pending', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(430, 1200);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final schedule = PersonalSchedule(
+      tableId: 2,
+      name: '手动课表',
+      firstMonday: DateTime(2026, 10, 12),
+      periods: [
+        {'start': '08:00', 'end': '08:50'},
+      ],
+      courses: [Course(2, '手动课程', '[1]', 6, 1, 0, 0)],
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: PersonalHomeView(
+          loader: () async => schedule,
+          clock: () => DateTime(2026, 10, 17, 8, 10),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining('08:00–08:50'), findsWidgets);
+    expect(find.textContaining('时间待定'), findsNothing);
+    await tester.tap(find.text('手动课程').hitTestable());
+    await tester.pumpAndSettle();
+    expect(find.text('周六 · 08:00–08:50'), findsOneWidget);
+    expect(find.textContaining('时段待定'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('home details use the same week parser as the schedule', (
     tester,
   ) async {

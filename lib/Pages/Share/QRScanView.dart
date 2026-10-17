@@ -10,6 +10,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:zxing2/qrcode.dart';
 
 import '../../Components/Toast.dart';
+import '../../Components/ScheduleFeedbackNotice.dart';
 import 'qr_payload_codec.dart';
 import '../../Utils/ScheduleCalendarExporter.dart';
 
@@ -26,6 +27,18 @@ class _QRScanViewState extends State<QRScanView> {
   final Map<String, _MultiGroupBuffer> _groups = <String, _MultiGroupBuffer>{};
   bool _isCompleting = false;
   bool _scanning = false;
+  String? _scanError;
+  VoidCallback? _retryScan;
+
+  void _showError(String message) {
+    if (mounted && message != _scanError) setState(() => _scanError = message);
+  }
+
+  void _retry() {
+    final action = _retryScan;
+    setState(() => _scanError = null);
+    action?.call();
+  }
 
   @override
   void dispose() {
@@ -50,7 +63,11 @@ class _QRScanViewState extends State<QRScanView> {
                         const Icon(Icons.qr_code_scanner, size: 72),
                         const SizedBox(height: 20),
                         FilledButton.icon(
-                          onPressed: () => setState(() => _scanning = true),
+                          onPressed: () => setState(() {
+                            _scanning = true;
+                            _scanError = null;
+                            _retryScan = null;
+                          }),
                           icon: const Icon(Icons.camera_alt_outlined),
                           label: const Text('开启相机扫码'),
                         ),
@@ -83,7 +100,7 @@ class _QRScanViewState extends State<QRScanView> {
                                       .invokeMethod<bool>('openAppSettings');
                                 } catch (_) {
                                   if (mounted) {
-                                    Toast.showToast('请在系统设置中允许相机访问。', context);
+                                    _showError('请在系统设置中允许相机访问。');
                                   }
                                 }
                               },
@@ -94,6 +111,8 @@ class _QRScanViewState extends State<QRScanView> {
                       ),
                     ),
                     onDetect: (BarcodeCapture capture) {
+                      if (_scanError != null) return;
+                      _retryScan = null;
                       final List<Barcode> barcodes = capture.barcodes;
                       for (final barcode in barcodes) {
                         final raw = barcode.rawValue;
@@ -101,6 +120,7 @@ class _QRScanViewState extends State<QRScanView> {
                           continue;
                         }
                         _handleRaw(raw);
+                        if (_scanError != null || _isCompleting) break;
                       }
                     },
                   ),
@@ -126,6 +146,15 @@ class _QRScanViewState extends State<QRScanView> {
               ],
             ),
           ),
+          if (_scanError != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
+              child: ScheduleInlineFeedback(
+                message: _scanError!,
+                actionLabel: _retryScan == null ? '继续扫码' : '重试',
+                onAction: _retry,
+              ),
+            ),
           SafeArea(
             top: false,
             child: Padding(
@@ -155,17 +184,21 @@ class _QRScanViewState extends State<QRScanView> {
   }
 
   Future<void> _importFromClipboard() async {
+    setState(() {
+      _scanError = null;
+      _retryScan = _importFromClipboard;
+    });
     ClipboardData? data;
     try {
       data = await Clipboard.getData('text/plain');
     } catch (_) {
-      if (mounted) Toast.showToast('无法读取剪贴板，请允许粘贴或使用二维码图片。', context);
+      if (mounted) _showError('无法读取剪贴板，请允许粘贴或使用二维码图片。');
       return;
     }
     if (!mounted) return;
     final text = (data?.text ?? '').trim();
     if (text.isEmpty) {
-      Toast.showToast(S.of(context).qrcode_url_error_toast, context);
+      _showError(S.of(context).qrcode_url_error_toast);
       return;
     }
 
@@ -178,26 +211,39 @@ class _QRScanViewState extends State<QRScanView> {
       if (lines.length <= 1) {
         await _handleRaw(text);
       } else {
+        String? progress;
         for (final line in lines) {
-          await _handleRaw(line);
-          if (_isCompleting || !mounted) {
+          await _handleRaw(line, onProgress: (message) => progress = message);
+          if (_isCompleting || !mounted || _scanError != null) {
             break;
           }
+        }
+        // Process the whole pasted batch before showing an incomplete result.
+        if (mounted &&
+            !_isCompleting &&
+            _scanError == null &&
+            ModalRoute.of(context)?.isCurrent == true &&
+            progress != null) {
+          Toast.showToast(progress!, context);
         }
       }
     } catch (_) {
       if (!mounted) return;
-      Toast.showToast(S.of(context).qrcode_url_error_toast, context);
+      _showError(S.of(context).qrcode_url_error_toast);
     }
   }
 
   Future<void> _pickFromGallery() async {
+    setState(() {
+      _scanError = null;
+      _retryScan = _pickFromGallery;
+    });
     final picker = ImagePicker();
     XFile? file;
     try {
       file = await picker.pickImage(source: ImageSource.gallery);
     } catch (_) {
-      if (mounted) Toast.showToast('无法打开相册，请检查照片权限。', context);
+      if (mounted) _showError('无法打开相册，请检查照片权限。');
       return;
     }
     if (!mounted) return;
@@ -210,7 +256,7 @@ class _QRScanViewState extends State<QRScanView> {
       if (!mounted) return;
       final decoded = img.decodeImage(bytes);
       if (decoded == null) {
-        Toast.showToast(S.of(context).qrcode_url_error_toast, context);
+        _showError(S.of(context).qrcode_url_error_toast);
         return;
       }
 
@@ -231,31 +277,37 @@ class _QRScanViewState extends State<QRScanView> {
       final result = QRCodeReader().decode(bitmap);
       final text = result.text;
       if (text.isEmpty) {
-        Toast.showToast(S.of(context).qrcode_url_error_toast, context);
+        _showError(S.of(context).qrcode_url_error_toast);
         return;
       }
       await _handleRaw(text);
     } catch (_) {
-      Toast.showToast(S.of(context).qrcode_url_error_toast, context);
+      _showError(S.of(context).qrcode_url_error_toast);
     }
   }
 
-  Future<void> _handleRaw(String raw) async {
-    if (_isCompleting || !mounted) {
+  Future<void> _handleRaw(
+    String raw, {
+    ValueChanged<String>? onProgress,
+  }) async {
+    if (_isCompleting ||
+        !mounted ||
+        ModalRoute.of(context)?.isCurrent != true) {
       return;
     }
 
     if (!QrPayloadCodec.isNcsQrPayload(raw)) {
-      Toast.showToast(S.of(context).qrcode_url_error_toast, context);
+      _showError(S.of(context).qrcode_url_error_toast);
       return;
     }
 
     final parsed = QrPayloadCodec.parseFrame(raw);
     if (parsed == null) {
-      Toast.showToast(S.of(context).qrcode_url_error_toast, context);
+      _showError(S.of(context).qrcode_url_error_toast);
       return;
     }
 
+    if (_scanError != null) setState(() => _scanError = null);
     if (parsed.kind == QrFrameKind.single) {
       await _decodeAndFinish(parsed.payload);
       return;
@@ -267,6 +319,10 @@ class _QRScanViewState extends State<QRScanView> {
       () => _MultiGroupBuffer(total: parsed.total!),
     );
     buffer.touch();
+    // Announce each new QR part once, even if the camera keeps seeing it.
+    if (onProgress == null && buffer.parts[parsed.index!] == parsed.payload) {
+      return;
+    }
     buffer.parts[parsed.index!] = parsed.payload;
     _cleanupExpiredGroups();
 
@@ -275,12 +331,14 @@ class _QRScanViewState extends State<QRScanView> {
       buffer.total,
     );
     if (merged == null) {
-      Toast.showToast(
-        S
-            .of(context)
-            .qr_scan_parts_received_toast(buffer.parts.length, buffer.total),
-        context,
-      );
+      final message = S
+          .of(context)
+          .qr_scan_parts_received_toast(buffer.parts.length, buffer.total);
+      if (onProgress != null) {
+        onProgress(message);
+      } else {
+        Toast.showToast(message, context);
+      }
       return;
     }
 
@@ -294,10 +352,11 @@ class _QRScanViewState extends State<QRScanView> {
       if (!mounted) {
         return;
       }
+      ScaffoldMessenger.of(context).removeCurrentSnackBar();
       Navigator.of(context).pop(decoded);
     } catch (e) {
       _isCompleting = false;
-      Toast.showToast(_readableError(e), context);
+      _showError(_readableError(e));
     }
   }
 

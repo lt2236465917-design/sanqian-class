@@ -1,3 +1,4 @@
+import 'Models/WidgetLaunchTarget.dart';
 import 'dart:async';
 import 'dart:io';
 
@@ -71,6 +72,7 @@ class _MyAppState extends State<MyApp> {
   static const _widgetChannel = MethodChannel('sanqian/widget');
   static const _mascotSplashChannel = MethodChannel('sanqian/mascot_splash');
   bool _startupReady = false;
+  final _widgetTarget = ValueNotifier<WidgetLaunchTarget?>(null);
 
   @override
   void initState() {
@@ -101,16 +103,36 @@ class _MyAppState extends State<MyApp> {
       });
       // Native dismiss also releases the frame. This only covers a missed call.
       unawaited(
-        Future<void>.delayed(const Duration(seconds: 12), FlutterNativeSplash.remove),
+        Future<void>.delayed(
+          const Duration(seconds: 12),
+          FlutterNativeSplash.remove,
+        ),
       );
     }
-    if (Platform.isAndroid) {
+    if (Platform.isAndroid || Platform.isIOS) {
       _widgetChannel.setMethodCallHandler((call) async {
-        if (call.method == 'openSchedule') {
-          _navigatorKey.currentState?.popUntil((route) => route.isFirst);
+        if (call.method == 'openSchedule') _receiveWidgetTarget(call.arguments);
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        try {
+          final target = await _widgetChannel.invokeMethod<String>(
+            'getInitialTarget',
+          );
+          if (mounted && target != null) _receiveWidgetTarget(target);
+        } on MissingPluginException {
+          // Platforms and tests without a widget bridge still open normally.
+        } on PlatformException {
+          // A failed widget handoff must not prevent normal app startup.
         }
       });
     }
+  }
+
+  void _receiveWidgetTarget(Object? raw) {
+    final target = WidgetLaunchTarget.parse(raw ?? 'ncs://schedule');
+    if (!mounted || target == null) return;
+    _navigatorKey.currentState?.popUntil((route) => route.isFirst);
+    _widgetTarget.value = target;
   }
 
   Future<void> _startNativeMascotPlayback() async {
@@ -124,9 +146,10 @@ class _MyAppState extends State<MyApp> {
 
   @override
   void dispose() {
-    if (Platform.isAndroid) {
+    if (Platform.isAndroid || Platform.isIOS) {
       _widgetChannel.setMethodCallHandler(null);
     }
+    _widgetTarget.dispose();
     super.dispose();
   }
 
@@ -151,12 +174,14 @@ class _MyAppState extends State<MyApp> {
         themeMode: model.themeMode ?? widget.themeMode,
         home: widget.startupInitialization == null
             ? PersonalHomeView(
+                widgetTarget: _widgetTarget,
                 loader: widget.scheduleLoader,
                 clock: widget.clock,
               )
             : Platform.isIOS
             ? _startupReady
                   ? PersonalHomeView(
+                      widgetTarget: _widgetTarget,
                       loader: widget.scheduleLoader,
                       clock: widget.clock,
                     )
@@ -164,11 +189,13 @@ class _MyAppState extends State<MyApp> {
             : ColdStartMascotSplash(
                 onNativeSplashReady: () {
                   FlutterNativeSplash.remove();
-                  const MethodChannel('sanqian/mascot_bridge')
-                      .invokeMethod<void>('flutterPosterReady');
+                  const MethodChannel(
+                    'sanqian/mascot_bridge',
+                  ).invokeMethod<void>('flutterPosterReady');
                 },
                 child: _startupReady
                     ? PersonalHomeView(
+                        widgetTarget: _widgetTarget,
                         loader: widget.scheduleLoader,
                         clock: widget.clock,
                       )

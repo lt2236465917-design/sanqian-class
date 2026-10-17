@@ -80,6 +80,12 @@ void main() {
       final saved = await tester.runAsync(() => provider.getCourseTable(b.id!));
       expect(saved!.name, '我的秋季');
       expect((await SharedPreferences.getInstance()).getInt('tableId'), b.id);
+      expect(find.text('课表名称已保存'), findsOneWidget);
+      expect(find.byType(AlertDialog), findsNothing);
+      await tester.pump(const Duration(seconds: 4));
+      await tester.pumpAndSettle();
+      expect(find.text('课表名称已保存'), findsNothing);
+      expect(nameField('我的秋季'), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );

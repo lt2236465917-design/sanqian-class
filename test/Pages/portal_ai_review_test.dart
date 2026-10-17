@@ -41,10 +41,15 @@ Map<String, dynamic> course(String name) => {
 };
 
 class FixtureImagePicker extends ImagePickerPlatform {
+  final List<XFile> images;
+
+  FixtureImagePicker({List<XFile>? images})
+    : images = images ?? [XFile('/fixture/one.png'), XFile('/fixture/two.png')];
+
   @override
   Future<List<XFile>> getMultiImageWithOptions({
     MultiImagePickerOptions options = const MultiImagePickerOptions(),
-  }) async => [XFile('/fixture/one.png'), XFile('/fixture/two.png')];
+  }) async => images;
 }
 
 Finder field(String label) => find.byWidgetPredicate(
@@ -170,13 +175,8 @@ void main() {
       );
       expect(calls.where((c) => c.method == 'recognizeText'), isEmpty);
 
-      hasKey = false;
-      await tester.tap(find.text('DeepSeek 设置'));
-      await tester.pumpAndSettle();
-      expect(find.text('尚未保存 Key'), findsOneWidget);
-      await tester.pageBack();
-      await tester.pumpAndSettle();
-      expect(find.byType(ImportReviewView), findsOneWidget);
+      expect(find.text('DeepSeek 设置'), findsNothing);
+      expect(find.textContaining('已保存 DeepSeek Key'), findsNothing);
 
       await tester.tap(find.widgetWithText(FilledButton, 'AI 识别网页课表'));
       await tester.pumpAndSettle();
@@ -243,6 +243,7 @@ void main() {
       await send(tester);
       await tester.tap(find.text('采用并继续核对'));
       await tester.pumpAndSettle();
+      expect(find.text('AI 结果已采用，请继续核对'), findsOneWidget);
       expect(find.text('规则遗漏课程'), findsOneWidget);
       expect(find.text('手动核对课程'), findsNothing);
       expect(await db.query('Course'), isEmpty);
@@ -302,7 +303,7 @@ void main() {
   });
 
   testWidgets(
-    'AI field changes can be restored including the prior review gate',
+    'adopted AI field changes stay in review without a restore action',
     (tester) async {
       final original = {
         ...course('同一课程'),
@@ -329,6 +330,7 @@ void main() {
       expect(find.text('教师\n原：原教师\nAI：AI 教师'), findsOneWidget);
       expect(find.text('星期\n原：1\nAI：2'), findsOneWidget);
       expect(find.text('教室\n原：6406\nAI：AI 教室'), findsOneWidget);
+      expect(find.textContaining('保存前可恢复'), findsNothing);
       await tester.tap(find.text('采用并继续核对'));
       await tester.pumpAndSettle();
       expect(
@@ -337,15 +339,10 @@ void main() {
             .onPressed,
         isNotNull,
       );
-      await tester.tap(find.text('恢复本次 AI 处理前的内容'));
-      await tester.pumpAndSettle();
-      expect(find.textContaining('AI 教室'), findsNothing);
-      expect(
-        tester
-            .widget<FilledButton>(find.widgetWithText(FilledButton, '保存课表'))
-            .onPressed,
-        isNull,
-      );
+      expect(find.text('恢复本次 AI 处理前的内容'), findsNothing);
+      expect(find.textContaining('保存前可恢复'), findsNothing);
+      expect(find.text('DeepSeek 设置'), findsNothing);
+      expect(find.textContaining('已保存 DeepSeek Key'), findsNothing);
       expect(original['teacher'], '原教师');
       expect(await db.query('Course'), isEmpty);
     },
@@ -358,7 +355,7 @@ void main() {
       await send(tester);
       expect(find.text('规则遗漏课程'), findsOneWidget);
       expect(find.widgetWithText(FilledButton, 'AI 识别网页课表'), findsNothing);
-      expect(find.widgetWithText(FilledButton, 'AI复核课表'), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, 'AI 复核课表'), findsOneWidget);
 
       recognize = (_) async => {
         'courses': [
@@ -366,9 +363,9 @@ void main() {
           course('复核新增课程'),
         ],
       };
-      await tester.tap(find.widgetWithText(FilledButton, 'AI复核课表'));
+      await tester.tap(find.widgetWithText(FilledButton, 'AI 复核课表'));
       await tester.pumpAndSettle();
-      expect(find.widgetWithText(AlertDialog, 'AI复核课表'), findsOneWidget);
+      expect(find.widgetWithText(AlertDialog, 'AI 复核课表'), findsOneWidget);
       expect(find.textContaining('只对照第一次识别结果'), findsOneWidget);
       await tester.tap(find.text('发送并复核'));
       await tester.pumpAndSettle();
@@ -401,7 +398,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('复核教师'), findsNothing);
       expect(find.text('复核新增课程'), findsNothing);
-      expect(find.widgetWithText(FilledButton, 'AI复核课表'), findsOneWidget);
+      expect(find.widgetWithText(FilledButton, 'AI 复核课表'), findsOneWidget);
       expect(await db.query('Course'), isEmpty);
     },
   );
@@ -411,7 +408,7 @@ void main() {
   ) async {
     await showReview(tester);
     await send(tester);
-    await tester.tap(find.widgetWithText(FilledButton, 'AI复核课表'));
+    await tester.tap(find.widgetWithText(FilledButton, 'AI 复核课表'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('发送并复核'));
     await tester.pumpAndSettle();
@@ -498,21 +495,18 @@ void main() {
       );
       await showReview(tester);
       expect(
-        tester.widget<TextField>(field('学期，例如 2026 秋季')).controller!.text,
+        tester.widget<TextField>(field('学期名称')).controller!.text,
         '2026 秋季',
       );
       expect(find.text('2026-9-7'), findsOneWidget);
-      await tester.enterText(field('学期，例如 2026 秋季'), '手动学期');
+      await tester.enterText(field('学期名称'), '手动学期');
       await tester.pumpAndSettle();
-      expect(find.text('请选择，不能以导入日期代替'), findsOneWidget);
+      expect(find.text('选择学校校历中第一周的周一'), findsOneWidget);
       await tester.tap(find.byType(DropdownButtonFormField<int>));
       await tester.pumpAndSettle();
       await tester.tap(find.text('合并到 其他账号学期').last);
       await tester.pumpAndSettle();
-      expect(
-        tester.widget<TextField>(field('学期，例如 2026 秋季')).controller!.text,
-        '手动学期',
-      );
+      expect(tester.widget<TextField>(field('学期名称')).controller!.text, '手动学期');
       expect(find.textContaining('所选课表的来源、账号或学期不同'), findsOneWidget);
       expect(find.text('2026-9-7'), findsNothing);
       expect(
@@ -532,10 +526,7 @@ void main() {
       await savedContext();
       await savedContext(term: '2027 春季');
       await showReview(tester);
-      expect(
-        tester.widget<TextField>(field('学期，例如 2026 秋季')).controller!.text,
-        '',
-      );
+      expect(tester.widget<TextField>(field('学期名称')).controller!.text, '');
       expect(find.textContaining('存在多个已保存学期'), findsOneWidget);
       await tester.ensureVisible(
         find.byKey(const ValueKey('first-week-monday')),
@@ -550,7 +541,7 @@ void main() {
       expect(picker.selectableDayPredicate!(DateTime(2026, 9, 22)), isFalse);
       await tester.tap(find.text('Cancel'));
       await tester.pumpAndSettle();
-      expect(find.text('请选择，不能以导入日期代替'), findsOneWidget);
+      expect(find.text('选择学校校历中第一周的周一'), findsOneWidget);
     },
   );
 
@@ -599,7 +590,20 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('确认导入变化'), findsOneWidget);
       expect(find.text('新增 1'), findsOneWidget);
-      expect(find.textContaining('处来源或本地编辑冲突'), findsOneWidget);
+      expect(find.textContaining('处来源或本地编辑冲突'), findsNothing);
+      final content = tester
+          .widget<AlertDialog>(find.byType(AlertDialog))
+          .content!;
+      final counters = tester
+          .widgetList<Text>(
+            find.descendant(
+              of: find.byWidget(content),
+              matching: find.byType(Text),
+            ),
+          )
+          .map((text) => text.data);
+      expect(counters, hasLength(4));
+      expect(counters, everyElement(matches(r'^(新增|变更|移除|待定) \d+$')));
       expect(
         find.descendant(
           of: find.byType(AlertDialog),
@@ -731,7 +735,7 @@ void main() {
       courses: [course('摄影')],
       imagePaths: ['/fixture/one.png'],
     );
-    expect(find.text('AI自动复核课程'), findsNothing);
+    expect(find.text('AI 复核课表'), findsNothing);
     expect(find.byType(CheckboxListTile), findsNothing);
     expect(calls.where((c) => c.method == 'recognizePhotosWithOCR'), isEmpty);
   });
@@ -750,14 +754,14 @@ void main() {
     final save = find.widgetWithText(FilledButton, '保存课表');
     expect(tester.widget<FilledButton>(save).onPressed, isNotNull);
     expect(find.byType(CheckboxListTile), findsNothing);
-    await tester.tap(find.widgetWithText(OutlinedButton, 'AI自动复核课程'));
+    await tester.tap(find.widgetWithText(OutlinedButton, 'AI 复核课表'));
     await tester.pumpAndSettle();
     expect(find.textContaining('文字识别也可能出错。'), findsOneWidget);
     expect(find.textContaining('复核结果需要你确认'), findsNothing);
     await tester.tap(find.text('取消'));
     await tester.pumpAndSettle();
     expect(calls.where((c) => c.method == 'recognizePhotosWithOCR'), isEmpty);
-    await tester.tap(find.widgetWithText(OutlinedButton, 'AI自动复核课程'));
+    await tester.tap(find.widgetWithText(OutlinedButton, 'AI 复核课表'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('发送并复核'));
     await tester.pumpAndSettle();
@@ -768,49 +772,116 @@ void main() {
       },
     );
     expect(find.text('复核结果'), findsOneWidget);
-    expect(find.textContaining('多添加了'), findsOneWidget);
+    expect(find.text('新增：规则遗漏课程'), findsOneWidget);
+    expect(find.text('未保留：摄影'), findsOneWidget);
     await tester.tap(find.text('取消'));
     await tester.pumpAndSettle();
     expect(find.text('摄影'), findsOneWidget);
     expect(find.text('规则遗漏课程'), findsNothing);
-    expect(find.text('AI自动复核课程'), findsNothing);
+    expect(find.text('AI 复核课表'), findsNothing);
     expect(await db.query('Course'), isEmpty);
   });
 
   testWidgets(
-    'OCR losses remain visible and need acknowledgement after adoption',
+    'OCR changes stay in review outside the compact save confirmation',
     (tester) async {
       recognize = (_) async => {
-        'courses': [course('摄影')],
+        'courses': [
+          {...course('摄影'), 'teacher': '复核教师'},
+        ],
       };
-      final original = course('摄影');
+      final original = {...course('摄影'), 'teacher': '原教师'};
       final first = (original['meetings'] as List).single;
       original['meetings'] = [
         first,
         first,
         {...Map<String, dynamic>.from(first), 'weekday': 6},
       ];
-      await showReview(
-        tester,
-        source: 'photos',
-        courses: [original],
-        imagePaths: ['/fixture/one.png'],
+      final pending = <String, dynamic>{
+        'name': '导师课',
+        'meetings': <Map<String, dynamic>>[],
+        'pendingReason': '学校尚未排课',
+      };
+      final originals = [original, pending];
+      await ScheduleImportService.commit(
+        ScheduleImportDraft(
+          source: 'photos',
+          sourceId: 'school-timetable',
+          school: '中国艺术研究院',
+          term: '2026 秋季',
+          firstWeekMonday: DateTime(2026, 9, 7),
+          courses: prepareScheduleRecognition(
+            originals,
+            source: 'photos',
+          ).courses.map(ScheduleImportCourseDraft.fromJson).toList(),
+        ),
+        database: db,
+        periods: [
+          {'start': '13:30', 'end': '16:30', 'label': '下午'},
+        ],
       );
-      await tester.tap(find.widgetWithText(OutlinedButton, 'AI自动复核课程'));
+      await tester.binding.setSurfaceSize(const Size(430, 1200));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        ScopedModel<MainStateModel>(
+          model: MainStateModel(),
+          child: MaterialApp(
+            home: ImportReviewView(
+              source: 'photos',
+              courses: originals,
+              imagePaths: const ['/fixture/one.png'],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(OutlinedButton, 'AI 复核课表'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('发送并复核'));
       await tester.pumpAndSettle();
-      expect(find.text('课程课表已经很完整了，不需要再次添加了。'), findsOneWidget);
+      expect(find.textContaining('已经很完整'), findsNothing);
+      expect(find.text('摄影 · 教师：原教师 → 复核教师'), findsOneWidget);
+      expect(find.text('未保留：导师课'), findsOneWidget);
+      expect(find.textContaining('未保留：摄影 · 星期 6'), findsOneWidget);
+      expect(find.textContaining('3 条原有安排未保留'), findsOneWidget);
+      expect(find.textContaining('采用后将替换当前核对内容'), findsOneWidget);
       await tester.tap(find.text('采用'));
       await tester.pumpAndSettle();
-      expect(find.text('AI自动复核课程'), findsNothing);
+      expect(find.text('AI 复核课表'), findsNothing);
       expect(
         tester
             .widget<FilledButton>(find.widgetWithText(FilledButton, '保存课表'))
             .onPressed,
         isNotNull,
       );
-      expect(await db.query('Course'), isEmpty);
+      expect(find.textContaining('复核结果未保留当前课程：导师课'), findsOneWidget);
+      expect(find.textContaining('3 条原有安排未保留'), findsOneWidget);
+      await tester.tap(find.text('保存课表'));
+      await tester.pumpAndSettle();
+      final dialog = find.byType(AlertDialog);
+      expect(find.text('确认导入变化'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: dialog,
+          matching: find.textContaining('复核结果未保留当前课程：导师课'),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.descendant(
+          of: dialog,
+          matching: find.textContaining('3 条原有安排未保留'),
+        ),
+        findsNothing,
+      );
+      await tester.tap(find.text('返回核对'));
+      await tester.pumpAndSettle();
+      expect(find.text('恢复本次 AI 处理前的内容'), findsNothing);
+      expect(find.textContaining('复核结果未保留当前课程：导师课'), findsOneWidget);
+      expect(find.textContaining('3 条原有安排未保留'), findsOneWidget);
+      final saved = await db.query('Course');
+      expect(saved, hasLength(3));
+      expect(saved.where((row) => row['teacher'] == '复核教师'), isEmpty);
     },
   );
 
@@ -830,7 +901,7 @@ void main() {
         courses: [course('摄影'), course('摄影')],
         imagePaths: ['/fixture/one.png'],
       );
-      await tester.tap(find.widgetWithText(OutlinedButton, 'AI自动复核课程'));
+      await tester.tap(find.widgetWithText(OutlinedButton, 'AI 复核课表'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('发送并复核'));
       if (failure == 'cancel') {
@@ -847,7 +918,7 @@ void main() {
       }
       expect(find.text('摄影'), findsOneWidget);
       expect(find.text('复核结果'), findsNothing);
-      expect(find.text('AI自动复核课程'), findsNothing);
+      expect(find.text('AI 复核课表'), findsNothing);
       expect(
         calls.where((c) => c.method == 'recognizePhotosWithOCR'),
         hasLength(1),
@@ -868,9 +939,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.textContaining('来源候选中有课程'), findsNothing);
       await send(tester);
-      expect(find.textContaining('来源候选中有课程未出现在识别结果中：本地课程'), findsNothing);
+      expect(find.textContaining('来源候选中有课程未出现在识别结果中：本地课程'), findsOneWidget);
       expect(find.text('有 0 门课程包含待定安排，缺失信息未自动补全，请核对。'), findsNothing);
-      expect(find.text('AI自动复核课程'), findsNothing);
+      expect(find.widgetWithText(OutlinedButton, 'AI 复核课表'), findsNothing);
+      expect(find.widgetWithText(FilledButton, 'AI 复核课表'), findsOneWidget);
       expect(
         tester
             .widget<FilledButton>(find.widgetWithText(FilledButton, '保存课表'))
@@ -902,6 +974,9 @@ void main() {
   testWidgets(
     'photo removal updates only the consented batch in the same flow',
     (tester) async {
+      ImagePickerPlatform.instance = FixtureImagePicker(
+        images: [for (var i = 1; i <= 20; i++) XFile('/fixture/$i.png')],
+      );
       await tester.binding.setSurfaceSize(const Size(430, 1200));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(
@@ -913,19 +988,42 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('选择课表图片'));
       await tester.pumpAndSettle();
-      await tester.tap(
-        find.byWidgetPredicate(
-          (w) => w is Semantics && w.properties.label == '查看第 1 张课表原图',
-        ),
+      expect(find.text('已选择 20 张'), findsOneWidget);
+      expect(find.text('AI 识别课表').hitTestable(), findsOneWidget);
+      final firstImage = find.byWidgetPredicate(
+        (w) => w is Semantics && w.properties.label == '查看第 1 张课表原图',
       );
+      final firstImageTop = tester.getTopLeft(firstImage).dy;
+      await tester.tap(firstImage);
       await tester.pumpAndSettle();
       expect(find.text('第 1 张课表图片'), findsOneWidget);
       expect(calls.where((c) => c.method == 'recognizePhotos'), isEmpty);
       await tester.tap(find.byTooltip('关闭原图'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('移除第 1 张'));
+      await tester.tap(find.byTooltip('移除第 1 张'));
       await tester.pumpAndSettle();
-      expect(find.text('已选择 1 张'), findsOneWidget);
+      expect(find.text('已选择 19 张'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.byTooltip('移除第 19 张'),
+        400,
+        scrollable: find.byWidgetPredicate(
+          (w) => w is Scrollable && w.axisDirection == AxisDirection.right,
+        ),
+      );
+      await tester.pumpAndSettle();
+      final lastImage = find.byWidgetPredicate(
+        (w) => w is Semantics && w.properties.label == '查看第 19 张课表原图',
+      );
+      expect(tester.getTopLeft(lastImage).dy, firstImageTop);
+      expect(find.text('AI 识别课表').hitTestable(), findsOneWidget);
+      await tester.tap(lastImage);
+      await tester.pumpAndSettle();
+      expect(find.text('第 19 张课表图片'), findsOneWidget);
+      await tester.tap(find.byTooltip('关闭原图'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('移除第 19 张'));
+      await tester.pumpAndSettle();
+      expect(find.text('已选择 18 张'), findsOneWidget);
       await tester.tap(find.text('AI 识别课表'));
       await tester.pumpAndSettle();
       expect(calls.where((c) => c.method == 'recognizePhotos'), isEmpty);
@@ -934,7 +1032,7 @@ void main() {
       expect(
         calls.singleWhere((c) => c.method == 'recognizePhotos').arguments,
         {
-          'paths': ['/fixture/two.png'],
+          'paths': [for (var i = 2; i < 20; i++) '/fixture/$i.png'],
           'ai': true,
         },
       );
@@ -1025,7 +1123,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(ImportReviewView), findsOneWidget);
       await tester.scrollUntilVisible(
-        find.textContaining('[2, 4, 6, 8, 10, 12, 14, 16, 18, 20]'),
+        find.textContaining('第 2、4、6、8、10、12、14、16、18、20 周'),
         200,
         scrollable: find
             .descendant(
@@ -1035,7 +1133,7 @@ void main() {
             .first,
       );
       expect(
-        find.textContaining('[2, 4, 6, 8, 10, 12, 14, 16, 18, 20]'),
+        find.textContaining('第 2、4、6、8、10、12、14、16、18、20 周'),
         findsOneWidget,
       );
       expect(await db.query('Course'), isEmpty);
@@ -1127,7 +1225,8 @@ void main() {
         tester.widget<TextField>(fields.at(0)).controller!.text,
         'fixture-account',
       );
-      expect(find.textContaining('本机已记住账号 fixture-account'), findsOneWidget);
+      expect(find.textContaining('本机已记住账号'), findsNothing);
+      expect(find.text('可以留空，在学校网页中自行登录。'), findsNothing);
       expect(
         calls
             .where((call) => call.method == 'saveSchoolAccount')
@@ -1171,7 +1270,7 @@ void main() {
         tester.widget<TextField>(fields.at(1)).controller!.text,
         SecretMask.placeholder,
       );
-      expect(find.textContaining('已保存，只显示脱敏内容'), findsOneWidget);
+      expect(find.textContaining('已保存，只显示脱敏内容'), findsNothing);
       await tester.tap(fields.at(1));
       await tester.pump();
       expect(find.textContaining('已保存，只显示脱敏内容'), findsNothing);

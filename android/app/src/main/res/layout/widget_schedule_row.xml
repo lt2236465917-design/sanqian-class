@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/widget_day" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:padding="10dp" android:layout_marginTop="6dp">
+        <LinearLayout android:layout_width="48dp" android:layout_height="wrap_content" android:orientation="vertical">
+            <TextView android:id="@+id/widget_day_start" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="14sp" android:textColor="@color/widget_text" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false"/>
+            <TextView android:id="@+id/widget_day_end" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="12sp" android:textColor="@color/widget_secondary" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:layout_marginTop="4dp"/>
+        </LinearLayout>
+        <LinearLayout android:layout_width="0dp" android:layout_weight="1" android:layout_marginStart="12dp" android:layout_height="wrap_content" android:orientation="vertical">
+            <TextView android:id="@+id/widget_day_title" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="16sp" android:textColor="@color/widget_text" android:maxLines="2" android:ellipsize="end" android:includeFontPadding="false" android:textStyle="bold"/>
+            <TextView android:id="@+id/widget_day_place" android:layout_width="match_parent" android:layout_height="wrap_content" android:textSize="12sp" android:textColor="@color/widget_secondary" android:maxLines="1" android:ellipsize="end" android:includeFontPadding="false" android:layout_marginTop="4dp"/>
+        </LinearLayout>
+    </LinearLayout>

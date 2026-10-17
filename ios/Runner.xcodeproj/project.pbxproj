@@ -6126,6 +6126,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = PersonalAppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
+				"CODE_SIGN_ENTITLEMENTS[sdk=iphoneos*]" = "$(SCHEDULE_DEVICE_RUNNER_ENTITLEMENTS)";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
@@ -6149,8 +6150,8 @@
 					"$(PROJECT_DIR)/Flutter",
 				);
 				MARKETING_VERSION = 1.0.0;
-				SCHEDULE_APP_GROUP = group.local.sanqian.schedule;
-                PRODUCT_BUNDLE_IDENTIFIER = local.sanqian.schedule;
+				SCHEDULE_APP_GROUP = group.love.sanqian.schedule;
+                PRODUCT_BUNDLE_IDENTIFIER = love.sanqian.schedule;
 				"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = "$(SCHEDULE_DEVICE_BUNDLE_ID)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -6173,6 +6174,7 @@
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CODE_SIGN_ENTITLEMENTS = ScheduleWidgetExtension.entitlements;
+				"CODE_SIGN_ENTITLEMENTS[sdk=iphoneos*]" = "$(SCHEDULE_DEVICE_WIDGET_ENTITLEMENTS)";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
@@ -6193,8 +6195,8 @@
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
-				SCHEDULE_APP_GROUP = group.local.sanqian.schedule;
-                PRODUCT_BUNDLE_IDENTIFIER = local.sanqian.schedule.ScheduleWidgetExtension;
+				SCHEDULE_APP_GROUP = group.love.sanqian.schedule;
+                PRODUCT_BUNDLE_IDENTIFIER = love.sanqian.schedule.ScheduleWidgetExtension;
                 "PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = "$(SCHEDULE_DEVICE_BUNDLE_ID).ScheduleWidgetExtension";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -6222,6 +6224,7 @@
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CODE_SIGN_ENTITLEMENTS = ScheduleWidgetExtension.entitlements;
+				"CODE_SIGN_ENTITLEMENTS[sdk=iphoneos*]" = "$(SCHEDULE_DEVICE_WIDGET_ENTITLEMENTS)";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
@@ -6241,8 +6244,8 @@
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_FAST_MATH = YES;
-				SCHEDULE_APP_GROUP = group.local.sanqian.schedule;
-                PRODUCT_BUNDLE_IDENTIFIER = local.sanqian.schedule.ScheduleWidgetExtension;
+				SCHEDULE_APP_GROUP = group.love.sanqian.schedule;
+                PRODUCT_BUNDLE_IDENTIFIER = love.sanqian.schedule.ScheduleWidgetExtension;
                 "PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = "$(SCHEDULE_DEVICE_BUNDLE_ID).ScheduleWidgetExtension";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -6268,6 +6271,7 @@
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CODE_SIGN_ENTITLEMENTS = ScheduleWidgetExtension.entitlements;
+				"CODE_SIGN_ENTITLEMENTS[sdk=iphoneos*]" = "$(SCHEDULE_DEVICE_WIDGET_ENTITLEMENTS)";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
@@ -6287,8 +6291,8 @@
 				);
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_FAST_MATH = YES;
-				SCHEDULE_APP_GROUP = group.local.sanqian.schedule;
-                PRODUCT_BUNDLE_IDENTIFIER = local.sanqian.schedule.ScheduleWidgetExtension;
+				SCHEDULE_APP_GROUP = group.love.sanqian.schedule;
+                PRODUCT_BUNDLE_IDENTIFIER = love.sanqian.schedule.ScheduleWidgetExtension;
                 "PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = "$(SCHEDULE_DEVICE_BUNDLE_ID).ScheduleWidgetExtension";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -6425,6 +6429,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = PersonalAppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
+				"CODE_SIGN_ENTITLEMENTS[sdk=iphoneos*]" = "$(SCHEDULE_DEVICE_RUNNER_ENTITLEMENTS)";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
@@ -6449,8 +6454,8 @@
 				);
 				MARKETING_VERSION = 1.0.0;
 				ONLY_ACTIVE_ARCH = YES;
-				SCHEDULE_APP_GROUP = group.local.sanqian.schedule;
-                PRODUCT_BUNDLE_IDENTIFIER = local.sanqian.schedule;
+				SCHEDULE_APP_GROUP = group.love.sanqian.schedule;
+                PRODUCT_BUNDLE_IDENTIFIER = love.sanqian.schedule;
 				"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = "$(SCHEDULE_DEVICE_BUNDLE_ID)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -6470,6 +6475,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = PersonalAppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
+				"CODE_SIGN_ENTITLEMENTS[sdk=iphoneos*]" = "$(SCHEDULE_DEVICE_RUNNER_ENTITLEMENTS)";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
@@ -6493,8 +6499,8 @@
 					"$(PROJECT_DIR)/Flutter",
 				);
 				MARKETING_VERSION = 1.0.0;
-				SCHEDULE_APP_GROUP = group.local.sanqian.schedule;
-                PRODUCT_BUNDLE_IDENTIFIER = local.sanqian.schedule;
+				SCHEDULE_APP_GROUP = group.love.sanqian.schedule;
+                PRODUCT_BUNDLE_IDENTIFIER = love.sanqian.schedule;
 				"PRODUCT_BUNDLE_IDENTIFIER[sdk=iphoneos*]" = "$(SCHEDULE_DEVICE_BUNDLE_ID)";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";

@@ -483,20 +483,28 @@ ScheduleRecognitionPreparation prepareScheduleRecognition(
     for (final name in expectedCourseNames)
       if (name.trim().isNotEmpty) _recognitionName(name): name.trim(),
   };
-  final actual = <String, String>{
-    for (final course in canonical) _recognitionName(course.name): course.name,
-  };
+  // Portal grids append the teaching section to the name (for example,
+  // "英语-1"). Accept that candidate only when the extracted section agrees;
+  // never strip numeric suffixes from actual course names or merge identities.
+  bool matchesCandidate(String key, ScheduleImportCourseDraft course) =>
+      key == _recognitionName(course.name) ||
+      (_recognitionField(course.section).isNotEmpty &&
+          key == _recognitionName('${course.name}-${course.section}'));
   final missing = expected.keys
-      .where((key) => !actual.containsKey(key))
+      .where((key) => !canonical.any((course) => matchesCandidate(key, course)))
       .map((key) => expected[key]!)
       .toList();
   // An absent local candidate list means coverage is unknown, not that all
   // model courses are extra. Unparsed webpage rows can legitimately add names.
   final extra = expected.isEmpty
       ? <String>[]
-      : actual.keys
-            .where((key) => !expected.containsKey(key))
-            .map((key) => actual[key]!)
+      : canonical
+            .where(
+              (course) =>
+                  !expected.keys.any((key) => matchesCandidate(key, course)),
+            )
+            .map((course) => course.name)
+            .toSet()
             .toList();
   if (missing.isNotEmpty) {
     warnings.add('来源候选中有课程未出现在识别结果中：${missing.join('、')}。请对照原课表检查是否漏课。');
@@ -508,13 +516,52 @@ ScheduleRecognitionPreparation prepareScheduleRecognition(
   if (pending > 0) {
     warnings.add('有 $pending 门课程包含待定安排，缺失信息未自动补全，请核对。');
   }
+  final referenceConflicts = canonical
+      .where((course) => course.meetings.any(_conflictsWithQuotedWeekday))
+      .map((course) => course.name)
+      .toList();
+  for (final name in referenceConflicts) {
+    warnings.add('“$name”的部分周次或星期与 AI 引用的原文不一致，请对照原课表核对。原安排已保留，未自动改写。');
+  }
+  final overlaps = <String>[];
+  for (var i = 0; i < canonical.length; i++) {
+    for (var j = i + 1; j < canonical.length; j++) {
+      final first = canonical[i], second = canonical[j];
+      if (_recognitionName(first.name) == _recognitionName(second.name)) {
+        continue;
+      }
+      final overlapsInTime = first.meetings.any(
+        (a) => second.meetings.any(
+          (b) =>
+              !a.isPending &&
+              !b.isPending &&
+              a.weekday == b.weekday &&
+              a.startMinute != null &&
+              a.endMinute != null &&
+              b.startMinute != null &&
+              b.endMinute != null &&
+              a.startMinute! < b.endMinute! &&
+              b.startMinute! < a.endMinute! &&
+              a.weeks!.any(b.weeks!.contains),
+        ),
+      );
+      if (overlapsInTime) {
+        overlaps.add(
+          '“${first.name}”与“${second.name}”存在同周同时段重叠。请核对是否混入不同课表，两个课程的安排均已保留。',
+        );
+      }
+    }
+  }
+  warnings.addAll(overlaps);
   final anomaly =
       merged > 0 ||
       removed > 0 ||
       ambiguous.isNotEmpty ||
       missing.isNotEmpty ||
       extra.isNotEmpty ||
-      pending > 0;
+      pending > 0 ||
+      referenceConflicts.isNotEmpty ||
+      overlaps.isNotEmpty;
   return ScheduleRecognitionPreparation(
     courses: canonical.map((course) => course.toJson()).toList(),
     warnings: List.unmodifiable(warnings),
@@ -522,6 +569,35 @@ ScheduleRecognitionPreparation prepareScheduleRecognition(
     extraCourses: List.unmodifiable(extra),
     hasStructuralAnomaly: anomaly,
     shouldOfferOCR: source == 'photos' && anomaly,
+  );
+}
+
+// Model quotations are not an independent source of truth. Only flag a
+// contradiction; never rewrite dates from a quotation that may itself be wrong.
+bool _conflictsWithQuotedWeekday(ScheduleImportMeetingDraft meeting) {
+  if (meeting.weekday == null || meeting.weeks == null) return false;
+  final reference = meeting.sourceReference;
+  if (reference == null) return false;
+  final quotedDays = <int, Set<int>>{};
+  final pattern = RegExp(
+    r'(\d{1,2}(?:\s*[-–—~～,，、]\s*\d{1,2})*)\s*周\s*([一二三四五六日天])',
+  );
+  for (final match in pattern.allMatches(reference)) {
+    final day = '一二三四五六日天'.indexOf(match.group(2)!) + 1;
+    for (final segment in match.group(1)!.split(RegExp(r'[,，、]'))) {
+      final bounds = segment.split(RegExp(r'[-–—~～]'));
+      final start = int.parse(bounds.first.trim());
+      final end = int.parse(bounds.last.trim());
+      if (start < 1 || end > 60 || end < start) continue;
+      for (var week = start; week <= end; week++) {
+        quotedDays.putIfAbsent(week, () => {}).add(day == 8 ? 7 : day);
+      }
+    }
+  }
+  return meeting.weeks!.any(
+    (week) =>
+        quotedDays.containsKey(week) &&
+        !quotedDays[week]!.contains(meeting.weekday),
   );
 }
 

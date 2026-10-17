@@ -19,6 +19,7 @@ class PhotoScheduleImportView extends StatefulWidget {
 }
 
 class _PhotoScheduleImportViewState extends State<PhotoScheduleImportView> {
+  final _imageScrollController = ScrollController();
   List<XFile> _images = [];
   bool _busy = false, _recognizing = false;
   int _ticket = 0;
@@ -28,6 +29,7 @@ class _PhotoScheduleImportViewState extends State<PhotoScheduleImportView> {
   @override
   void dispose() {
     _ticket++;
+    _imageScrollController.dispose();
     if (_recognizing) {
       unawaited(
         ScheduleDerivedDataService.channel
@@ -56,6 +58,9 @@ class _PhotoScheduleImportViewState extends State<PhotoScheduleImportView> {
       if (images.length > 20) {
         setState(() => _error = '每次最多选择 20 张课表图片');
         return;
+      }
+      if (_imageScrollController.hasClients) {
+        _imageScrollController.jumpTo(0);
       }
       setState(() {
         _images = images;
@@ -251,14 +256,16 @@ class _PhotoScheduleImportViewState extends State<PhotoScheduleImportView> {
                   color: Theme.of(context).colorScheme.primary,
                 ),
               ),
-              title: const Text('选择课表图片'),
+              title: Text(_images.isEmpty ? '选择课表图片' : '重新选择课表图片'),
               trailing: const Icon(Icons.chevron_right_rounded, size: 20),
               enabled: !_busy,
               onTap: _busy ? null : _pick,
             ),
           ),
+          const SizedBox(height: 16),
           Wrap(
             spacing: 12,
+            runSpacing: 8,
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               Text(
@@ -273,78 +280,114 @@ class _PhotoScheduleImportViewState extends State<PhotoScheduleImportView> {
               ),
             ],
           ),
-          if (_images.isNotEmpty)
+          if (_images.isNotEmpty) ...[
             Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                children: [
-                  for (var i = 0; i < _images.length; i++)
-                    SizedBox(
-                      width: 126,
-                      child: Card(
-                        clipBehavior: Clip.antiAlias,
-                        child: Column(
-                          children: [
-                            Semantics(
-                              button: true,
-                              label: '查看第 ${i + 1} 张课表原图',
-                              child: InkWell(
-                                onTap: _busy ? null : () => _previewImage(i),
-                                child: ExcludeSemantics(
-                                  child: SizedBox(
-                                    width: 126,
-                                    height: 104,
-                                    child: Image.file(
-                                      File(_images[i].path),
-                                      fit: BoxFit.cover,
-                                      cacheWidth: 300,
-                                      errorBuilder: (_, error, stack) =>
-                                          const Center(
-                                            child: Icon(
-                                              Icons.broken_image_outlined,
-                                            ),
-                                          ),
+              padding: const EdgeInsets.only(top: 8, bottom: 4),
+              child: Text(
+                '左右滑动浏览，点图片放大',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+            SizedBox(
+              height: 168,
+              child: Scrollbar(
+                controller: _imageScrollController,
+                thumbVisibility: true,
+                child: ListView.separated(
+                  controller: _imageScrollController,
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.only(top: 4, bottom: 12),
+                  itemCount: _images.length,
+                  separatorBuilder: (_, index) => const SizedBox(width: 12),
+                  itemBuilder: (context, i) => SizedBox(
+                    width: 116,
+                    child: Card(
+                      margin: EdgeInsets.zero,
+                      clipBehavior: Clip.antiAlias,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          Semantics(
+                            button: true,
+                            enabled: !_busy,
+                            label: '查看第 ${i + 1} 张课表原图',
+                            child: InkWell(
+                              onTap: _busy ? null : () => _previewImage(i),
+                              child: ExcludeSemantics(
+                                child: Image.file(
+                                  File(_images[i].path),
+                                  fit: BoxFit.cover,
+                                  cacheWidth: 300,
+                                  errorBuilder: (_, error, stack) =>
+                                      const Center(
+                                        child: Icon(
+                                          Icons.broken_image_outlined,
+                                        ),
+                                      ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            left: 8,
+                            bottom: 8,
+                            child: IgnorePointer(
+                              child: ExcludeSemantics(
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).colorScheme.surface
+                                        .withValues(alpha: .94),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    child: Text(
+                                      '${i + 1}',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
                             ),
-                            TextButton.icon(
+                          ),
+                          Positioned(
+                            top: 0,
+                            right: 0,
+                            child: IconButton.filledTonal(
+                              tooltip: '移除第 ${i + 1} 张',
                               onPressed: _busy
                                   ? null
                                   : () => setState(() => _images.removeAt(i)),
-                              icon: const Icon(Icons.close, size: 16),
-                              label: Text('移除第 ${i + 1} 张'),
+                              icon: const Icon(Icons.close, size: 18),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
-                ],
+                  ),
+                ),
               ),
             ),
+          ],
           const SizedBox(height: 12),
           AIKeyStatus(revision: _keyRevision),
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 8),
-            child: Text(
-              '想要使用 AI 完整功能录入课表，请先在 DeepSeek 设置中保存 API Key。确认发送后，所选图片会发送到 DeepSeek，可能消耗账户余额。',
-            ),
-          ),
-          FilledButton(
-            onPressed: _busy || _images.isEmpty ? null : _recognize,
-            child: Text(_recognizing ? 'AI 正在识别…' : 'AI 识别课表'),
+            child: Text('识别前请确认图片属于同一份课表。确认发送后，所选图片会发送到 DeepSeek，可能消耗账户余额。'),
           ),
           TextButton(
             onPressed: _busy ? null : _openSettings,
             child: const Text('DeepSeek 设置'),
           ),
-          if (_recognizing) ...[
-            const RecognitionProgress(),
-            TextButton(onPressed: _cancel, child: const Text('取消识别')),
-          ],
+          if (_recognizing) const RecognitionProgress(),
           if (_error.isNotEmpty)
             Semantics(
               liveRegion: true,
@@ -354,6 +397,24 @@ class _PhotoScheduleImportViewState extends State<PhotoScheduleImportView> {
               ),
             ),
         ],
+      ),
+    ),
+    bottomNavigationBar: SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            FilledButton(
+              onPressed: _busy || _images.isEmpty ? null : _recognize,
+              child: Text(_recognizing ? 'AI 正在识别…' : 'AI 识别课表'),
+            ),
+            if (_recognizing)
+              TextButton(onPressed: _cancel, child: const Text('取消识别')),
+          ],
+        ),
       ),
     ),
   );

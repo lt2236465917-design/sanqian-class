@@ -299,6 +299,8 @@ class ScheduleCalendarReminders {
         final event = Event(
           calendarId,
           eventId: prior?.eventId,
+          // These are confirmed course occurrences, including on update.
+          status: EventStatus.Confirmed,
           title: '${entry['title']}${supplement ? ' · 提前$label提醒' : ''}',
           location: entry['classroom'] as String?,
           description: '由三千上课自动维护，请在 App 内修改课程和提醒。\n$prefix$key]',

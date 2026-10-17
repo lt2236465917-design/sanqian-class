@@ -31,6 +31,89 @@ Map<String, dynamic> course({
 };
 
 void main() {
+  test(
+    'quoted week and weekday contradictions warn without rewriting dates',
+    () {
+      final result = prepareScheduleRecognition([
+        course(
+          meetings: [
+            {
+              ...meeting(day: 7, weeks: [8]),
+              'sourceReference': '8周二-上午课-6406',
+            },
+          ],
+        ),
+      ], source: 'photos');
+      expect(result.warnings.single, contains('与 AI 引用的原文不一致'));
+      expect(result.courses.single['meetings'][0]['weekday'], 7);
+      expect(result.shouldOfferOCR, isTrue);
+    },
+  );
+
+  test('quoted ranges, multiple weekdays and absent references stay valid', () {
+    for (final reference in [
+      '3,4周一-上午课 6-10周一-上午课',
+      '3,4周一-上午课 3,4周二-下午课 6周一-上午课',
+      '请核对原图',
+      null,
+    ]) {
+      final result = prepareScheduleRecognition([
+        course(
+          meetings: [
+            {...meeting(), 'sourceReference': reference},
+          ],
+        ),
+      ], source: 'photos');
+      expect(result.warnings, isEmpty);
+      expect(result.shouldOfferOCR, isFalse);
+    }
+  });
+
+  test('overlapping courses warn without discarding either arrangement', () {
+    final input = [
+      course(
+        name: '课程甲',
+        meetings: [
+          meeting(weeks: [3, 6]),
+        ],
+      ),
+      course(
+        name: '课程乙',
+        meetings: [
+          meeting(weeks: [6, 8], start: 600),
+        ],
+      ),
+    ];
+    final original = jsonEncode(input);
+    final result = prepareScheduleRecognition(input, source: 'photos');
+    expect(result.warnings.single, contains('同周同时段重叠'));
+    expect(result.shouldOfferOCR, isTrue);
+    expect(result.courses, hasLength(2));
+    expect(result.courses[0]['meetings'][0]['weeks'], [3, 6]);
+    expect(result.courses[1]['meetings'][0]['weeks'], [6, 8]);
+    expect(jsonEncode(input), original);
+  });
+
+  test(
+    'different weeks, days, adjacent times and pending times do not clash',
+    () {
+      for (final other in [
+        meeting(weeks: [7, 8]),
+        meeting(day: 2),
+        meeting(start: 720, end: 780),
+        meeting(start: null, end: null),
+        meeting(weeks: null),
+      ]) {
+        final result = prepareScheduleRecognition([
+          course(name: '课程甲'),
+          course(name: '课程乙', meetings: [other]),
+        ], source: 'photos');
+        expect(result.warnings.where((w) => w.contains('重叠')), isEmpty);
+        expect(result.courses, hasLength(2));
+      }
+    },
+  );
+
   test('merge multi-image courses and only exact scheduled duplicates', () {
     final input = [
       course(),
@@ -108,6 +191,30 @@ void main() {
       course(name: '英语-2'),
     ], source: 'photos');
     expect(result.courses, hasLength(4));
+  });
+
+  test('portal name-section candidates match an explicitly known section', () {
+    final result = prepareScheduleRecognition(
+      [course(name: '英语', section: '1')],
+      source: 'school-portal',
+      expectedCourseNames: ['英语', '英语-1'],
+    );
+    expect(result.missingCourses, isEmpty);
+    expect(result.extraCourses, isEmpty);
+    expect(result.courses.single['name'], '英语');
+    expect(result.courses.single['section'], '1');
+  });
+
+  test('candidate suffix cannot infer an unknown or different section', () {
+    for (final section in [null, '2']) {
+      final result = prepareScheduleRecognition(
+        [course(name: '英语', section: section)],
+        source: 'school-portal',
+        expectedCourseNames: ['英语-1'],
+      );
+      expect(result.missingCourses, ['英语-1']);
+      expect(result.extraCourses, ['英语']);
+    }
   });
 
   test('unknown arrangements remain distinct and cannot borrow fields', () {

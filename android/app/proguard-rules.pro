@@ -13,9 +13,13 @@
 -keep class a.** {*;}
 -keep class com.vivo.** {*;}
 
--keep class local.sanqian.schedule.ScheduleWidgetProvider { *; }
--keep class local.sanqian.schedule.ScheduleWidgetRefreshReceiver { *; }
--keep class local.sanqian.schedule.ScheduleWidgetBootReceiver { *; }
--keep class local.sanqian.schedule.ScheduleReminderReceiver { *; }
--keep class local.sanqian.schedule.ScheduleReminderScheduler { *; }
--keep class local.sanqian.schedule.ScheduleImportPlugin { *; }
+-keep class love.sanqian.schedule.ScheduleWidgetProvider { *; }
+-keep class love.sanqian.schedule.ScheduleWidgetRefreshReceiver { *; }
+-keep class love.sanqian.schedule.ScheduleWidgetBootReceiver { *; }
+-keep class love.sanqian.schedule.ScheduleReminderReceiver { *; }
+-keep class love.sanqian.schedule.ScheduleReminderScheduler { *; }
+-keep class love.sanqian.schedule.ScheduleImportPlugin { *; }
+
+# device_calendar serializes native models with Gson field names for Dart.
+# R8 renaming breaks calendar/event lookup and can duplicate exported events.
+-keep class com.builttoroam.devicecalendar.** { *; }

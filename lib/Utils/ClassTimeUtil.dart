@@ -61,7 +61,8 @@ class ClassTimeUtil {
     if (start < 1 || count < 0 || end > periods.length) return null;
     final first = periods[start - 1]['label'] as String?;
     final last = periods[end - 1]['label'] as String?;
-    if (first == null || last == null) return null;
+    // Manually created timetables have clock times without named periods.
+    if (first == null || last == null) return clockRange(periods, start, count);
     return first == last ? first : '$first–$last';
   }
 }

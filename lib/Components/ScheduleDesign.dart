@@ -134,9 +134,13 @@ class ScheduleActionTile extends StatelessWidget {
 }
 
 class ScheduleNotice extends StatelessWidget {
-  final String text;
+  final String? text;
+  final List<String>? items;
   final bool error;
-  const ScheduleNotice(this.text, {super.key, this.error = false});
+  const ScheduleNotice(this.text, {super.key, this.error = false})
+    : items = null;
+  const ScheduleNotice.numbered(this.items, {super.key, this.error = false})
+    : text = null;
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
@@ -149,12 +153,29 @@ class ScheduleNotice extends StatelessWidget {
           color: error ? colors.errorContainer : colors.surfaceContainer,
           borderRadius: BorderRadius.circular(18),
         ),
-        child: Text(
-          text,
+        child: DefaultTextStyle.merge(
           style: TextStyle(
             height: 1.5,
             color: error ? colors.onErrorContainer : colors.onSurfaceVariant,
           ),
+          child: items == null
+              ? Text(text!)
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    for (var i = 0; i < items!.length; i++) ...[
+                      if (i > 0) const SizedBox(height: 12),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('${i + 1}.'),
+                          const SizedBox(width: 8),
+                          Expanded(child: Text(items![i])),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
         ),
       ),
     );

@@ -218,6 +218,8 @@ class ScheduleCalendarExporter {
             calendarId,
             eventId: liveIds.contains(previousId) ? previousId : null,
             title: course.name,
+            // Android CalendarProvider rejects updates with a null status.
+            status: EventStatus.Confirmed,
             start: schoolTime(entry.start!),
             end: schoolTime(entry.end!),
             location: course.classroom,

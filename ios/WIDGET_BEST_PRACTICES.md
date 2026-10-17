@@ -402,13 +402,13 @@ let nextRefresh = Calendar.current.date(
 **1. Enable App Groups for BOTH Targets**
 - Main app target
 - Widget extension target
-- Use **same App Group ID**: `group.local.sanqian.schedule`
+- Use **same App Group ID**: `group.love.sanqian.schedule`
 
 **2. Use Suite Name Consistently**
 
 ```swift
 // ✅ GOOD: Shared constant
-let appGroupId = "group.local.sanqian.schedule"
+let appGroupId = "group.love.sanqian.schedule"
 
 // Main App
 if let sharedDefaults = UserDefaults(suiteName: appGroupId) {
@@ -432,7 +432,7 @@ UserDefaults.standard.set(value, forKey: "key")
 // ✅ GOOD: Always use shared suite
 class AppGroupDefaults {
     static let shared = UserDefaults(
-        suiteName: "group.local.sanqian.schedule"
+        suiteName: "group.love.sanqian.schedule"
     )!
 }
 
@@ -471,7 +471,7 @@ if let data = sharedDefaults.data(forKey: "widget_data"),
 // ✅ GOOD: Single source of truth
 class WidgetDataManager {
     static let shared = WidgetDataManager()
-    private let appGroupId = "group.local.sanqian.schedule"
+    private let appGroupId = "group.love.sanqian.schedule"
 
     func saveWidgetData(_ data: WidgetScheduleData) {
         guard let defaults = UserDefaults(suiteName: appGroupId) else { return }

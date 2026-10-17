@@ -209,6 +209,9 @@ import EventKit
   private var widgetDataChannel: FlutterMethodChannel?
   private var scheduleNavigationChannel: FlutterMethodChannel?
   private var settingsChannel: FlutterMethodChannel?
+  private var widgetLaunchChannel: FlutterMethodChannel?
+  private var pendingWidgetTarget: String?
+  private var widgetBridgeReady = false
   private var mascotSplashPosterHost: UIView?
   private var mascotSplashChannel: FlutterMethodChannel?
   private var didReleaseFlutterFrame = false
@@ -230,7 +233,22 @@ import EventKit
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    if let url = launchOptions?[.url] as? URL, url.scheme == "ncs", url.host == "schedule" {
+      pendingWidgetTarget = url.absoluteString
+    }
     GeneratedPluginRegistrant.register(with: self)
+    if let registrar = registrar(forPlugin: "WidgetLaunch") {
+      widgetLaunchChannel = FlutterMethodChannel(name: "sanqian/widget", binaryMessenger: registrar.messenger())
+      widgetLaunchChannel?.setMethodCallHandler { [weak self] call, result in
+        guard let self else { result(nil); return }
+        if call.method == "getInitialTarget" {
+          self.widgetBridgeReady = true
+          let target = self.pendingWidgetTarget
+          self.pendingWidgetTarget = nil
+          result(target)
+        } else { result(FlutterMethodNotImplemented) }
+      }
+    }
     if let registrar = registrar(forPlugin: "ScheduleImport") {
       ScheduleImportPlugin.register(with: registrar)
     }
@@ -913,6 +931,12 @@ import EventKit
     print("🔗 [AppDelegate] Deep link path: \(path)")
 
     switch path {
+    case "schedule":
+      if widgetBridgeReady {
+        widgetLaunchChannel?.invokeMethod("openSchedule", arguments: url.absoluteString)
+      } else {
+        pendingWidgetTarget = url.absoluteString
+      }
     case "arrived":
       handleArrivedDeepLink(url: url)
     case "course":

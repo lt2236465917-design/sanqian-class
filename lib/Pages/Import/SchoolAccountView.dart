@@ -286,24 +286,21 @@ class _SchoolAccountViewState extends State<SchoolAccountView> {
             icon: Icons.school_outlined,
             eyebrow: '学校网页 · AI 识别',
             title: '从学校带入课表',
-            description: '使用学号或统一身份认证用户名。验证码在学校网页填写，读取后先核对，再保存。',
+            description: '填写学校统一身份认证账号（学号、手机号或用户名）。验证码在学校网页填写，读取后先核对，再保存。',
           ),
           const SizedBox(height: 16),
           const ScheduleNotice('暂只支持中国艺术研究院，其他学校逐渐适配中。'),
           const ImportJourney(step: 0),
-          const ScheduleSection('学校账号', subtitle: '可以留空，在学校网页中自行登录。'),
-          if (_localId != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: ScheduleNotice(
-                '本机已记住账号 $_savedAccount。密码会自动填入学校网页，验证码和登录仍由你确认。',
-              ),
-            ),
+          const ScheduleSection('学校账号'),
           TextField(
             controller: _account,
             enabled: !_busy,
             textInputAction: TextInputAction.next,
-            decoration: const InputDecoration(labelText: '学号或学校登录名（可留空）'),
+            decoration: const InputDecoration(
+              labelText: '学校登录账号（可留空）',
+              helperText: '使用学校登录页支持的学号、手机号或用户名。',
+              helperMaxLines: 2,
+            ),
             autocorrect: false,
           ),
           const SizedBox(height: 16),
@@ -314,10 +311,7 @@ class _SchoolAccountViewState extends State<SchoolAccountView> {
             obscureText: true,
             enableSuggestions: false,
             autocorrect: false,
-            decoration: InputDecoration(
-              labelText: '学校网页密码（可留空）',
-              helperText: _passwordMasked ? '已保存，只显示脱敏内容。点按后可输入新密码。' : null,
-            ),
+            decoration: const InputDecoration(labelText: '学校网页密码（可留空）'),
           ),
           const SizedBox(height: 16),
           FilledButton(
@@ -332,7 +326,7 @@ class _SchoolAccountViewState extends State<SchoolAccountView> {
           if (_message.isNotEmpty) ScheduleNotice(_message),
           const ScheduleSection('打开网页后'),
           const ScheduleNotice(
-            '1. 填写验证码，点击学校网页里的“登录”\n2. 进入“研究生综合管理 → 我的课表”\n3. 看到课表后，点页面底部“读取并识别”',
+            '1. 填写验证码，点击学校网页里的“登录”\n2. 进入“研究生综合管理 → 我的课表”\n3. 看到课表后，点“读取并识别”',
           ),
           const ScheduleSection('识别课表'),
           AIKeyStatus(revision: _keyRevision),

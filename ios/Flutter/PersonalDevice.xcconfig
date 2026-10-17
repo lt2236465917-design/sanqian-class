@@ -1,5 +1,7 @@
 // Main app only: no App Groups or widget provisioning is required.
 // Replace the local bundle ID with one available to your own Apple account.
-SCHEDULE_DEVICE_BUNDLE_ID = local.sanqian.schedule
+SCHEDULE_DEVICE_BUNDLE_ID = love.sanqian.schedule
 SCHEDULE_DEVELOPMENT_TEAM =
+SCHEDULE_DEVICE_RUNNER_ENTITLEMENTS = Runner/Runner.entitlements
+SCHEDULE_DEVICE_WIDGET_ENTITLEMENTS = ScheduleWidgetExtension.entitlements
 #include? "PersonalDevice.local.xcconfig"

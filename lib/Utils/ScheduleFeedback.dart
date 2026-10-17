@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../Models/ScheduleImportDraft.dart';
+import '../Components/ScheduleFeedbackNotice.dart';
 
 /// UI messages only. Import decisions and native error contracts stay unchanged.
 class ScheduleFeedback {
@@ -48,10 +49,7 @@ class ScheduleFeedback {
   }
 
   static void success(BuildContext context, String message) {
-    final messenger = ScaffoldMessenger.of(context);
-    // Replace the previous message, so its queued timer cannot hide new feedback.
-    messenger.clearSnackBars();
-    messenger.showSnackBar(SnackBar(content: Text(message)));
+    ScheduleFeedbackNotice.show(context, message);
     haptic();
   }
 

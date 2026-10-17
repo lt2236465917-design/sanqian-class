@@ -1,0 +1,94 @@
+{
+  "note": "Static string presence only; neither proves runtime traffic nor exhaustive domain coverage. URL paths and query strings omitted.",
+  "domains": {
+    "classes.dex": [
+      "access.zgysyjy.org.cn",
+      "aomedia.org",
+      "api.deepseek.com",
+      "dashif.org",
+      "default.url",
+      "developer.android.com",
+      "developer.apple.com",
+      "docs.flutter.dev",
+      "github.com",
+      "iam.zgysyjy.org.cn",
+      "issuetracker.google.com",
+      "ns.adobe.com",
+      "schemas.microsoft.com",
+      "www.w3.org",
+      "wxt.zgysyjy.org.cn",
+      "youtrack.jetbrains.com"
+    ],
+    "lib/arm64-v8a/libapp.so": [
+      "api.flutter.dev",
+      "flutter.dev",
+      "github.com",
+      "platform.deepseek.com",
+      "pub.dev"
+    ],
+    "lib/armeabi-v7a/libapp.so": [
+      "api.flutter.dev",
+      "flutter.dev",
+      "github.com",
+      "platform.deepseek.com",
+      "pub.dev"
+    ],
+    "lib/x86_64/libapp.so": [
+      "api.flutter.dev",
+      "flutter.dev",
+      "github.com",
+      "platform.deepseek.com",
+      "pub.dev"
+    ]
+  },
+  "markers": {
+    "classes.dex": {
+      "api.deepseek.com": true,
+      "sanqianshangke.top": false,
+      "iam.zgysyjy.org.cn": true,
+      "access.zgysyjy.org.cn": true,
+      "wxt.zgysyjy.org.cn": true,
+      "com/google/mlkit": true,
+      "com/umeng": false,
+      "com/google/firebase/analytics": false,
+      "com/google/android/datatransport": true,
+      "mobile_scanner": true
+    },
+    "lib/arm64-v8a/libapp.so": {
+      "api.deepseek.com": false,
+      "sanqianshangke.top": false,
+      "iam.zgysyjy.org.cn": false,
+      "access.zgysyjy.org.cn": false,
+      "wxt.zgysyjy.org.cn": false,
+      "com/google/mlkit": false,
+      "com/umeng": false,
+      "com/google/firebase/analytics": false,
+      "com/google/android/datatransport": false,
+      "mobile_scanner": true
+    },
+    "lib/armeabi-v7a/libapp.so": {
+      "api.deepseek.com": false,
+      "sanqianshangke.top": false,
+      "iam.zgysyjy.org.cn": false,
+      "access.zgysyjy.org.cn": false,
+      "wxt.zgysyjy.org.cn": false,
+      "com/google/mlkit": false,
+      "com/umeng": false,
+      "com/google/firebase/analytics": false,
+      "com/google/android/datatransport": false,
+      "mobile_scanner": true
+    },
+    "lib/x86_64/libapp.so": {
+      "api.deepseek.com": false,
+      "sanqianshangke.top": false,
+      "iam.zgysyjy.org.cn": false,
+      "access.zgysyjy.org.cn": false,
+      "wxt.zgysyjy.org.cn": false,
+      "com/google/mlkit": false,
+      "com/umeng": false,
+      "com/google/firebase/analytics": false,
+      "com/google/android/datatransport": false,
+      "mobile_scanner": true
+    }
+  }
+}
