@@ -52,7 +52,6 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
   Timer? _timer;
   final _scrolls = List.generate(3, (_) => ScrollController());
   int _request = 0;
-  String? _widgetNotice;
 
   DateTime get _clock => (widget.clock ?? DateTime.now)();
   ColorScheme get _colors => Theme.of(context).colorScheme;
@@ -134,19 +133,9 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
         _error = null;
       });
       _consumeWidgetTarget();
+      // Widget and reminder failures stay on their settings pages.
       if (widget.loader == null) {
-        unawaited(
-          ScheduleDerivedDataService.sync(data).then((result) {
-            final message = result['widgetError'];
-            if (!mounted) return;
-            if (message is! String || message.isEmpty) {
-              if (_widgetNotice != null) setState(() => _widgetNotice = null);
-              return;
-            }
-            if (message == _widgetNotice) return;
-            setState(() => _widgetNotice = message);
-          }, onError: (Object _) {}),
-        );
+        unawaited(ScheduleDerivedDataService.sync(data));
       }
     } catch (error) {
       if (mounted && request == _request) setState(() => _error = error);
@@ -387,17 +376,7 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
           22,
           24 + MediaQuery.paddingOf(pageContext).bottom,
         ),
-        children: [
-          if (_widgetNotice != null) ...[
-            ScheduleInlineFeedback(
-              message: _widgetNotice!,
-              actionLabel: '重试同步',
-              onAction: () => _load(),
-            ),
-            const SizedBox(height: 16),
-          ],
-          ...children,
-        ],
+        children: children,
       ),
     ),
   );

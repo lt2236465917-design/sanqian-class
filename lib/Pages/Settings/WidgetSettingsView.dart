@@ -14,7 +14,25 @@ class WidgetSettingsView extends StatefulWidget {
 class _WidgetSettingsViewState extends State<WidgetSettingsView> {
   bool _busy = false, _error = false;
   String? _status;
-  Future<void> _refresh() async {
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _refresh(reportSuccess: false);
+    });
+  }
+
+  String _message(Object? raw, bool missing) {
+    if (raw == 'App Group 尚不可用') {
+      return '当前安装还不能和桌面小组件共享课表，小组件里会暂时没有课程。课表本身可以正常查看。';
+    }
+    if (raw is String && raw.isNotEmpty) return raw;
+    if (missing) return '当前平台没有返回同步结果，请稍后重试。';
+    return '已请求更新桌面课表，具体刷新时间由系统决定。';
+  }
+
+  Future<void> _refresh({bool reportSuccess = true}) async {
     setState(() {
       _busy = true;
       _status = null;
@@ -28,13 +46,12 @@ class _WidgetSettingsViewState extends State<WidgetSettingsView> {
             ScheduleDerivedDataService.snapshot(schedule),
           );
       if (mounted) {
+        final failed = result == null || result['widgetError'] != null;
         setState(() {
-          _error = result == null || result['widgetError'] != null;
-          _status =
-              result?['widgetError'] as String? ??
-              (result == null
-                  ? '当前平台没有返回同步结果，请稍后重试。'
-                  : '已请求更新桌面课表，具体刷新时间由系统决定。');
+          _error = failed;
+          _status = !reportSuccess && !failed
+              ? null
+              : _message(result?['widgetError'], result == null);
         });
       }
     } catch (_) {
@@ -77,7 +94,7 @@ class _WidgetSettingsViewState extends State<WidgetSettingsView> {
             ),
             const SizedBox(height: 20),
             FilledButton.icon(
-              onPressed: _busy ? null : _refresh,
+              onPressed: _busy ? null : () => _refresh(),
               icon: const Icon(Icons.sync_rounded),
               label: Text(_busy ? '正在同步…' : '刷新桌面课表'),
             ),

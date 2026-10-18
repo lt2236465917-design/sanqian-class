@@ -18,7 +18,6 @@ class _ReminderSettingsViewState extends State<ReminderSettingsView>
     with WidgetsBindingObserver {
   final _enabled = <int, bool>{15: false, 180: false, 1440: false};
   String _status = '';
-  String? _widgetError;
   bool _busy = true;
   bool _permissionDenied = false, _isError = false, _awaitingSettings = false;
   bool _hasImportedReminders = false;
@@ -110,13 +109,9 @@ class _ReminderSettingsViewState extends State<ReminderSettingsView>
 
   void _showResult(Map<String, dynamic> result) {
     if (!mounted) return;
-    final widgetError = result['widgetError'];
     final failure = _failureCopy(result);
     final notice = result['notice'];
     setState(() {
-      _widgetError = widgetError is String && widgetError.isNotEmpty
-          ? widgetError
-          : null;
       _isError = failure != null || (notice is String && notice.isNotEmpty);
       _status = failure ?? (notice is String ? notice : '');
       _retry = failure != null ? _resync : null;
@@ -313,14 +308,6 @@ class _ReminderSettingsViewState extends State<ReminderSettingsView>
                         : null,
                   ),
                 ),
-              ),
-            ),
-          if (_widgetError != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                _widgetError!,
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
             ),
           if (_permissionDenied)

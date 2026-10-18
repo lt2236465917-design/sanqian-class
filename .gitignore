@@ -138,3 +138,6 @@ buildServer.json
 
 # Reference
 reference
+
+# Local software copyright application materials
+/copyright-materials/
