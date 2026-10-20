@@ -186,17 +186,13 @@ class ScheduleCalendarExporter {
       }
       final eventIds = Map<String, dynamic>.from(state['events'] as Map? ?? {});
       final wanted = <String>{};
-      final existingEvents = await calendar.retrieveEvents(
+      // Dates can move outside the new semester range. Resolve saved IDs so
+      // those events are updated in place rather than duplicated.
+      final existingEvents = await _eventsById(
         calendarId,
-        RetrieveEventsParams(
-          startDate: entries.first.date,
-          endDate: entries.last.date.add(const Duration(days: 2)),
-        ),
+        eventIds.values.whereType<String>().toList(),
       );
-      if (!existingEvents.isSuccess) {
-        throw const CalendarExportException('无法核对已导出的课程，请稍后重试。');
-      }
-      final liveIds = existingEvents.data!.map((e) => e.eventId).toSet();
+      final liveIds = existingEvents.map((e) => e.eventId).toSet();
       final location = timeZoneDatabase.get('Asia/Shanghai');
       TZDateTime schoolTime(DateTime date) => TZDateTime(
         location,
@@ -249,19 +245,12 @@ class ScheduleCalendarExporter {
       }
       final stale = eventIds.keys.where((id) => !wanted.contains(id)).toList();
       if (stale.isNotEmpty) {
-        final staleIds = stale
-            .map((id) => eventIds[id])
-            .whereType<String>()
-            .toList();
-        final previous = staleIds.isEmpty
-            ? <Event>[]
-            : await _eventsById(calendarId, staleIds);
         for (final id in stale) {
           final eventId = eventIds[id] as String?;
           eventIds.remove(id);
           state['events'] = eventIds;
           if (eventId != null) {
-            final event = previous.cast<Event?>().firstWhere(
+            final event = existingEvents.cast<Event?>().firstWhere(
               (item) => item?.eventId == eventId,
               orElse: () => null,
             );

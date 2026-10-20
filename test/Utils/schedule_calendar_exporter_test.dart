@@ -43,7 +43,19 @@ class TestCalendar implements CalendarClient {
   Future<Result<UnmodifiableListView<Event>>> retrieveEvents(
     String? id,
     RetrieveEventsParams? params,
-  ) async => ok(UnmodifiableListView(events.values));
+  ) async => ok(
+    UnmodifiableListView(
+      events.values.where((event) {
+        if (event.calendarId != id) return false;
+        final ids = params?.eventIds;
+        if (ids != null) return ids.contains(event.eventId);
+        final start = params?.startDate;
+        final end = params?.endDate;
+        return (start == null || event.end?.isAfter(start) == true) &&
+            (end == null || event.start?.isBefore(end) == true);
+      }).toList(),
+    ),
+  );
   @override
   Future<Result<bool>> deleteOwnedEvent(Event event) async {
     events.remove(event.eventId);
@@ -56,7 +68,7 @@ class TestCalendar implements CalendarClient {
     if (writes == failAt) {
       return Result<String>()..errors.add(const ResultError(500, 'disk full'));
     }
-    final id = event!.eventId ?? 'event-${events.length}';
+    final id = event!.eventId ?? 'event-$writes';
     event.eventId = id;
     events[id] = event;
     return ok(id);
@@ -124,6 +136,49 @@ void main() {
     expect(calendar.created, 0);
     expect(calendar.writes, 0);
   });
+  test(
+    'moving the semester updates existing events outside the new range',
+    () async {
+      final calendar = TestCalendar();
+      final exporter = ScheduleCalendarExporter(calendar: calendar);
+      final original = reviewedSchedule();
+      await exporter.export(original);
+      final originalIds = calendar.events.keys.toSet();
+      final moved = PersonalSchedule(
+        tableId: original.tableId,
+        name: original.name,
+        firstMonday: DateTime(2027, 3, 1),
+        periods: original.periods,
+        courses: original.courses,
+      );
+
+      expect(await exporter.export(moved), 73);
+      expect(calendar.events.keys.toSet(), originalIds);
+      expect(
+        calendar.events.values.every((event) => event.start!.year == 2027),
+        isTrue,
+      );
+      expect(calendar.created, 1);
+    },
+  );
+
+  test(
+    'a manually deleted event is recreated without duplicating the others',
+    () async {
+      final calendar = TestCalendar();
+      final exporter = ScheduleCalendarExporter(calendar: calendar);
+      final schedule = reviewedSchedule();
+      await exporter.export(schedule);
+      final removedId = calendar.events.keys.first;
+      calendar.events.remove(removedId);
+      final remainingIds = calendar.events.keys.toSet();
+
+      expect(await exporter.export(schedule), 73);
+      expect(calendar.events, hasLength(73));
+      expect(calendar.events.keys, containsAll(remainingIds));
+      expect(calendar.events.containsKey(removedId), isFalse);
+    },
+  );
   test(
     'an event failure reports partial progress and retry does not duplicate saved events',
     () async {
