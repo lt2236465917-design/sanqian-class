@@ -225,7 +225,7 @@ import EventKit
   private var mascotSplashItemReady = false
   private var mascotSplashPlaybackRequested = false
   private var mascotSplashPlaybackStarted = false
-  private let calendarPermissionStore = EKEventStore()
+  private var calendarPermissionStore = EKEventStore()
   private let widgetSharingEnabled =
     Bundle.main.object(forInfoDictionaryKey: "SanqianWidgetsEnabled") as? Bool ?? false
 
@@ -262,6 +262,10 @@ import EventKit
           guard let self = self else { result(false); return }
           let completion: (Bool, Error?) -> Void = { granted, error in
             DispatchQueue.main.async {
+              // A store created before access does not see calendar accounts.
+              if error == nil, granted {
+                self.calendarPermissionStore = EKEventStore()
+              }
               if let error = error {
                 result(FlutterError(code: "calendar_permission", message: error.localizedDescription, details: nil))
               } else { result(granted) }
@@ -526,6 +530,34 @@ import EventKit
     return status == .authorized
   }
 
+  /// Local first. Reminder calendars ask for localOnly, but iOS has no local
+  /// account while iCloud Calendars is on, so those calls continue with the
+  /// default account, then iCloud, then other CalDAV or Exchange accounts.
+  private func sourcesForNewCalendar(localOnly: Bool) -> [EKSource] {
+    let sources = calendarPermissionStore.sources
+    var ordered: [EKSource] = []
+    func append(_ source: EKSource?) {
+      guard let source else { return }
+      if source.sourceType == .subscribed || source.sourceType == .birthdays { return }
+      if ordered.contains(where: { $0.sourceIdentifier == source.sourceIdentifier }) { return }
+      ordered.append(source)
+    }
+    let local = sources.first { $0.sourceType == .local }
+    if !localOnly {
+      append(local ?? calendarPermissionStore.defaultCalendarForNewEvents?.source)
+      return ordered
+    }
+    append(local)
+    append(calendarPermissionStore.defaultCalendarForNewEvents?.source)
+    append(sources.first {
+      $0.sourceType == .calDAV && $0.title.range(of: "icloud", options: .caseInsensitive) != nil
+    })
+    for source in sources where source.sourceType == .calDAV || source.sourceType == .exchange {
+      append(source)
+    }
+    return ordered
+  }
+
   private func handleCalendarCall(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     if call.method == "calendarHasAccess" { result(hasCalendarAccess); return }
     guard hasCalendarAccess else {
@@ -540,16 +572,33 @@ import EventKit
           ["id": $0.calendarIdentifier, "name": $0.title, "isReadOnly": !$0.allowsContentModifications, "accountType": $0.source.sourceType == .local ? "LOCAL" : "OTHER"] as [String: Any]
         })
       case "calendarCreate":
-        guard let name = args["name"] as? String,
-              let source = calendarPermissionStore.sources.first(where: { $0.sourceType == .local })
-                ?? ((args["localOnly"] as? Bool == true) ? nil : calendarPermissionStore.defaultCalendarForNewEvents?.source) else {
+        guard let name = args["name"] as? String else {
+          result(FlutterError(code: "calendar_arguments", message: "Invalid calendar name", details: nil)); return
+        }
+        calendarPermissionStore.reset()
+        _ = calendarPermissionStore.calendars(for: .event)
+        let candidates = sourcesForNewCalendar(localOnly: args["localOnly"] as? Bool == true)
+        guard !candidates.isEmpty else {
           result(FlutterError(code: "calendar_source", message: "No writable calendar account", details: nil)); return
         }
-        let calendar = EKCalendar(for: .event, eventStore: calendarPermissionStore)
-        calendar.title = name
-        calendar.source = source
-        try calendarPermissionStore.saveCalendar(calendar, commit: true)
-        result(calendar.calendarIdentifier)
+        var lastError: Error?
+        for source in candidates {
+          let calendar = EKCalendar(for: .event, eventStore: calendarPermissionStore)
+          calendar.title = name
+          calendar.source = source
+          do {
+            try calendarPermissionStore.saveCalendar(calendar, commit: true)
+            result(calendar.calendarIdentifier)
+            return
+          } catch {
+            lastError = error
+          }
+        }
+        result(FlutterError(
+          code: "calendar_write",
+          message: lastError?.localizedDescription ?? "No writable calendar account",
+          details: nil
+        ))
       case "calendarEvents":
         calendarPermissionStore.reset()
         guard let id = args["calendarId"] as? String,
