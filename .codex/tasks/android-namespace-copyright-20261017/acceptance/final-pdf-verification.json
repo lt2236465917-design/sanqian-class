@@ -1,0 +1,14 @@
+{
+  "source": {
+    "pages": 60,
+    "bytes": 272409,
+    "sha256": "43bb4be45a4bd1d1b6ca3a74d5a32801e40737c9535d37cbd113dc0c413d45dd",
+    "pass": true
+  },
+  "documentation": {
+    "pages": 8,
+    "bytes": 301881,
+    "sha256": "a090a2b8b4625c4ebc3f00b84663100901f09d60e8d13a00ff461471334f26d0",
+    "pass": true
+  }
+}

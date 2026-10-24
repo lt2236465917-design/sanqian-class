@@ -1,0 +1,995 @@
+{
+  "old-contract": {
+    "com.google.android.gms": false,
+    "com.google.android.gsf": false,
+    "com.android.vending": false,
+    "apkSha256": "1c2f3a90a747e7dcc82d55adc103f6f8c86b4c22130b2e2afee3ccd2ecfef42e",
+    "modelCacheBefore": [
+      "ch_PP-OCRv4_det_mobile.onnx",
+      "ch_PP-OCRv4_rec_mobile.onnx"
+    ],
+    "networkStart": "null",
+    "initialPssKB": 12509,
+    "peakPssKB": 118300,
+    "cancelJoined": true,
+    "cancelLatencyMs": 0,
+    "cancelError": "null",
+    "invalidImageError": "love.sanqian.schedule.b$f: 第 1 张图片无法读取",
+    "networkEnd": "null",
+    "status": "EXECUTED_SYNTHETIC_BENCHMARK",
+    "metrics": [
+      {
+        "kind": 0,
+        "sha256": "1184bb04e1df8d80c7adcd2b804119b1d7a30d696aac3182642155f7a48bb57a",
+        "elapsedMs": 85,
+        "strictExact": 5,
+        "fields": 6,
+        "characterAccuracy": 0.9787234042553191,
+        "edits": 1,
+        "characters": 47,
+        "numericExact": 1,
+        "numericTotal": 2,
+        "boxesIoU50": 6,
+        "contractValid": true,
+        "unmatched": [],
+        "details": [
+          {
+            "expected": "三千上课 课程表",
+            "observed": "三千上课课程表",
+            "edits": 0,
+            "chars": 7,
+            "exact": true,
+            "iou": 0.7787
+          },
+          {
+            "expected": "星期一 高等数学",
+            "observed": "星期一高等数学",
+            "edits": 0,
+            "chars": 7,
+            "exact": true,
+            "iou": 0.9248
+          },
+          {
+            "expected": "第一节 08:00-09:35",
+            "observed": "第一节08:00-09:35",
+            "edits": 0,
+            "chars": 14,
+            "exact": true,
+            "iou": 0.8142
+          },
+          {
+            "expected": "教学楼 A101",
+            "observed": "|教学楼A101",
+            "edits": 1,
+            "chars": 7,
+            "exact": false,
+            "iou": 0.7847
+          },
+          {
+            "expected": "星期二 大学英语",
+            "observed": "星期二大学英语",
+            "edits": 0,
+            "chars": 7,
+            "exact": true,
+            "iou": 0.7807
+          },
+          {
+            "expected": "教师 张老师",
+            "observed": "教师张老师",
+            "edits": 0,
+            "chars": 5,
+            "exact": true,
+            "iou": 0.7816
+          }
+        ]
+      },
+      {
+        "kind": 1,
+        "sha256": "5a6b3303650cff614a6c711acc72578b9d88b349797b570c625878bf1494c135",
+        "elapsedMs": 64,
+        "strictExact": 14,
+        "fields": 15,
+        "characterAccuracy": 0.9886363636363636,
+        "edits": 1,
+        "characters": 88,
+        "numericExact": 6,
+        "numericTotal": 7,
+        "boxesIoU50": 15,
+        "contractValid": true,
+        "unmatched": [],
+        "details": [
+          {
+            "expected": "课程名称",
+            "observed": "课程名称",
+            "edits": 0,
+            "chars": 4,
+            "exact": true,
+            "iou": 0.7871
+          },
+          {
+            "expected": "星期一",
+            "observed": "星期一",
+            "edits": 0,
+            "chars": 3,
+            "exact": true,
+            "iou": 0.7517
+          },
+          {
+            "expected": "星期二",
+            "observed": "星期二",
+            "edits": 0,
+            "chars": 3,
+            "exact": true,
+            "iou": 0.7584
+          },
+          {
+            "expected": "高等数学",
+            "observed": "高等数学",
+            "edits": 0,
+            "chars": 4,
+            "exact": true,
+            "iou": 0.7871
+          },
+          {
+            "expected": "08:00-09:35",
+            "observed": "08:00-09:35",
+            "edits": 0,
+            "chars": 11,
+            "exact": true,
+            "iou": 0.5971
+          },
+          {
+            "expected": "教学楼A101",
+            "observed": "教学楼A101",
+            "edits": 0,
+            "chars": 7,
+            "exact": true,
+            "iou": 0.7684
+          },
+          {
+            "expected": "大学英语",
+            "observed": "大学英语",
+            "edits": 0,
+            "chars": 4,
+            "exact": true,
+            "iou": 0.8757
+          },
+          {
+            "expected": "10:10-11:45",
+            "observed": "10:10-11:45",
+            "edits": 0,
+            "chars": 11,
+            "exact": true,
+            "iou": 0.594
+          },
+          {
+            "expected": "文科楼B203",
+            "observed": "文科楼B203",
+            "edits": 0,
+            "chars": 7,
+            "exact": true,
+            "iou": 0.7964
+          },
+          {
+            "expected": "大学物理",
+            "observed": "大学物理",
+            "edits": 0,
+            "chars": 4,
+            "exact": true,
+            "iou": 0.7925
+          },
+          {
+            "expected": "14:00-15:35",
+            "observed": "14:00-15:35",
+            "edits": 0,
+            "chars": 11,
+            "exact": true,
+            "iou": 0.594
+          },
+          {
+            "expected": "实验楼C305",
+            "observed": "实验楼C305",
+            "edits": 0,
+            "chars": 7,
+            "exact": true,
+            "iou": 0.8805
+          },
+          {
+            "expected": "第1-16周",
+            "observed": "|第1-16周",
+            "edits": 1,
+            "chars": 6,
+            "exact": false,
+            "iou": 0.7761
+          },
+          {
+            "expected": "张老师",
+            "observed": "张老师",
+            "edits": 0,
+            "chars": 3,
+            "exact": true,
+            "iou": 0.7659
+          },
+          {
+            "expected": "李老师",
+            "observed": "李老师",
+            "edits": 0,
+            "chars": 3,
+            "exact": true,
+            "iou": 0.7801
+          }
+        ]
+      },
+      {
+        "kind": 2,
+        "sha256": "69e830755dd418b0030890a4a0f27a93e117b55afd59b8e9ea6c528a33c4630c",
+        "elapsedMs": 63,
+        "strictExact": 14,
+        "fields": 15,
+        "characterAccuracy": 0.9886363636363636,
+        "edits": 1,
+        "characters": 88,
+        "numericExact": 7,
+        "numericTotal": 7,
+        "boxesIoU50": 15,
+        "contractValid": true,
+        "unmatched": [],
+        "details": [
+          {
+            "expected": "课程名称",
+            "observed": "课程各称",
+            "edits": 1,
+            "chars": 4,
+            "exact": false,
+            "iou": 0.8369
+          },
+          {
+            "expected": "星期一",
+            "observed": "星期一",
+            "edits": 0,
+            "chars": 3,
+            "exact": true,
+            "iou": 0.7986
+          },
+          {
+            "expected": "星期二",
+            "observed": "星期二",
+            "edits": 0,
+            "chars": 3,
+            "exact": true,
+            "iou": 0.789
+          },
+          {
+            "expected": "高等数学",
+            "observed": "高等数学",
+            "edits": 0,
+            "chars": 4,
+            "exact": true,
+            "iou": 0.8123
+          },
+          {
+            "expected": "08:00-09:35",
+            "observed": "08:00-09:35",
+            "edits": 0,
+            "chars": 11,
+            "exact": true,
+            "iou": 0.6146
+          },
+          {
+            "expected": "教学楼A101",
+            "observed": "教学楼A101",
+            "edits": 0,
+            "chars": 7,
+            "exact": true,
+            "iou": 0.7483
+          },
+          {
+            "expected": "大学英语",
+            "observed": "大学英语",
+            "edits": 0,
+            "chars": 4,
+            "exact": true,
+            "iou": 0.8287
+          },
+          {
+            "expected": "10:10-11:45",
+            "observed": "10:10-11:45",
+            "edits": 0,
+            "chars": 11,
+            "exact": true,
+            "iou": 0.6056
+          },
+          {
+            "expected": "文科楼B203",
+            "observed": "文科楼B203",
+            "edits": 0,
+            "chars": 7,
+            "exact": true,
+            "iou": 0.7707
+          },
+          {
+            "expected": "大学物理",
+            "observed": "大学物理",
+            "edits": 0,
+            "chars": 4,
+            "exact": true,
+            "iou": 0.765
+          },
+          {
+            "expected": "14:00-15:35",
+            "observed": "14:00-15:35",
+            "edits": 0,
+            "chars": 11,
+            "exact": true,
+            "iou": 0.6101
+          },
+          {
+            "expected": "实验楼C305",
+            "observed": "实验楼C305",
+            "edits": 0,
+            "chars": 7,
+            "exact": true,
+            "iou": 0.7708
+          },
+          {
+            "expected": "第1-16周",
+            "observed": "第1-16周",
+            "edits": 0,
+            "chars": 6,
+            "exact": true,
+            "iou": 0.7549
+          },
+          {
+            "expected": "张老师",
+            "observed": "张老师",
+            "edits": 0,
+            "chars": 3,
+            "exact": true,
+            "iou": 0.8521
+          },
+          {
+            "expected": "李老师",
+            "observed": "李老师",
+            "edits": 0,
+            "chars": 3,
+            "exact": true,
+            "iou": 0.7917
+          }
+        ]
+      },
+      {
+        "kind": 3,
+        "sha256": "bce5a584ba11d0cf869243830b5dd08243e509e021f7fbe469294273581b7893",
+        "elapsedMs": 69,
+        "strictExact": 13,
+        "fields": 15,
+        "characterAccuracy": 0.9772727272727273,
+        "edits": 2,
+        "characters": 88,
+        "numericExact": 7,
+        "numericTotal": 7,
+        "boxesIoU50": 15,
+        "contractValid": true,
+        "unmatched": [],
+        "details": [
+          {
+            "expected": "课程名称",
+            "observed": "课程各称",
+            "edits": 1,
+            "chars": 4,
+            "exact": false,
+            "iou": 0.8063
+          },
+          {
+            "expected": "星期一",
+            "observed": "星期一",
+            "edits": 0,
+            "chars": 3,
+            "exact": true,
+            "iou": 0.7546
+          },
+          {
+            "expected": "星期二",
+            "observed": "星期二",
+            "edits": 0,
+            "chars": 3,
+            "exact": true,
+            "iou": 0.854
+          },
+          {
+            "expected": "高等数学",
+            "observed": "|高等数学",
+            "edits": 1,
+            "chars": 4,
+            "exact": false,
+            "iou": 0.7769
+          },
+          {
+            "expected": "08:00-09:35",
+            "observed": "08:00-09:35",
+            "edits": 0,
+            "chars": 11,
+            "exact": true,
+            "iou": 0.7761
+          },
+          {
+            "expected": "教学楼A101",
+            "observed": "教学楼A101",
+            "edits": 0,
+            "chars": 7,
+            "exact": true,
+            "iou": 0.8575
+          },
+          {
+            "expected": "大学英语",
+            "observed": "大学英语",
+            "edits": 0,
+            "chars": 4,
+            "exact": true,
+            "iou": 0.8218
+          },
+          {
+            "expected": "10:10-11:45",
+            "observed": "10:10-11:45",
+            "edits": 0,
+            "chars": 11,
+            "exact": true,
+            "iou": 0.736
+          },
+          {
+            "expected": "文科楼B203",
+            "observed": "文科楼B203",
+            "edits": 0,
+            "chars": 7,
+            "exact": true,
+            "iou": 0.7916
+          },
+          {
+            "expected": "大学物理",
+            "observed": "大学物理",
+            "edits": 0,
+            "chars": 4,
+            "exact": true,
+            "iou": 0.801
+          },
+          {
+            "expected": "14:00-15:35",
+            "observed": "14:00-15:35",
+            "edits": 0,
+            "chars": 11,
+            "exact": true,
+            "iou": 0.6971
+          },
+          {
+            "expected": "实验楼C305",
+            "observed": "实验楼C305",
+            "edits": 0,
+            "chars": 7,
+            "exact": true,
+            "iou": 0.8468
+          },
+          {
+            "expected": "第1-16周",
+            "observed": "第1-16周",
+            "edits": 0,
+            "chars": 6,
+            "exact": true,
+            "iou": 0.875
+          },
+          {
+            "expected": "张老师",
+            "observed": "张老师",
+            "edits": 0,
+            "chars": 3,
+            "exact": true,
+            "iou": 0.7874
+          },
+          {
+            "expected": "李老师",
+            "observed": "李老师",
+            "edits": 0,
+            "chars": 3,
+            "exact": true,
+            "iou": 0.8275
+          }
+        ]
+      }
+    ]
+  },
+  "final-cold": {
+    "com.google.android.gms": false,
+    "com.google.android.gsf": false,
+    "com.android.vending": false,
+    "apkSha256": "00cb1775d79a21bd24cb08a6d5398be4358f37e542067f5bcf3f761da59d3428",
+    "modelCacheBefore": [],
+    "networkStart": "null",
+    "initialPssKB": 10699,
+    "peakPssKB": 161374,
+    "cancelJoined": true,
+    "cancelLatencyMs": 30,
+    "cancelError": "love.sanqian.schedule.b$b: 识图请求已取消",
+    "invalidImageError": "love.sanqian.schedule.b$f: 第 1 张图片无法读取",
+    "preCancelError": "love.sanqian.schedule.b$b: 识图请求已取消",
+    "blankTokens": 0,
+    "networkEnd": "null",
+    "status": "EXECUTED_SYNTHETIC_BENCHMARK",
+    "metrics": [
+      {
+        "kind": 0,
+        "sha256": "1184bb04e1df8d80c7adcd2b804119b1d7a30d696aac3182642155f7a48bb57a",
+        "elapsedMs": 710,
+        "strictExact": 6,
+        "fields": 6,
+        "characterAccuracy": 1.0,
+        "edits": 0,
+        "characters": 47,
+        "numericExact": 2,
+        "numericTotal": 2,
+        "boxesIoU50": 6,
+        "contractValid": true,
+        "unmatched": [],
+        "details": [
+          {
+            "expected": "三千上课 课程表",
+            "observed": "三千上课课程表",
+            "edits": 0,
+            "chars": 7,
+            "exact": true,
+            "iou": 0.8337
+          },
+          {
+            "expected": "星期一 高等数学",
+            "observed": "星期一高等数学",
+            "edits": 0,
+            "chars": 7,
+            "exact": true,
+            "iou": 0.8503
+          },
+          {
+            "expected": "第一节 08:00-09:35",
+            "observed": "第一节08:00-09:35",
+            "edits": 0,
+            "chars": 14,
+            "exact": true,
+            "iou": 0.8514
+          },
+          {
+            "expected": "教学楼 A101",
+            "observed": "教学楼A101",
+            "edits": 0,
+            "chars": 7,
+            "exact": true,
+            "iou": 0.8711
+          },
+          {
+            "expected": "星期二 大学英语",
+            "observed": "星期二大学英语",
+            "edits": 0,
+            "chars": 7,
+            "exact": true,
+            "iou": 0.854
+          },
+          {
+            "expected": "教师 张老师",
+            "observed": "教师张老师",
+            "edits": 0,
+            "chars": 5,
+            "exact": true,
+            "iou": 0.881
+          }
+        ]
+      },
+      {
+        "kind": 1,
+        "sha256": "5a6b3303650cff614a6c711acc72578b9d88b349797b570c625878bf1494c135",
+        "elapsedMs": 694,
+        "strictExact": 15,
+        "fields": 15,
+        "characterAccuracy": 1.0,
+        "edits": 0,
+        "characters": 88,
+        "numericExact": 7,
+        "numericTotal": 7,
+        "boxesIoU50": 15,
+        "contractValid": true,
+        "unmatched": [],
+        "details": [
+          {
+            "expected": "课程名称",
+            "observed": "课程名称",
+            "edits": 0,
+            "chars": 4,
+            "exact": true,
+            "iou": 0.8927
+          },
+          {
+            "expected": "星期一",
+            "observed": "星期一",
+            "edits": 0,
+            "chars": 3,
+            "exact": true,
+            "iou": 0.8785
+          },
+          {
+            "expected": "星期二",
+            "observed": "星期二",
+            "edits": 0,
+            "chars": 3,
+            "exact": true,
+            "iou": 0.824
+          },
+          {
+            "expected": "高等数学",
+            "observed": "高等数学",
+            "edits": 0,
+            "chars": 4,
+            "exact": true,
+            "iou": 0.8714
+          },
+          {
+            "expected": "08:00-09:35",
+            "observed": "08:00-09:35",
+            "edits": 0,
+            "chars": 11,
+            "exact": true,
+            "iou": 0.7873
+          },
+          {
+            "expected": "教学楼A101",
+            "observed": "教学楼A101",
+            "edits": 0,
+            "chars": 7,
+            "exact": true,
+            "iou": 0.8977
+          },
+          {
+            "expected": "大学英语",
+            "observed": "大学英语",
+            "edits": 0,
+            "chars": 4,
+            "exact": true,
+            "iou": 0.8741
+          },
+          {
+            "expected": "10:10-11:45",
+            "observed": "10:10-11:45",
+            "edits": 0,
+            "chars": 11,
+            "exact": true,
+            "iou": 0.8651
+          },
+          {
+            "expected": "文科楼B203",
+            "observed": "文科楼B203",
+            "edits": 0,
+            "chars": 7,
+            "exact": true,
+            "iou": 0.8879
+          },
+          {
+            "expected": "大学物理",
+            "observed": "大学物理",
+            "edits": 0,
+            "chars": 4,
+            "exact": true,
+            "iou": 0.9185
+          },
+          {
+            "expected": "14:00-15:35",
+            "observed": "14:00-15:35",
+            "edits": 0,
+            "chars": 11,
+            "exact": true,
+            "iou": 0.7984
+          },
+          {
+            "expected": "实验楼C305",
+            "observed": "实验楼C305",
+            "edits": 0,
+            "chars": 7,
+            "exact": true,
+            "iou": 0.8975
+          },
+          {
+            "expected": "第1-16周",
+            "observed": "第1-16周",
+            "edits": 0,
+            "chars": 6,
+            "exact": true,
+            "iou": 0.926
+          },
+          {
+            "expected": "张老师",
+            "observed": "张老师",
+            "edits": 0,
+            "chars": 3,
+            "exact": true,
+            "iou": 0.875
+          },
+          {
+            "expected": "李老师",
+            "observed": "李老师",
+            "edits": 0,
+            "chars": 3,
+            "exact": true,
+            "iou": 0.793
+          }
+        ]
+      },
+      {
+        "kind": 2,
+        "sha256": "69e830755dd418b0030890a4a0f27a93e117b55afd59b8e9ea6c528a33c4630c",
+        "elapsedMs": 689,
+        "strictExact": 15,
+        "fields": 15,
+        "characterAccuracy": 1.0,
+        "edits": 0,
+        "characters": 88,
+        "numericExact": 7,
+        "numericTotal": 7,
+        "boxesIoU50": 15,
+        "contractValid": true,
+        "unmatched": [],
+        "details": [
+          {
+            "expected": "课程名称",
+            "observed": "课程名称",
+            "edits": 0,
+            "chars": 4,
+            "exact": true,
+            "iou": 0.8364
+          },
+          {
+            "expected": "星期一",
+            "observed": "星期一",
+            "edits": 0,
+            "chars": 3,
+            "exact": true,
+            "iou": 0.7641
+          },
+          {
+            "expected": "星期二",
+            "observed": "星期二",
+            "edits": 0,
+            "chars": 3,
+            "exact": true,
+            "iou": 0.759
+          },
+          {
+            "expected": "高等数学",
+            "observed": "高等数学",
+            "edits": 0,
+            "chars": 4,
+            "exact": true,
+            "iou": 0.8238
+          },
+          {
+            "expected": "08:00-09:35",
+            "observed": "08:00-09:35",
+            "edits": 0,
+            "chars": 11,
+            "exact": true,
+            "iou": 0.9069
+          },
+          {
+            "expected": "教学楼A101",
+            "observed": "教学楼A101",
+            "edits": 0,
+            "chars": 7,
+            "exact": true,
+            "iou": 0.7998
+          },
+          {
+            "expected": "大学英语",
+            "observed": "大学英语",
+            "edits": 0,
+            "chars": 4,
+            "exact": true,
+            "iou": 0.7487
+          },
+          {
+            "expected": "10:10-11:45",
+            "observed": "10:10-11:45",
+            "edits": 0,
+            "chars": 11,
+            "exact": true,
+            "iou": 0.9062
+          },
+          {
+            "expected": "文科楼B203",
+            "observed": "文科楼B203",
+            "edits": 0,
+            "chars": 7,
+            "exact": true,
+            "iou": 0.8703
+          },
+          {
+            "expected": "大学物理",
+            "observed": "大学物理",
+            "edits": 0,
+            "chars": 4,
+            "exact": true,
+            "iou": 0.7518
+          },
+          {
+            "expected": "14:00-15:35",
+            "observed": "14:00-15:35",
+            "edits": 0,
+            "chars": 11,
+            "exact": true,
+            "iou": 0.8816
+          },
+          {
+            "expected": "实验楼C305",
+            "observed": "实验楼C305",
+            "edits": 0,
+            "chars": 7,
+            "exact": true,
+            "iou": 0.8116
+          },
+          {
+            "expected": "第1-16周",
+            "observed": "第1-16周",
+            "edits": 0,
+            "chars": 6,
+            "exact": true,
+            "iou": 0.7487
+          },
+          {
+            "expected": "张老师",
+            "observed": "张老师",
+            "edits": 0,
+            "chars": 3,
+            "exact": true,
+            "iou": 0.7605
+          },
+          {
+            "expected": "李老师",
+            "observed": "李老师",
+            "edits": 0,
+            "chars": 3,
+            "exact": true,
+            "iou": 0.7321
+          }
+        ]
+      },
+      {
+        "kind": 3,
+        "sha256": "bce5a584ba11d0cf869243830b5dd08243e509e021f7fbe469294273581b7893",
+        "elapsedMs": 714,
+        "strictExact": 15,
+        "fields": 15,
+        "characterAccuracy": 1.0,
+        "edits": 0,
+        "characters": 88,
+        "numericExact": 7,
+        "numericTotal": 7,
+        "boxesIoU50": 15,
+        "contractValid": true,
+        "unmatched": [],
+        "details": [
+          {
+            "expected": "课程名称",
+            "observed": "课程名称",
+            "edits": 0,
+            "chars": 4,
+            "exact": true,
+            "iou": 0.8499
+          },
+          {
+            "expected": "星期一",
+            "observed": "星期一",
+            "edits": 0,
+            "chars": 3,
+            "exact": true,
+            "iou": 0.8653
+          },
+          {
+            "expected": "星期二",
+            "observed": "星期二",
+            "edits": 0,
+            "chars": 3,
+            "exact": true,
+            "iou": 0.8389
+          },
+          {
+            "expected": "高等数学",
+            "observed": "高等数学",
+            "edits": 0,
+            "chars": 4,
+            "exact": true,
+            "iou": 0.8289
+          },
+          {
+            "expected": "08:00-09:35",
+            "observed": "08:00-09:35",
+            "edits": 0,
+            "chars": 11,
+            "exact": true,
+            "iou": 0.9173
+          },
+          {
+            "expected": "教学楼A101",
+            "observed": "教学楼A101",
+            "edits": 0,
+            "chars": 7,
+            "exact": true,
+            "iou": 0.9157
+          },
+          {
+            "expected": "大学英语",
+            "observed": "大学英语",
+            "edits": 0,
+            "chars": 4,
+            "exact": true,
+            "iou": 0.7984
+          },
+          {
+            "expected": "10:10-11:45",
+            "observed": "10:10-11:45",
+            "edits": 0,
+            "chars": 11,
+            "exact": true,
+            "iou": 0.939
+          },
+          {
+            "expected": "文科楼B203",
+            "observed": "文科楼B203",
+            "edits": 0,
+            "chars": 7,
+            "exact": true,
+            "iou": 0.9194
+          },
+          {
+            "expected": "大学物理",
+            "observed": "大学物理",
+            "edits": 0,
+            "chars": 4,
+            "exact": true,
+            "iou": 0.8135
+          },
+          {
+            "expected": "14:00-15:35",
+            "observed": "14:00-15:35",
+            "edits": 0,
+            "chars": 11,
+            "exact": true,
+            "iou": 0.9451
+          },
+          {
+            "expected": "实验楼C305",
+            "observed": "实验楼C305",
+            "edits": 0,
+            "chars": 7,
+            "exact": true,
+            "iou": 0.9101
+          },
+          {
+            "expected": "第1-16周",
+            "observed": "第1-16周",
+            "edits": 0,
+            "chars": 6,
+            "exact": true,
+            "iou": 0.8175
+          },
+          {
+            "expected": "张老师",
+            "observed": "张老师",
+            "edits": 0,
+            "chars": 3,
+            "exact": true,
+            "iou": 0.7816
+          },
+          {
+            "expected": "李老师",
+            "observed": "李老师",
+            "edits": 0,
+            "chars": 3,
+            "exact": true,
+            "iou": 0.7244
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,5 @@
+codePath=/data/app/~~NEdhEWOy9naAwJrv1aeqVQ==/love.sanqian.schedule-cjsG3K9d_krqQsrbNuSI7w==
+versionCode=1 minSdk=24 targetSdk=36
+versionName=1.0.0
+lastUpdateTime=2026-10-17 12:02:37
+firstInstallTime=2026-10-17 11:25:29

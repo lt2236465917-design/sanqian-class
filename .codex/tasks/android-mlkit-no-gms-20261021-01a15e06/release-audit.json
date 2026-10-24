@@ -1,0 +1,216 @@
+{
+  "main": "0e95b3187d418744613c5c45bb9f3148f72b2893",
+  "originMain": "db31944caa515abe7e6f3ff1fdd805c363ebc372",
+  "sha256": "1c2f3a90a747e7dcc82d55adc103f6f8c86b4c22130b2e2afee3ccd2ecfef42e",
+  "apkBytes": 58083159,
+  "package": "love.sanqian.schedule",
+  "minSdk": 24,
+  "targetSdk": 36,
+  "versions": {
+    "ocr": "16.0.1",
+    "barcode": "17.3.0",
+    "mobile_scanner": "7.1.3",
+    "zxing2": "0.2.4",
+    "camerax": "1.5.1"
+  },
+  "modelsAndLibraries": {
+    "ocr_models": {
+      "raw_bytes": 2490310,
+      "compressed_bytes": 1924142,
+      "files": [
+        {
+          "path": "assets/mlkit-google-ocr-models/aksara/aksara_page_layout_analysis_rpn_gcn.binarypb",
+          "raw_bytes": 276,
+          "compressed_bytes": 208
+        },
+        {
+          "path": "assets/mlkit-google-ocr-models/aksara/aksara_page_layout_analysis_ti_rpn_gcn.binarypb",
+          "raw_bytes": 278,
+          "compressed_bytes": 209
+        },
+        {
+          "path": "assets/mlkit-google-ocr-models/gocr/gocr_models/line_recognition_legacy_mobile/Hani_ctc/optical/assets.extra/LabelMap.pb",
+          "raw_bytes": 70403,
+          "compressed_bytes": 21485
+        },
+        {
+          "path": "assets/mlkit-google-ocr-models/gocr/gocr_models/line_recognition_legacy_mobile/Hani_ctc/optical/conv_model.fb",
+          "raw_bytes": 40808,
+          "compressed_bytes": 30543
+        },
+        {
+          "path": "assets/mlkit-google-ocr-models/gocr/gocr_models/line_recognition_legacy_mobile/Hani_ctc/optical/lstm_model.fb",
+          "raw_bytes": 891872,
+          "compressed_bytes": 599499
+        },
+        {
+          "path": "assets/mlkit-google-ocr-models/gocr/gocr_models/line_recognition_legacy_mobile/Hani_ctc_cpu.binarypb",
+          "raw_bytes": 329,
+          "compressed_bytes": 256
+        },
+        {
+          "path": "assets/mlkit-google-ocr-models/gocr/gocr_models/line_recognition_legacy_mobile/Latn_ctc/optical/assets.extra/LabelMap.pb",
+          "raw_bytes": 3809,
+          "compressed_bytes": 1521
+        },
+        {
+          "path": "assets/mlkit-google-ocr-models/gocr/gocr_models/line_recognition_legacy_mobile/Latn_ctc/optical/conv_model.fb",
+          "raw_bytes": 40848,
+          "compressed_bytes": 30829
+        },
+        {
+          "path": "assets/mlkit-google-ocr-models/gocr/gocr_models/line_recognition_legacy_mobile/Latn_ctc/optical/lstm_model.fb",
+          "raw_bytes": 309568,
+          "compressed_bytes": 181609
+        },
+        {
+          "path": "assets/mlkit-google-ocr-models/gocr/gocr_models/line_recognition_legacy_mobile/Latn_ctc_cpu.binarypb",
+          "raw_bytes": 333,
+          "compressed_bytes": 259
+        },
+        {
+          "path": "assets/mlkit-google-ocr-models/gocr/gocr_models/line_recognition_legacy_mobile/tflite_langid.tflite",
+          "raw_bytes": 315520,
+          "compressed_bytes": 315520
+        },
+        {
+          "path": "assets/mlkit-google-ocr-models/gocr/layout/line_clustering_custom_ops/model.tflite",
+          "raw_bytes": 129612,
+          "compressed_bytes": 129612
+        },
+        {
+          "path": "assets/mlkit-google-ocr-models/gocr/layout/line_splitting_custom_ops/model.tflite",
+          "raw_bytes": 114384,
+          "compressed_bytes": 114384
+        },
+        {
+          "path": "assets/mlkit-google-ocr-models/taser/detector/region_proposal_text_detector_tflite_vertical_mbv2_v1.bincfg",
+          "raw_bytes": 452,
+          "compressed_bytes": 381
+        },
+        {
+          "path": "assets/mlkit-google-ocr-models/taser/detector/rpn_text_detector_mobile_space_to_depth_quantized_mbv2_v1.tflite",
+          "raw_bytes": 340760,
+          "compressed_bytes": 340760
+        },
+        {
+          "path": "assets/mlkit-google-ocr-models/taser/rpn_text_detection_tflite_mobile_mbv2.binarypb",
+          "raw_bytes": 194,
+          "compressed_bytes": 143
+        },
+        {
+          "path": "assets/mlkit-google-ocr-models/taser/segmenter/tflite_script_detector_0.3.bincfg",
+          "raw_bytes": 1118,
+          "compressed_bytes": 487
+        },
+        {
+          "path": "assets/mlkit-google-ocr-models/taser/segmenter/tflite_script_detector_0.3.conv_model",
+          "raw_bytes": 40808,
+          "compressed_bytes": 30535
+        },
+        {
+          "path": "assets/mlkit-google-ocr-models/taser/segmenter/tflite_script_detector_0.3.lstm_model",
+          "raw_bytes": 161448,
+          "compressed_bytes": 119566
+        },
+        {
+          "path": "assets/mlkit-google-ocr-models/taser/taser_script_identification_tflite_mobile.binarypb",
+          "raw_bytes": 136,
+          "compressed_bytes": 114
+        },
+        {
+          "path": "assets/mlkit-google-ocr-models/taser_tflite_gocrchinese_and_latin_mbv2_aksara_layout_gcn_mobile_engine.binarypb",
+          "raw_bytes": 13181,
+          "compressed_bytes": 2768
+        },
+        {
+          "path": "assets/mlkit-google-ocr-models/taser_tflite_gocrchinese_and_latin_mbv2_aksara_layout_gcn_mobile_engine_ti.binarypb",
+          "raw_bytes": 13186,
+          "compressed_bytes": 2774
+        },
+        {
+          "path": "assets/mlkit-google-ocr-models/taser_tflite_gocrchinese_and_latin_mbv2_aksara_layout_gcn_mobile_recognizer.binarypb",
+          "raw_bytes": 316,
+          "compressed_bytes": 208
+        },
+        {
+          "path": "assets/mlkit-google-ocr-models/taser_tflite_gocrchinese_and_latin_mbv2_aksara_layout_gcn_mobile_runner.binarypb",
+          "raw_bytes": 334,
+          "compressed_bytes": 236
+        },
+        {
+          "path": "assets/mlkit-google-ocr-models/taser_tflite_gocrchinese_and_latin_mbv2_aksara_layout_gcn_mobile_runner_ti.binarypb",
+          "raw_bytes": 337,
+          "compressed_bytes": 236
+        }
+      ]
+    },
+    "barcode_models": {
+      "raw_bytes": 880888,
+      "compressed_bytes": 880888,
+      "files": [
+        {
+          "path": "assets/mlkit_barcode_models/barcode_ssd_mobilenet_v1_dmp25_quant.tflite",
+          "raw_bytes": 390456,
+          "compressed_bytes": 390456
+        },
+        {
+          "path": "assets/mlkit_barcode_models/oned_auto_regressor_mobile.tflite",
+          "raw_bytes": 213880,
+          "compressed_bytes": 213880
+        },
+        {
+          "path": "assets/mlkit_barcode_models/oned_feature_extractor_mobile.tflite",
+          "raw_bytes": 276552,
+          "compressed_bytes": 276552
+        }
+      ]
+    },
+    "ocr_native": {
+      "raw_bytes": 29472612,
+      "compressed_bytes": 12389463,
+      "files": [
+        {
+          "path": "lib/arm64-v8a/libmlkit_google_ocr_pipeline.so",
+          "raw_bytes": 11064544,
+          "compressed_bytes": 4405669
+        },
+        {
+          "path": "lib/armeabi-v7a/libmlkit_google_ocr_pipeline.so",
+          "raw_bytes": 6781940,
+          "compressed_bytes": 3513116
+        },
+        {
+          "path": "lib/x86_64/libmlkit_google_ocr_pipeline.so",
+          "raw_bytes": 11626128,
+          "compressed_bytes": 4470678
+        }
+      ]
+    },
+    "barcode_native": {
+      "raw_bytes": 14100440,
+      "compressed_bytes": 6335550,
+      "files": [
+        {
+          "path": "lib/arm64-v8a/libbarhopper_v3.so",
+          "raw_bytes": 4946720,
+          "compressed_bytes": 2105673
+        },
+        {
+          "path": "lib/armeabi-v7a/libbarhopper_v3.so",
+          "raw_bytes": 3244440,
+          "compressed_bytes": 1787700
+        },
+        {
+          "path": "lib/x86_64/libbarhopper_v3.so",
+          "raw_bytes": 5909280,
+          "compressed_bytes": 2442177
+        }
+      ]
+    }
+  },
+  "probeSignatureMatchesTarget": true,
+  "remoteMainLive": "0e95b3187d418744613c5c45bb9f3148f72b2893",
+  "remoteQuery": "git ls-remote origin refs/heads/main",
+  "originTrackingStale": true
+}

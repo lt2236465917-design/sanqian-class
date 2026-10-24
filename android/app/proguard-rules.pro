@@ -23,3 +23,9 @@
 # device_calendar serializes native models with Gson field names for Dart.
 # R8 renaming breaks calendar/event lookup and can duplicate exported events.
 -keep class com.builttoroam.devicecalendar.** { *; }
+
+# Keep local OCR bridge callable for release verification and JNI runtime.
+-keep class love.sanqian.schedule.PaddleChineseTimetableOcr { *; }
+
+# ONNX JNI constructs tensor metadata classes by name.
+-keep class ai.onnxruntime.** { *; }

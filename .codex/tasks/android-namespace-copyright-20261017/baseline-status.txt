@@ -1,0 +1,118 @@
+ M DEVICE_INSTALL.md
+ M LOCAL_DEVELOPMENT.md
+ M android/app/build.gradle
+ M android/app/src/main/kotlin/local/sanqian/schedule/ScheduleWidgetUpdater.kt
+ M copyright-materials/00_README.md
+ M copyright-materials/01_online-application-fields.md
+ M copyright-materials/03_source-identification.md
+ M copyright-materials/04_document-identification.md
+ M copyright-materials/06_rights-chain.md
+ M copyright-materials/07_technical-fields-and-attachments.md
+ M copyright-materials/generated/documentation-identification-material.html
+ M copyright-materials/generated/source-identification-material.html
+ M copyright-materials/generated/source-selection-manifest.json
+ M copyright-materials/generated/validation-report.json
+ M copyright-materials/scripts/check_sensitive.py
+ M copyright-materials/scripts/generate_materials.py
+ M copyright-materials/scripts/verify_printed_pdfs.py
+ M ios/Flutter/PersonalDevice.xcconfig
+ M ios/Runner.xcodeproj/project.pbxproj
+ M ios/Runner/AppConstants.swift
+ M ios/Runner/Info.plist
+ M ios/Runner/SchoolPortalParserTests.swift
+ M ios/WIDGET_BEST_PRACTICES.md
+ M ohos/AppScope/app.json5
+?? .codex/tasks/android-namespace-copyright-20261017/PLAN.md
+?? .codex/tasks/android-namespace-copyright-20261017/STATUS.md
+?? .codex/tasks/app-filing-01a13ae3/PLAN.md
+?? .codex/tasks/app-filing-01a13ae3/STATUS.md
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/PLAN.md
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/STATUS.md
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/android-baseline/android-0.4s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/android-baseline/android-0.8s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/android-baseline/android-1.2s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/android-baseline/android-2.0s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/android-baseline/android-3.5s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/android-baseline/android-8.0s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/android-current/android-0.4s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/android-current/android-0.8s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/android-current/android-1.2s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/android-current/android-2.0s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/android-current/android-3.5s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/android-current/android-8.0s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/android-no-preserve/android-0.4s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/android-no-preserve/android-0.8s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/android-no-preserve/android-1.2s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/android-no-preserve/android-2.0s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/android-no-preserve/android-3.5s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/android-no-preserve/android-8.0s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/ios-baseline/ios-0.4s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/ios-baseline/ios-0.8s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/ios-baseline/ios-1.2s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/ios-baseline/ios-2.0s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/ios-baseline/ios-3.5s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/ios-baseline/ios-8.0s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/ios-early-absolute/ios-0.2s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/ios-early-absolute/ios-0.5s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/ios-early-absolute/ios-0.8s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/ios-early-absolute/ios-1.0s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/ios-early-absolute/ios-1.2s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/ios-early-absolute/ios-1.5s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/ios-early-absolute/ios-2.0s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/ios-early-absolute/ios-3.0s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/ios-early-absolute/ios-5.0s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/ios-early/ios-0.2s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/ios-early/ios-0.5s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/ios-early/ios-0.8s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/ios-early/ios-1.0s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/ios-early/ios-1.5s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/ios-early/ios-2.5s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/ios-early/ios-4.5s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/ios-early/ios-7.0s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/ios-rerun/ios-0.4s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/ios-rerun/ios-0.8s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/ios-rerun/ios-1.2s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/ios-rerun/ios-1.6s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/ios-rerun/ios-2.0s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/ios-rerun/ios-2.2s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/ios-rerun/ios-2.5s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/ios-rerun/ios-3.0s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/ios-rerun/ios-4.0s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/ios-rerun/ios-5.5s.png
+?? .codex/tasks/ios-android-system-splash-under-1s-01a0db8f/evidence/ios-rerun/ios-7.0s.png
+?? .codex/tasks/merge-visual-into-main-01a0cccd/PLAN.md
+?? .codex/tasks/merge-visual-into-main-01a0cccd/STATUS.md
+?? .codex/tasks/software-copyright-materials/PLAN.md
+?? .codex/tasks/software-copyright-materials/STATUS.md
+?? .codex/tasks/week-schedule-detail-visual-01a0c979/PLAN.md
+?? .codex/tasks/week-schedule-detail-visual-01a0c979/STATUS.md
+?? .codex/tasks/week-schedule-detail-visual-01a0c979/evidence/after-launch.png
+?? .codex/tasks/week-schedule-detail-visual-01a0c979/evidence/course-detail.png
+?? .codex/tasks/week-schedule-detail-visual-01a0c979/evidence/db-before.json
+?? .codex/tasks/week-schedule-detail-visual-01a0c979/evidence/full-week-grid.png
+?? .codex/tasks/week-schedule-detail-visual-01a0c979/evidence/launch.png
+?? .codex/tasks/week-schedule-detail-visual-01a0c979/evidence/week4-grid-split.png
+?? .codex/tasks/week-schedule-detail-visual-01a0c979/evidence/week4-grid.png
+?? .codex/tasks/week-schedule-visual-01a0c6e5/PLAN.md
+?? .codex/tasks/week-schedule-visual-01a0c6e5/STATUS.md
+?? AGENTS.md
+?? PLAN.md
+?? STATUS.md
+?? copyright-materials/08_update-and-official-check.md
+?? copyright-materials/content/software-manual.md
+?? copyright-materials/generated/documentation-identification-material.pdf
+?? copyright-materials/generated/source-identification-material.pdf
+?? "\345\244\207\346\241\210\350\265\204\346\226\231/2026-10-14/android-apk-verification.txt"
+?? "\345\244\207\346\241\210\350\265\204\346\226\231/2026-10-14/android-filing-info.json"
+?? "\345\244\207\346\241\210\350\265\204\346\226\231/2026-10-14/android-public-key-modulus.txt"
+?? "\345\244\207\346\241\210\350\265\204\346\226\231/2026-10-14/android-public-key.pem"
+?? "\345\244\207\346\241\210\350\265\204\346\226\231/2026-10-14/android-release-dependencies.txt"
+?? "\345\244\207\346\241\210\350\265\204\346\226\231/2026-10-14/android-signing-certificate.pem"
+?? "\345\244\207\346\241\210\350\265\204\346\226\231/2026-10-14/android-static-network-markers.json"
+?? "\345\244\207\346\241\210\350\265\204\346\226\231/2026-10-14/ios-apple-distribution.cer"
+?? "\345\244\207\346\241\210\350\265\204\346\226\231/2026-10-14/ios-distribution-filing-info.json"
+?? "\345\244\207\346\241\210\350\265\204\346\226\231/2026-10-14/ios-distribution-public-key-hex.txt"
+?? "\345\244\207\346\241\210\350\265\204\346\226\231/2026-10-14/ios-distribution-public-key-modulus.txt"
+?? "\345\244\207\346\241\210\350\265\204\346\226\231/2026-10-14/ios-distribution-public-key.pem"
+?? "\345\244\207\346\241\210\350\265\204\346\226\231/2026-10-14/ios-local-signing-check.json"
+?? "\345\244\207\346\241\210\350\265\204\346\226\231/2026-10-14/\344\270\211\345\215\203\344\270\212\350\257\276-App\345\244\207\346\241\210\345\241\253\345\206\231\346\270\205\345\215\225.md"

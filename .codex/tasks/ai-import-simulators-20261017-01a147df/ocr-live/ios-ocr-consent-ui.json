@@ -1,0 +1,1 @@
+{"type":"runtime-snapshot","rs":"1","screenHash":"0czt2ab","seq":125,"count":22,"targets":["e20|tap|button|取消||","e21|tap|button|发送并复核||"],"scroll":[],"text":["e22|text|text|关闭||","e16|text|text|用文字识别辅助复核||","e19|text|text|如果发现有课程没有写上，可以把原课表图片和本机识别出的文字发给 DeepSeek 再检查一次，可能再次消耗账户余额。文字识别也可能出错。||"],"udid":"EF43A038-4E4B-417D-A813-E2404D1220FD"}

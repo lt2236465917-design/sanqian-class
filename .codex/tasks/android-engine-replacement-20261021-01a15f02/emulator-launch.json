@@ -1,0 +1,22 @@
+{
+  "pid": 7991,
+  "args": [
+    "/Users/zhuanzmima0000/Library/Android/sdk/emulator/emulator",
+    "-avd",
+    "sanqian_engine_01a15f02",
+    "-port",
+    "5582",
+    "-no-window",
+    "-no-snapshot",
+    "-no-boot-anim",
+    "-no-audio",
+    "-gpu",
+    "swiftshader",
+    "-camera-back",
+    "imagefile:/Users/zhuanzmima0000/Desktop/NJU-Class-Shedule-Flutter-visual/.codex/tasks/android-engine-replacement-20261021-01a15f02/camera-input.png",
+    "-camera-front",
+    "emulated"
+  ],
+  "avd": "/Users/zhuanzmima0000/Desktop/NJU-Class-Shedule-Flutter-visual/.codex/tasks/android-engine-replacement-20261021-01a15f02/avd",
+  "name": "sanqian_engine_01a15f02"
+}

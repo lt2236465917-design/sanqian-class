@@ -1,0 +1,118 @@
+[
+  {
+    "aar": "onnx.aar",
+    "lib": "jni/arm64-v8a/libonnxruntime.so",
+    "bytes": 19347616,
+    "align": [
+      16384,
+      16384,
+      16384
+    ]
+  },
+  {
+    "aar": "onnx.aar",
+    "lib": "jni/arm64-v8a/libonnxruntime4j_jni.so",
+    "bytes": 100648,
+    "align": [
+      16384,
+      16384
+    ]
+  },
+  {
+    "aar": "onnx.aar",
+    "lib": "jni/armeabi-v7a/libonnxruntime.so",
+    "bytes": 13992328,
+    "align": [
+      16384,
+      16384,
+      16384
+    ]
+  },
+  {
+    "aar": "onnx.aar",
+    "lib": "jni/armeabi-v7a/libonnxruntime4j_jni.so",
+    "bytes": 73680,
+    "align": [
+      16384,
+      16384
+    ]
+  },
+  {
+    "aar": "onnx.aar",
+    "lib": "jni/x86/libonnxruntime.so",
+    "bytes": 22761828,
+    "align": [
+      16384,
+      16384,
+      16384
+    ]
+  },
+  {
+    "aar": "onnx.aar",
+    "lib": "jni/x86/libonnxruntime4j_jni.so",
+    "bytes": 84700,
+    "align": [
+      16384,
+      16384
+    ]
+  },
+  {
+    "aar": "onnx.aar",
+    "lib": "jni/x86_64/libonnxruntime.so",
+    "bytes": 23181616,
+    "align": [
+      16384,
+      16384,
+      16384
+    ]
+  },
+  {
+    "aar": "onnx.aar",
+    "lib": "jni/x86_64/libonnxruntime4j_jni.so",
+    "bytes": 90728,
+    "align": [
+      16384,
+      16384
+    ]
+  },
+  {
+    "aar": "zxing.aar",
+    "lib": "jni/arm64-v8a/libzxingcpp_android.so",
+    "bytes": 1712120,
+    "align": [
+      16384,
+      16384,
+      16384
+    ]
+  },
+  {
+    "aar": "zxing.aar",
+    "lib": "jni/armeabi-v7a/libzxingcpp_android.so",
+    "bytes": 1210336,
+    "align": [
+      16384,
+      16384,
+      16384
+    ]
+  },
+  {
+    "aar": "zxing.aar",
+    "lib": "jni/x86/libzxingcpp_android.so",
+    "bytes": 1788744,
+    "align": [
+      16384,
+      16384,
+      16384
+    ]
+  },
+  {
+    "aar": "zxing.aar",
+    "lib": "jni/x86_64/libzxingcpp_android.so",
+    "bytes": 1776016,
+    "align": [
+      16384,
+      16384,
+      16384
+    ]
+  }
+]

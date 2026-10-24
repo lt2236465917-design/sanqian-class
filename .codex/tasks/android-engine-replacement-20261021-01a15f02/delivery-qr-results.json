@@ -1,0 +1,16 @@
+{
+  "apkSha256": "00cb1775d79a21bd24cb08a6d5398be4358f37e542067f5bcf3f761da59d3428",
+  "synthetic": true,
+  "checks": {
+    "delivery-db": {
+      "matchingTables": 1,
+      "matchingCourses": 3,
+      "allPayloadFieldsEqualExceptGeneratedCourseId": true
+    },
+    "delivery-gallery-db": {
+      "matchingTables": 2,
+      "matchingCourses": 6,
+      "allPayloadFieldsEqualExceptGeneratedCourseId": true
+    }
+  }
+}

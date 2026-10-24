@@ -1,0 +1,40 @@
+{
+  "commit": "91504055e186c0bc09a27d069811a494aa66164c",
+  "sourcePages": 60,
+  "manualPages": 8,
+  "manualLines": [
+    38,
+    38,
+    37,
+    38,
+    37,
+    37,
+    38,
+    37
+  ],
+  "eligiblePhysicalLines": 29317,
+  "eligibleNonblankLines": 27077,
+  "languages": {
+    "Dart": {
+      "files": 80,
+      "physicalLines": 16756,
+      "nonblankLines": 15683
+    },
+    "Swift": {
+      "files": 29,
+      "physicalLines": 8245,
+      "nonblankLines": 7380
+    },
+    "Java": {
+      "files": 6,
+      "physicalLines": 302,
+      "nonblankLines": 273
+    },
+    "Kotlin": {
+      "files": 19,
+      "physicalLines": 4014,
+      "nonblankLines": 3741
+    }
+  },
+  "minimumSourceFont": 8.6
+}

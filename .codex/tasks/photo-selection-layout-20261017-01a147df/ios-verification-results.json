@@ -1,0 +1,17 @@
+{
+  "platform": "ios",
+  "runtime_build": "Fresh Xcode simulator build on 2026-10-17",
+  "image_count": 5,
+  "checks": [
+    "Horizontal scrolling reaches image 5",
+    "Image 5 opens in original-image preview and closes successfully",
+    "AI action stays at the bottom while browsing images",
+    "No page-height growth from adding the five images"
+  ],
+  "evidence": [
+    "ios-selected-five.jpg",
+    "ios-preview-fifth.jpg"
+  ],
+  "source_sha256": "660f54f120458bd5b4e64ca18ccab083b427fed5f86f9ee3805fa21c7620f91b",
+  "scope": "Five real supplied images on the iPhone 16 simulator; 20-image behavior covered by the existing page test"
+}

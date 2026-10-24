@@ -1,0 +1,685 @@
+[
+  {
+    "stableId": null,
+    "courseCode": "90001001",
+    "name": "中国特色社会主义理论与实践研究",
+    "section": "1",
+    "teacher": "申坤",
+    "meetings": [
+      {
+        "weekday": 4,
+        "weeks": [
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ],
+        "periodIndex": null,
+        "periodCount": null,
+        "startMinute": 540,
+        "endMinute": 720,
+        "location": "三楼学术报告厅(主校区)",
+        "sourceReference": "3-11周四-上午课-三楼学术报告厅(主校区)",
+        "raw": {}
+      }
+    ],
+    "pendingReason": null,
+    "raw": {
+      "recognition": "deepseek-ocr-review",
+      "sourceLine": "3-11周四-上午课-三楼学术报告厅(主校区)"
+    }
+  },
+  {
+    "stableId": null,
+    "courseCode": "10121S102",
+    "name": "艺术意识形态分析",
+    "section": "1",
+    "teacher": "韩子勇",
+    "meetings": [
+      {
+        "weekday": 5,
+        "weeks": [
+          5,
+          6,
+          7,
+          8
+        ],
+        "periodIndex": null,
+        "periodCount": null,
+        "startMinute": 810,
+        "endMinute": 990,
+        "location": "6408(主校区)",
+        "sourceReference": "5-8周五-下午课-6408(主校区)",
+        "raw": {}
+      }
+    ],
+    "pendingReason": null,
+    "raw": {
+      "recognition": "deepseek-ocr-review",
+      "sourceLine": "5-8周五-下午课-6408(主校区)"
+    }
+  },
+  {
+    "stableId": null,
+    "courseCode": "90001003",
+    "name": "中国艺术史",
+    "section": "1",
+    "teacher": "杨明刚",
+    "meetings": [
+      {
+        "weekday": 1,
+        "weeks": [
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ],
+        "periodIndex": null,
+        "periodCount": null,
+        "startMinute": 810,
+        "endMinute": 990,
+        "location": "6406(主校区)",
+        "sourceReference": "6-11周一-下午课-6406(主校区)",
+        "raw": {}
+      },
+      {
+        "weekday": 1,
+        "weeks": [
+          3,
+          4
+        ],
+        "periodIndex": null,
+        "periodCount": null,
+        "startMinute": 810,
+        "endMinute": 990,
+        "location": "6406(主校区)",
+        "sourceReference": "3,4周一-下午课-6406(主校区)",
+        "raw": {}
+      }
+    ],
+    "pendingReason": null,
+    "raw": {
+      "recognition": "deepseek-ocr-review",
+      "sourceLine": "6-11周一-下午课-6406(主校区)"
+    }
+  },
+  {
+    "stableId": null,
+    "courseCode": "90001005",
+    "name": "艺术美学",
+    "section": "1",
+    "teacher": "孙伟科",
+    "meetings": [
+      {
+        "weekday": 2,
+        "weeks": [
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ],
+        "periodIndex": null,
+        "periodCount": null,
+        "startMinute": 810,
+        "endMinute": 990,
+        "location": "6406(主校区)",
+        "sourceReference": "6-11周二-下午课-6406(主校区)",
+        "raw": {}
+      },
+      {
+        "weekday": 2,
+        "weeks": [
+          3,
+          4
+        ],
+        "periodIndex": null,
+        "periodCount": null,
+        "startMinute": 810,
+        "endMinute": 990,
+        "location": "6406(主校区)",
+        "sourceReference": "3,4周二-下午课-6406(主校区)",
+        "raw": {}
+      }
+    ],
+    "pendingReason": null,
+    "raw": {
+      "recognition": "deepseek-ocr-review",
+      "sourceLine": "6-11周二-下午课-6406(主校区)"
+    }
+  },
+  {
+    "stableId": null,
+    "courseCode": "90001011",
+    "name": "导师课",
+    "section": "1",
+    "teacher": null,
+    "meetings": [],
+    "pendingReason": "时间、地点待定",
+    "raw": {
+      "recognition": "deepseek-ocr-review",
+      "sourceLine": "导师课"
+    }
+  },
+  {
+    "stableId": null,
+    "courseCode": "S90001014",
+    "name": "硕士英语(全日制学术型)",
+    "section": "1",
+    "teacher": "林敬和,刘先福",
+    "meetings": [
+      {
+        "weekday": 2,
+        "weeks": [
+          12
+        ],
+        "periodIndex": null,
+        "periodCount": null,
+        "startMinute": 540,
+        "endMinute": 720,
+        "location": "6310(主校区)",
+        "sourceReference": "12周二-上午课-6310(主校区)",
+        "raw": {}
+      },
+      {
+        "weekday": 2,
+        "weeks": [
+          6,
+          7,
+          8,
+          9,
+          10
+        ],
+        "periodIndex": null,
+        "periodCount": null,
+        "startMinute": 540,
+        "endMinute": 720,
+        "location": "6310(主校区)",
+        "sourceReference": "6-10周二-上午课-6310(主校区)",
+        "raw": {}
+      },
+      {
+        "weekday": 2,
+        "weeks": [
+          3,
+          4
+        ],
+        "periodIndex": null,
+        "periodCount": null,
+        "startMinute": 540,
+        "endMinute": 720,
+        "location": "第五会议室(主校区)",
+        "sourceReference": "3,4周二-上午课-第五会议室(主校区)",
+        "raw": {}
+      }
+    ],
+    "pendingReason": null,
+    "raw": {
+      "recognition": "deepseek-ocr-review",
+      "sourceLine": "12周二-上午课-6310(主校区)"
+    }
+  },
+  {
+    "stableId": null,
+    "courseCode": "30101009",
+    "name": "曲艺学导论",
+    "section": "1",
+    "teacher": "吴文科",
+    "meetings": [
+      {
+        "weekday": 1,
+        "weeks": [
+          6
+        ],
+        "periodIndex": null,
+        "periodCount": null,
+        "startMinute": 1140,
+        "endMinute": 1290,
+        "location": "自排教室:6401教室",
+        "sourceReference": "6周一-晚上课-自排教室:6401教室",
+        "raw": {}
+      },
+      {
+        "weekday": 3,
+        "weeks": [
+          4
+        ],
+        "periodIndex": null,
+        "periodCount": null,
+        "startMinute": 1140,
+        "endMinute": 1290,
+        "location": "自排教室:6401教室",
+        "sourceReference": "4周三-晚上课-自排教室:6401教室",
+        "raw": {}
+      },
+      {
+        "weekday": 2,
+        "weeks": [
+          4
+        ],
+        "periodIndex": null,
+        "periodCount": null,
+        "startMinute": 1140,
+        "endMinute": 1290,
+        "location": "自排教室:6401教室",
+        "sourceReference": "4周二-晚上课-自排教室:6401教室",
+        "raw": {}
+      },
+      {
+        "weekday": 1,
+        "weeks": [
+          4
+        ],
+        "periodIndex": null,
+        "periodCount": null,
+        "startMinute": 1140,
+        "endMinute": 1290,
+        "location": "自排教室:6401教室",
+        "sourceReference": "4周一-晚上课-自排教室:6401教室",
+        "raw": {}
+      }
+    ],
+    "pendingReason": null,
+    "raw": {
+      "recognition": "deepseek-ocr-review",
+      "sourceLine": "6周一-晚上课-自排教室:6401教室"
+    }
+  },
+  {
+    "stableId": null,
+    "courseCode": "10118B103",
+    "name": "艺术人类学理论与沿革专题研究",
+    "section": "1",
+    "teacher": null,
+    "meetings": [
+      {
+        "weekday": 3,
+        "weeks": [
+          6,
+          7
+        ],
+        "periodIndex": null,
+        "periodCount": null,
+        "startMinute": 810,
+        "endMinute": 990,
+        "location": "6408(主校区)",
+        "sourceReference": "6,7周三-下午课-6408(主校区)",
+        "raw": {}
+      },
+      {
+        "weekday": 3,
+        "weeks": [
+          3,
+          4
+        ],
+        "periodIndex": null,
+        "periodCount": null,
+        "startMinute": 810,
+        "endMinute": 990,
+        "location": "6408(主校区)",
+        "sourceReference": "3,4周三-下午课-6408(主校区)",
+        "raw": {}
+      }
+    ],
+    "pendingReason": null,
+    "raw": {
+      "recognition": "deepseek-ocr-review",
+      "sourceLine": "6,7周三-下午课-6408(主校区)"
+    }
+  },
+  {
+    "stableId": null,
+    "courseCode": "49106104",
+    "name": "黑白摄影暗房工艺基础",
+    "section": "1",
+    "teacher": "张涛",
+    "meetings": [
+      {
+        "weekday": 7,
+        "weeks": [
+          5
+        ],
+        "periodIndex": null,
+        "periodCount": null,
+        "startMinute": 540,
+        "endMinute": 720,
+        "location": "虚拟教室1(主校区)",
+        "sourceReference": "5周日-上午课-虚拟教室1(主校区)",
+        "raw": {}
+      },
+      {
+        "weekday": 6,
+        "weeks": [
+          5
+        ],
+        "periodIndex": null,
+        "periodCount": null,
+        "startMinute": 540,
+        "endMinute": 720,
+        "location": "虚拟教室1(主校区)",
+        "sourceReference": "5周六-上午课-虚拟教室1(主校区)",
+        "raw": {}
+      },
+      {
+        "weekday": 7,
+        "weeks": [
+          5
+        ],
+        "periodIndex": null,
+        "periodCount": null,
+        "startMinute": 810,
+        "endMinute": 990,
+        "location": "虚拟教室1(主校区)",
+        "sourceReference": "5周日-下午课-虚拟教室1(主校区)",
+        "raw": {}
+      },
+      {
+        "weekday": 6,
+        "weeks": [
+          5
+        ],
+        "periodIndex": null,
+        "periodCount": null,
+        "startMinute": 810,
+        "endMinute": 990,
+        "location": "虚拟教室1(主校区)",
+        "sourceReference": "5周六-下午课-虚拟教室1(主校区)",
+        "raw": {}
+      }
+    ],
+    "pendingReason": null,
+    "raw": {
+      "recognition": "deepseek-ocr-review",
+      "sourceLine": "5周日-上午课-虚拟教室1(主校区)"
+    }
+  },
+  {
+    "stableId": null,
+    "courseCode": "10121S104",
+    "name": "保护非物质文化遗产政策法规解读专题",
+    "section": "1",
+    "teacher": null,
+    "meetings": [
+      {
+        "weekday": 3,
+        "weeks": [
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13
+        ],
+        "periodIndex": null,
+        "periodCount": null,
+        "startMinute": 540,
+        "endMinute": 720,
+        "location": "6607(主校区)",
+        "sourceReference": "6-13周三-上午课-6607(主校区)",
+        "raw": {}
+      }
+    ],
+    "pendingReason": null,
+    "raw": {
+      "recognition": "deepseek-ocr-review",
+      "sourceLine": "6-13周三-上午课-6607(主校区)"
+    }
+  },
+  {
+    "stableId": null,
+    "courseCode": "10118s300",
+    "name": "艺术跨学科理论前沿",
+    "section": "1",
+    "teacher": null,
+    "meetings": [
+      {
+        "weekday": 5,
+        "weeks": [
+          14,
+          15,
+          16,
+          17
+        ],
+        "periodIndex": null,
+        "periodCount": null,
+        "startMinute": 810,
+        "endMinute": 990,
+        "location": "虚拟教室3(主校区)",
+        "sourceReference": "14-17周五-下午课-虚拟教室3(主校区)",
+        "raw": {}
+      }
+    ],
+    "pendingReason": null,
+    "raw": {
+      "recognition": "deepseek-ocr-review",
+      "sourceLine": "14-17周五-下午课-虚拟教室3(主校区)"
+    }
+  },
+  {
+    "stableId": null,
+    "courseCode": "10118s105",
+    "name": "非物质文化遗产概论",
+    "section": "1",
+    "teacher": null,
+    "meetings": [
+      {
+        "weekday": 1,
+        "weeks": [
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13
+        ],
+        "periodIndex": null,
+        "periodCount": null,
+        "startMinute": 540,
+        "endMinute": 720,
+        "location": "6607(主校区)",
+        "sourceReference": "6-13周一-上午课-6607(主校区)",
+        "raw": {}
+      }
+    ],
+    "pendingReason": null,
+    "raw": {
+      "recognition": "deepseek-ocr-review",
+      "sourceLine": "6-13周一-上午课-6607(主校区)"
+    }
+  },
+  {
+    "stableId": null,
+    "courseCode": "10118s106",
+    "name": "非物质文化遗产保护理论与实践专题",
+    "section": "1",
+    "teacher": null,
+    "meetings": [
+      {
+        "weekday": 3,
+        "weeks": [
+          9,
+          10,
+          11,
+          12
+        ],
+        "periodIndex": null,
+        "periodCount": null,
+        "startMinute": 810,
+        "endMinute": 990,
+        "location": "6408(主校区)",
+        "sourceReference": "9-12周三-下午课-6408(主校区)",
+        "raw": {}
+      }
+    ],
+    "pendingReason": null,
+    "raw": {
+      "recognition": "deepseek-ocr-review",
+      "sourceLine": "9-12周三-下午课-6408(主校区)"
+    }
+  },
+  {
+    "stableId": null,
+    "courseCode": "90001020",
+    "name": "思政大讲堂：形势与政策",
+    "section": "1",
+    "teacher": null,
+    "meetings": [],
+    "pendingReason": "时间、地点待定",
+    "raw": {
+      "recognition": "deepseek-ocr-review",
+      "sourceLine": "2label.teachtask.courseclass.week.null-自排教室,请教师联系上课时间和地点"
+    }
+  },
+  {
+    "stableId": null,
+    "courseCode": null,
+    "name": "中国美学史专题",
+    "section": "1",
+    "teacher": "李修建,杨明刚",
+    "meetings": [
+      {
+        "weekday": 1,
+        "weeks": [
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13
+        ],
+        "periodIndex": null,
+        "periodCount": null,
+        "startMinute": 540,
+        "endMinute": 720,
+        "location": "6408",
+        "sourceReference": "中国美学史专题-1 李修建,杨明刚 6-13 6408",
+        "raw": {}
+      }
+    ],
+    "pendingReason": null,
+    "raw": {
+      "recognition": "deepseek-ocr-review",
+      "sourceLine": "中国美学史专题-1 李修建,杨明刚 6-13 6408"
+    }
+  },
+  {
+    "stableId": null,
+    "courseCode": null,
+    "name": "经济学",
+    "section": "1",
+    "teacher": "周泓洋",
+    "meetings": [
+      {
+        "weekday": 3,
+        "weeks": [
+          3,
+          4
+        ],
+        "periodIndex": null,
+        "periodCount": null,
+        "startMinute": 810,
+        "endMinute": 990,
+        "location": "6606",
+        "sourceReference": "经济学-1 周泓洋 3,4 6606",
+        "raw": {}
+      },
+      {
+        "weekday": 3,
+        "weeks": [
+          6,
+          7,
+          8,
+          9,
+          10,
+          11
+        ],
+        "periodIndex": null,
+        "periodCount": null,
+        "startMinute": 810,
+        "endMinute": 990,
+        "location": "6606",
+        "sourceReference": "经济学-1 周泓洋 6-11 6606",
+        "raw": {}
+      }
+    ],
+    "pendingReason": null,
+    "raw": {
+      "recognition": "deepseek-ocr-review",
+      "sourceLine": "经济学-1 周泓洋 3,4 6606"
+    }
+  },
+  {
+    "stableId": null,
+    "courseCode": null,
+    "name": "文旅投融资与艺术经济",
+    "section": "1",
+    "teacher": "周泓洋",
+    "meetings": [
+      {
+        "weekday": 3,
+        "weeks": [
+          12,
+          13,
+          14,
+          15
+        ],
+        "periodIndex": null,
+        "periodCount": null,
+        "startMinute": 810,
+        "endMinute": 990,
+        "location": "6606",
+        "sourceReference": "文旅投融资与艺术经济-1 周泓洋 12-15 6606",
+        "raw": {}
+      }
+    ],
+    "pendingReason": null,
+    "raw": {
+      "recognition": "deepseek-ocr-review",
+      "sourceLine": "文旅投融资与艺术经济-1 周泓洋 12-15 6606"
+    }
+  },
+  {
+    "stableId": null,
+    "courseCode": null,
+    "name": "艺术机构运营",
+    "section": "1",
+    "teacher": "张朝霞",
+    "meetings": [
+      {
+        "weekday": 4,
+        "weeks": [
+          5,
+          6,
+          7,
+          8
+        ],
+        "periodIndex": null,
+        "periodCount": null,
+        "startMinute": 810,
+        "endMinute": 990,
+        "location": "6607",
+        "sourceReference": "艺术机构运营-1 张朝霞 5-8 6607",
+        "raw": {}
+      }
+    ],
+    "pendingReason": null,
+    "raw": {
+      "recognition": "deepseek-ocr-review",
+      "sourceLine": "艺术机构运营-1 张朝霞 5-8 6607"
+    }
+  }
+]

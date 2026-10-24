@@ -1,0 +1,17 @@
+{
+  "sample": "synthetic valid app share QR; no real course data",
+  "payload": {
+    "t": "ncs_qr_schedule",
+    "v": 2,
+    "alg": "gz",
+    "meta": {
+      "checksum": "6139c86b"
+    },
+    "table": {
+      "name": "无 GMS 离线验证",
+      "data": "{}"
+    },
+    "courses": []
+  },
+  "encoded": "ncs://qr/v2/s/H4sIAAAAAAAC_6tWKlGyUspLLo4vLIovTs5ITSnNSVXSUSpTsjLSUUrMSQfKplcBBXJTSxKVrKqVgEqSs4tLc4HiZobGlskWZklKtTpKJYlJQH1A-bzEXCCt9Gz6AgV332CF58t2P9-1_-WqnhfrG4GmpCSCTFGqrgXpSc4vLSpOLVayio6tBQAE6gL1iAAAAA=="
+}

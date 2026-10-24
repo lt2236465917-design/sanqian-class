@@ -1,0 +1,20 @@
+[
+  {
+    "file": "lib/arm64-v8a/libbarhopper_v3.so",
+    "loadSegments": [
+      "LOAD           0x000000 0x0000000000000000 0x0000000000000000 0x4a2520 0x4a2520 R E 0x4000",
+      "LOAD           0x4a4000 0x00000000004a4000 0x00000000004a4000 0x00b178 0x00c000 RW  0x4000",
+      "LOAD           0x4af180 0x00000000004b3180 0x00000000004b3180 0x0080e8 0x047d30 RW  0x4000"
+    ],
+    "allLoadAlignmentAtLeast16K": true
+  },
+  {
+    "file": "lib/arm64-v8a/libmlkit_google_ocr_pipeline.so",
+    "loadSegments": [
+      "LOAD           0x000000 0x0000000000000000 0x0000000000000000 0x9ca070 0x9ca070 R E 0x4000",
+      "LOAD           0x9cc000 0x00000000009cc000 0x00000000009cc000 0x08aa18 0x08b000 RW  0x4000",
+      "LOAD           0xa56a20 0x0000000000a5aa20 0x0000000000a5aa20 0x036168 0x07f270 RW  0x4000"
+    ],
+    "allLoadAlignmentAtLeast16K": true
+  }
+]

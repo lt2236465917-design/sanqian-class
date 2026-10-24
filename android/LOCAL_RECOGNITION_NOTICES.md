@@ -1,0 +1,11 @@
+# Android local recognition dependencies
+
+Android camera QR uses CameraX 1.5.2 and ZXing-C++ 3.0.2 (Apache-2.0), through the local mobile_scanner 7.1.3 fork (BSD-3-Clause). Album QR remains the existing Dart image/zxing2 route. Apple Vision sources are unchanged; added Dart lifecycle/cancellation behavior is Android-only.
+
+Chinese OCR uses PaddleOCR PP-OCRv4 mobile detection/recognition models converted to ONNX by RapidAI/RapidOCR (Apache-2.0), and Microsoft ONNX Runtime Android 1.23.2 (MIT plus its bundled third-party notices). The model manifest in `app/src/main/assets/ocr/manifest.json` records immutable release URLs and SHA-256. License texts and ONNX third-party notices ship in `assets/ocr/licenses/`; mobile_scanner retains its upstream LICENSE and ZXing-C++ notice is included with these assets.
+
+Models are inside the APK. First local OCR use copies them into the app's private no-backup directory, verifies SHA-256, and performs CPU inference without a download or cloud OCR request. The original photo bytes remain authoritative for the existing opt-in DeepSeek review flow; this change does not remove its user consent or validation limits.
+
+For the next published SDK/privacy disclosure revision: replace Android ML Kit text/barcode recognition entries with the above local runtime, models, and decoder. Images/frames and OCR results stay on-device in these components. The separately authorized existing DeepSeek image import remains a network feature. No paid API was called during replacement validation. Do not describe this as removing every Google-maintained component: Flutter, AndroidX and CameraX remain. image_picker_android still declares a disabled Google Play Photo Picker backport metadata service; it is not an included GMS SDK class or a ML Kit dependency, and the no-GMS system picker path was tested independently.
+
+Existing installed copies may retain the old ML Kit private data files after an upgrade. This replacement does not load those files or delete user data. A fresh install was used for final offline model checks. This file documents the code change; it does not update submitted app registration, copyright materials, or external privacy-policy pages.

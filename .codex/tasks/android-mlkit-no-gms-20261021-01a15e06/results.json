@@ -1,0 +1,38 @@
+{
+  "environment": "AOSP Android 15/API35 arm64 4KB pages, no GMS/Play Store/GSF including uninstalled package records, airplane, wifi and mobile data off",
+  "installedApkSha256": "1c2f3a90a747e7dcc82d55adc103f6f8c86b4c22130b2e2afee3ccd2ecfef42e",
+  "installedHashMatchesOriginal": true,
+  "ocr": {
+    "status": "PASS_LOCAL_RELEASE_METHOD_ONLY",
+    "evidence": "ocr-result.json",
+    "sample": "synthetic 1600x900 Chinese timetable text",
+    "paidApiCalled": false
+  },
+  "galleryQr": {
+    "status": "PASS_ORIGINAL_RELEASE_UI_SYNTHETIC_QR",
+    "evidence": [
+      "gallery-result.xml",
+      "gallery-result.png"
+    ],
+    "decodePath": "image_picker -> image -> zxing2 -> QrPayloadCodec -> confirmation dialog",
+    "savedToDatabase": false
+  },
+  "cameraQr": {
+    "status": "PASS_ORIGINAL_RELEASE_UI_EMULATED_CAMERA_SYNTHETIC_QR",
+    "evidence": [
+      "camera-adjusted-result.xml",
+      "camera-adjusted-result.png",
+      "camera-success-runtime.log"
+    ],
+    "decodePath": "emulator imagefile camera -> CameraX -> mobile_scanner -> bundled ML Kit -> QrPayloadCodec -> confirmation dialog",
+    "savedToDatabase": false,
+    "limitation": "not real optics, focus, motion, dense QR quality or OEM camera HAL"
+  },
+  "sampleSha256": "2dac95a9d80bd2089b23492cbbc17b90c4080635625d0ba0655f8db3ead4565b",
+  "cameraInputSha256": "c06b6d113b6a9e63e373f492d9acca12881ca76b4690b15d8de67e608677456e",
+  "domesticPhysicalDevices": "PARTIAL_XIAOMI14_GMS_PRESENT_OCR_EXECUTED_GALLERY_USER_CONFIRMED_CAMERA_CONFIRMATION_VERIFIED",
+  "fullOcrReviewDeepSeekFlow": "NOT_RUN_NO_PAID_API_AUTHORIZATION",
+  "sdkReplacement": "NOT_PERFORMED",
+  "recommendation": "Retain current bundled SDKs pending real-device same-sample validation.",
+  "physicalEvidence": "physical-houji/results.json"
+}

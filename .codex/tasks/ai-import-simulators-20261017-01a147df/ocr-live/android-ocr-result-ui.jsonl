@@ -1,0 +1,13 @@
+{"text": "", "content-desc": "复核结果", "class": "android.view.View", "bounds": "[168,265][912,349]", "password": "false", "enabled": "true"}
+{"text": "", "content-desc": "当前 18 门课程 · 复核后 18 门", "class": "android.view.View", "bounds": "[168,391][693,454]", "password": "false", "enabled": "true"}
+{"text": "", "content-desc": "采用后将替换当前核对内容，包括手动修改；正式课表需确认保存后才会改变。保存前可恢复本次 AI 处理前的内容。", "class": "android.view.View", "bounds": "[168,486][912,669]", "password": "false", "enabled": "true"}
+{"text": "", "content-desc": "本次复核未发现课程或安排变化，请继续核对原图。", "class": "android.view.View", "bounds": "[168,701][912,822]", "password": "false", "enabled": "true"}
+{"text": "", "content-desc": "仍需核对：", "class": "android.view.View", "bounds": "[168,853][368,914]", "password": "false", "enabled": "true"}
+{"text": "", "content-desc": "有 2 门课程包含待定安排，缺失信息未自动补全，请核对。", "class": "android.view.View", "bounds": "[168,935][912,1058]", "password": "false", "enabled": "true"}
+{"text": "", "content-desc": "“艺术人类学理论与沿革专题研究”与“经济学”存在同周同时段重叠。请核对是否混入不同课表，两个课程的安排均已保留。", "class": "android.view.View", "bounds": "[168,1079][912,1265]", "password": "false", "enabled": "true"}
+{"text": "", "content-desc": "“非物质文化遗产概论”与“中国美学史专题”存在同周同时段重叠。请核对是否混入不同课表，两个课程的安排均已保留。", "class": "android.view.View", "bounds": "[168,1286][912,1473]", "password": "false", "enabled": "true"}
+{"text": "", "content-desc": "“非物质文化遗产保护理论与实践专题”与“经济学”存在同周同时段重叠。请核对是否混入不同课表，两个课程的安排均已保留。", "class": "android.view.View", "bounds": "[168,1494][912,1740]", "password": "false", "enabled": "true"}
+{"text": "", "content-desc": "“非物质文化遗产保护理论与实践专题”与“文旅投融资与艺术经济”存在同周同时段重叠。请核对是否混入不同课表，两个课程的安排均已保留。", "class": "android.view.View", "bounds": "[168,1761][912,2008]", "password": "false", "enabled": "true"}
+{"text": "", "content-desc": "取消", "class": "android.widget.Button", "bounds": "[566,2073][707,2199]", "password": "false", "enabled": "true"}
+{"text": "", "content-desc": "采用", "class": "android.widget.Button", "bounds": "[728,2071][912,2200]", "password": "false", "enabled": "true"}
+{"text": "", "content-desc": "关闭", "class": "android.view.View", "bounds": "[0,0][1080,2400]", "password": "false", "enabled": "true"}

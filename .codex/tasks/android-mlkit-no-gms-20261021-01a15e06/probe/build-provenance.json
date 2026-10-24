@@ -1,0 +1,13 @@
+{
+  "probeApkSha256": "4a2522c35ebf24cd7221de8ac4f875d70cd3e7c7c345fb29e546f337177322b3",
+  "probeBytes": 16725,
+  "signatureMatchedRelease": true,
+  "targetApkSha256": "1c2f3a90a747e7dcc82d55adc103f6f8c86b4c22130b2e2afee3ccd2ecfef42e",
+  "reflectionMapping": {
+    "AIImportImage": "n5.a(byte[],String)",
+    "MlKitChineseTimetableOcr.recognize": "love.sanqian.schedule.d.b(List,AtomicBoolean)",
+    "OcrPage.tokens": "n5.r.b()",
+    "OcrToken.text": "n5.s.f()"
+  },
+  "signedDiagnosticApkRemovedAfterUse": true
+}

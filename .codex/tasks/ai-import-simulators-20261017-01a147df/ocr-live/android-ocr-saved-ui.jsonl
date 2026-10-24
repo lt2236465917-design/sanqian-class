@@ -1,0 +1,11 @@
+{"text": "", "content-desc": "返回", "class": "android.widget.Button", "bounds": "[11,139][137,265]", "password": "false", "enabled": "true"}
+{"text": "", "content-desc": "设置", "class": "android.view.View", "bounds": "[189,163][294,240]", "password": "false", "enabled": "true"}
+{"text": "", "content-desc": "三千上课\n让课表适合你\n管理课程、导入新学期，安排提醒与桌面小组件。", "class": "android.view.View", "bounds": "[53,307][1028,690]", "password": "false", "enabled": "true"}
+{"text": "", "content-desc": "我的课表", "class": "android.view.View", "bounds": "[53,753][1028,845]", "password": "false", "enabled": "true"}
+{"text": "", "content-desc": "学校账号导入课表\n登录账号后AI识别课表录入", "class": "android.widget.Button", "bounds": "[53,845][1028,1076]", "password": "false", "enabled": "true"}
+{"text": "", "content-desc": "课程截图导入课表\nAI 联合识别课程截图，核对后保存", "class": "android.widget.Button", "bounds": "[53,1078][1028,1309]", "password": "false", "enabled": "true"}
+{"text": "", "content-desc": "导入内置课表（调试）\n中国艺术研究院 · 2026 秋季，重复导入保留修改", "class": "android.widget.Button", "bounds": "[53,1312][1028,1582]", "password": "false", "enabled": "true"}
+{"text": "", "content-desc": "手动添加课程\n补充课程、教师和上课安排", "class": "android.widget.Button", "bounds": "[53,1585][1028,1816]", "password": "false", "enabled": "true"}
+{"text": "", "content-desc": "管理学期课表\n切换或新增一份课表", "class": "android.widget.Button", "bounds": "[53,1819][1028,2050]", "password": "false", "enabled": "true"}
+{"text": "", "content-desc": "课表导入与导出\n二维码分享、导入及系统日历", "class": "android.widget.Button", "bounds": "[53,2052][1028,2283]", "password": "false", "enabled": "true"}
+{"text": "", "content-desc": "课表已保存，返回首页即可查看。", "class": "android.view.View", "bounds": "[0,2161][1080,2337]", "password": "false", "enabled": "true"}

@@ -1,0 +1,10 @@
+Android API 35 emulator-5554 release APK smoke verification
+APK install -r: Success
+am start -W -n love.sanqian.schedule/love.sanqian.schedule.MainActivity: Status ok; LaunchState COLD; TotalTime 1201 ms; WaitTime 1206 ms.
+launch-ui.xml: 日课表首页，日周月导航。
+Widget: 使用 Launcher Widgets/Add 添加，widget-dumpsys.txt id=3 绑定 love.sanqian.schedule/love.sanqian.schedule.ScheduleWidgetProvider。
+widget-home-ui.xml: love.sanqian.schedule RemoteViews 显示暂无已排课程。
+点击 widget 后 widget-open-activity.txt: 新包 MainActivity；widget-open-ui.xml 为实际页面。
+crash-log.txt: 无 crash。
+第一次同名旧 App widget 验证已作废；该测试新加的旧 widget id=2 已移除，未卸载旧 App。
+NOT_VERIFIED: 真机/OEM、同 applicationId 原位升级、真实课表导入/OCR/课程提醒的端到端功能。

@@ -1,0 +1,9 @@
+{
+  "airplane_mode_on": "0",
+  "wifi_on": "0",
+  "mobile_data": "0",
+  "networkSummary": [
+    "Active default network: 400"
+  ],
+  "note": "Global mobile_data setting alone was misleading: connectivity reported cellular internet. Probe target activeNetwork was null. Explicit airplane mode applied afterward for UI tests."
+}

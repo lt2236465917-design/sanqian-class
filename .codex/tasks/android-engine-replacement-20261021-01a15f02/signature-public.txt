@@ -1,0 +1,4 @@
+Signer #1 certificate DN: CN=Sanqian, OU=Schedule, O=Sanqian, C=CN
+Signer #1 certificate SHA-256 digest: 0bf510279f816cf61685be14a24dd09547577b9bd14406f6927a208cd8fc688a
+Signer #1 certificate SHA-1 digest: d3a101ec9c2adef8e4c199a7647332e344a1cda9
+Signer #1 certificate MD5 digest: d69a21f2b351a885c8f5e8ed0b070e4c

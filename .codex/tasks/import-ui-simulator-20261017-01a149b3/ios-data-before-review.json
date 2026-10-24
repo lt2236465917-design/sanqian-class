@@ -1,0 +1,10 @@
+{
+  "Course": {
+    "count": 53,
+    "sha256": "0b27635bc88257f890a5c86dc4f1669f08148ebca6c7ccc8590290faf05bb5cb"
+  },
+  "CourseTable": {
+    "count": 3,
+    "sha256": "7985e25cb9e56ddb5894f1f621b24bbb547b80d0a6a6f6ea50130af5033f7a1d"
+  }
+}

@@ -1,0 +1,77 @@
+ M DEVICE_INSTALL.md
+ M LOCAL_DEVELOPMENT.md
+ M android/app/build.gradle
+ M android/app/proguard-rules.pro
+ M android/app/src/debug/AndroidManifest.xml
+ M android/app/src/main/AndroidManifest.xml
+ D android/app/src/main/java/local/sanqian/schedule/MainActivity.java
+ D android/app/src/main/java/local/sanqian/schedule/MainApplication.java
+ D android/app/src/main/java/local/sanqian/schedule/ScheduleWidgetBootReceiver.java
+ D android/app/src/main/java/local/sanqian/schedule/ScheduleWidgetProvider.java
+ D android/app/src/main/java/local/sanqian/schedule/ScheduleWidgetRefreshReceiver.java
+ D android/app/src/main/java/local/sanqian/schedule/ScheduleWidgetSafety.java
+ D android/app/src/main/kotlin/local/sanqian/schedule/DeepSeekModels.kt
+ D android/app/src/main/kotlin/local/sanqian/schedule/DeepSeekTimetableClient.kt
+ D android/app/src/main/kotlin/local/sanqian/schedule/MlKitChineseTimetableOcr.kt
+ D android/app/src/main/kotlin/local/sanqian/schedule/OcrGeometry.kt
+ D android/app/src/main/kotlin/local/sanqian/schedule/PendingBridgeResults.kt
+ D android/app/src/main/kotlin/local/sanqian/schedule/PortalResultBus.kt
+ D android/app/src/main/kotlin/local/sanqian/schedule/PortalResultHandoff.kt
+ D android/app/src/main/kotlin/local/sanqian/schedule/PortalStorageReset.kt
+ D android/app/src/main/kotlin/local/sanqian/schedule/PredictiveBack.kt
+ D android/app/src/main/kotlin/local/sanqian/schedule/ScheduleCredentialsStore.kt
+ D android/app/src/main/kotlin/local/sanqian/schedule/ScheduleImportPlugin.kt
+ D android/app/src/main/kotlin/local/sanqian/schedule/ScheduleReminderScheduler.kt
+ D android/app/src/main/kotlin/local/sanqian/schedule/ScheduleWidgetLogic.kt
+ D android/app/src/main/kotlin/local/sanqian/schedule/ScheduleWidgetStore.kt
+ D android/app/src/main/kotlin/local/sanqian/schedule/ScheduleWidgetUpdater.kt
+ D android/app/src/main/kotlin/local/sanqian/schedule/SchoolPortalActivity.kt
+ D android/app/src/main/kotlin/local/sanqian/schedule/SchoolPortalModels.kt
+ D android/app/src/main/kotlin/local/sanqian/schedule/SchoolScheduleParser.kt
+ D android/app/src/main/kotlin/local/sanqian/schedule/SecretMask.kt
+ M android/app/src/profile/AndroidManifest.xml
+ D android/app/src/test/java/local/sanqian/schedule/BugfixAuditTest.kt
+ D android/app/src/test/java/local/sanqian/schedule/DeepSeekOcrReviewTest.kt
+ D android/app/src/test/java/local/sanqian/schedule/DeepSeekParseTest.kt
+ D android/app/src/test/java/local/sanqian/schedule/ScheduleWidgetLogicTest.kt
+ D android/app/src/test/java/local/sanqian/schedule/SchoolScheduleParserTest.kt
+ D android/app/src/test/java/local/sanqian/schedule/SecretMaskTest.kt
+ M copyright-materials/00_README.md
+ M copyright-materials/01_online-application-fields.md
+ M copyright-materials/03_source-identification.md
+ M copyright-materials/04_document-identification.md
+ M copyright-materials/06_rights-chain.md
+ M copyright-materials/07_technical-fields-and-attachments.md
+ M copyright-materials/generated/documentation-identification-material.html
+ M copyright-materials/generated/source-identification-material.html
+ M copyright-materials/generated/source-selection-manifest.json
+ M copyright-materials/generated/validation-report.json
+ M copyright-materials/scripts/check_sensitive.py
+ M copyright-materials/scripts/generate_materials.py
+ M copyright-materials/scripts/verify_printed_pdfs.py
+ M ios/Flutter/PersonalDevice.xcconfig
+ M ios/Runner.xcodeproj/project.pbxproj
+ M ios/Runner/AppConstants.swift
+ M ios/Runner/Info.plist
+ M ios/Runner/SchoolPortalParserTests.swift
+ M ios/WIDGET_BEST_PRACTICES.md
+ M lib/Utils/ClassTimeUtil.dart
+ M lib/Utils/ScheduleCalendarExporter.dart
+ M lib/Utils/ScheduleCalendarReminders.dart
+ M ohos/AppScope/app.json5
+ M test/Pages/personal_home_week_details_test.dart
+ M test/Utils/schedule_calendar_exporter_test.dart
+ M test/Utils/schedule_calendar_reminders_test.dart
+?? .codex/
+?? AGENTS.md
+?? PLAN.md
+?? STATUS.md
+?? android/app/src/main/java/love/
+?? android/app/src/main/kotlin/love/
+?? android/app/src/test/java/love/
+?? copyright-materials/08_update-and-official-check.md
+?? copyright-materials/09_namespace-update-20261017.md
+?? copyright-materials/content/
+?? copyright-materials/generated/documentation-identification-material.pdf
+?? copyright-materials/generated/source-identification-material.pdf
+?? "\345\244\207\346\241\210\350\265\204\346\226\231/"

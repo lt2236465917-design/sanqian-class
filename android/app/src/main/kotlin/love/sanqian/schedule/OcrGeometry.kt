@@ -72,7 +72,7 @@ internal object OcrGeometry {
     }
 
     /**
-     * ML Kit integer rectangles can extend one pixel past the bitmap. Pull a
+     * Recognition rectangles can extend slightly past the bitmap. Pull a
      * near-edge box back into the unit square. A box that misses the image,
      * or sticks out by more than about one percent, is dropped instead of
      * failing the whole review.

@@ -1,8 +1,8 @@
 import 'dart:async';
-import 'dart:typed_data';
 
 import '../../generated/l10n.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:image/image.dart' as img;
 import 'package:image_picker/image_picker.dart';
@@ -21,7 +21,7 @@ class QRScanView extends StatefulWidget {
   State<StatefulWidget> createState() => _QRScanViewState();
 }
 
-class _QRScanViewState extends State<QRScanView> {
+class _QRScanViewState extends State<QRScanView> with WidgetsBindingObserver {
   final MobileScannerController _controller = MobileScannerController();
 
   final Map<String, _MultiGroupBuffer> _groups = <String, _MultiGroupBuffer>{};
@@ -29,6 +29,46 @@ class _QRScanViewState extends State<QRScanView> {
   bool _scanning = false;
   String? _scanError;
   VoidCallback? _retryScan;
+
+  bool _returningFromSettings = false;
+  Future<void> _cameraLifecycle = Future<void>.value();
+
+  @override
+  void initState() {
+    super.initState();
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      WidgetsBinding.instance.addObserver(this);
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!_scanning || defaultTargetPlatform != TargetPlatform.android) return;
+    if (state != AppLifecycleState.resumed &&
+        state != AppLifecycleState.inactive) {
+      return;
+    }
+    _cameraLifecycle = _cameraLifecycle.then((_) async {
+      if (!mounted || _isCompleting || _controller.value.isStarting) return;
+      try {
+        if (state == AppLifecycleState.resumed) {
+          // A permission dialog also resumes the app. Do not ask again after denial.
+          if (!_controller.value.hasCameraPermission &&
+              !_returningFromSettings) {
+            return;
+          }
+          _returningFromSettings = false;
+          await _controller.start();
+        } else {
+          await _controller.stop();
+        }
+      } catch (_) {
+        if (mounted && state == AppLifecycleState.resumed) {
+          _showError('相机暂不可用，请检查权限后重试。');
+        }
+      }
+    });
+  }
 
   void _showError(String message) {
     if (mounted && message != _scanError) setState(() => _scanError = message);
@@ -42,6 +82,9 @@ class _QRScanViewState extends State<QRScanView> {
 
   @override
   void dispose() {
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      WidgetsBinding.instance.removeObserver(this);
+    }
     _controller.dispose();
     super.dispose();
   }
@@ -96,9 +139,18 @@ class _QRScanViewState extends State<QRScanView> {
                             TextButton(
                               onPressed: () async {
                                 try {
-                                  await ScheduleCalendarExporter.settingsChannel
+                                  _returningFromSettings = true;
+                                  final opened = await ScheduleCalendarExporter
+                                      .settingsChannel
                                       .invokeMethod<bool>('openAppSettings');
+                                  if (opened != true) {
+                                    _returningFromSettings = false;
+                                    if (mounted) {
+                                      _showError('请在系统设置中允许相机访问。');
+                                    }
+                                  }
                                 } catch (_) {
+                                  _returningFromSettings = false;
                                   if (mounted) {
                                     _showError('请在系统设置中允许相机访问。');
                                   }

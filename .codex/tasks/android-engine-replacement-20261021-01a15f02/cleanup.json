@@ -1,0 +1,25 @@
+{
+  "taskAvdDeleted": true,
+  "removedRebuildableScratch": [
+    "benchmark/classes",
+    "benchmark/classes.dex",
+    "benchmark/aligned.apk",
+    "benchmark/unsigned.apk",
+    "benchmark/probe.apk",
+    "benchmark/probe.apk.idsig",
+    "candidate/probe/classes",
+    "candidate/probe/classes.dex",
+    "candidate/probe/aligned.apk",
+    "candidate/probe/unsigned.apk",
+    "candidate/probe/probe.apk",
+    "candidate/probe/probe.apk.idsig",
+    "baseline/probe/classes",
+    "baseline/probe/classes.dex",
+    "baseline/probe/aligned.apk",
+    "baseline/probe/unsigned.apk",
+    "baseline/probe/probe.apk",
+    "baseline/probe/probe.apk.idsig",
+    "research/det.onnx",
+    "research/rec.onnx"
+  ]
+}

@@ -1,0 +1,9 @@
+Performing Streamed Install
+Success
+Starting: Intent { cmp=love.sanqian.schedule/.MainActivity }
+Status: ok
+LaunchState: COLD
+Activity: love.sanqian.schedule/.MainActivity
+TotalTime: 918
+WaitTime: 931
+Complete

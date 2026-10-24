@@ -1,0 +1,131 @@
+{
+  "verified_at": "2026-10-17T16:00:45.878523+08:00",
+  "recognition": [
+    {
+      "file": "ios-ocr-final.json",
+      "source": "photos",
+      "courses": 18,
+      "occurrences": 97,
+      "pending": 2,
+      "teachers": 11,
+      "errors": [],
+      "passed": true
+    },
+    {
+      "file": "android-ocr-final.json",
+      "source": "photos",
+      "courses": 18,
+      "occurrences": 97,
+      "pending": 2,
+      "teachers": 11,
+      "errors": [],
+      "passed": true
+    }
+  ],
+  "saved": [
+    {
+      "file": "ios-ocr-final.db",
+      "table_id": 2,
+      "source": "school-portal",
+      "first_week_monday": "2026-09-07",
+      "courses": 14,
+      "rows": 25,
+      "occurrences": 73,
+      "pending": 2,
+      "first_class_date": "2026-09-21",
+      "last_class_date": "2027-01-01",
+      "passed": true,
+      "errors": []
+    },
+    {
+      "file": "ios-ocr-final.db",
+      "table_id": 3,
+      "source": "photos",
+      "first_week_monday": "2026-09-07",
+      "courses": 18,
+      "rows": 30,
+      "occurrences": 97,
+      "pending": 2,
+      "first_class_date": "2026-09-21",
+      "last_class_date": "2027-01-01",
+      "passed": true,
+      "errors": []
+    },
+    {
+      "file": "android-ocr-final.db",
+      "table_id": 2,
+      "source": "photos",
+      "first_week_monday": "2026-09-07",
+      "courses": 18,
+      "rows": 30,
+      "occurrences": 97,
+      "pending": 2,
+      "first_class_date": "2026-09-21",
+      "last_class_date": "2027-01-01",
+      "passed": true,
+      "errors": []
+    },
+    {
+      "file": "android-ocr-final.db",
+      "table_id": 3,
+      "source": "school-portal",
+      "first_week_monday": "2026-09-07",
+      "courses": 14,
+      "rows": 25,
+      "occurrences": 73,
+      "pending": 2,
+      "first_class_date": "2026-09-21",
+      "last_class_date": "2027-01-01",
+      "passed": true,
+      "errors": []
+    }
+  ],
+  "flow": "Normal simulator UI -> select the five supplied photos -> initial paid AI recognition -> consent -> local native OCR plus second paid AI request -> review -> adopt -> confirm save -> read-only SQLite backup",
+  "ui_fix": "Show OCR field/arrangement differences and all warnings; preserve loss warnings after adoption through save confirmation; clear them after restoring the original draft",
+  "checks": {
+    "page_tests_passed": 33,
+    "dart_analysis": "No issues found",
+    "diff_check": "passed",
+    "ios_build": "succeeded",
+    "android_build": "succeeded"
+  },
+  "independent_review": {
+    "status": "passed",
+    "file": "../independent-review.md",
+    "sha256": "d93dc7211f61e800748323bb90e73382f7b7721331278f58889534efd647d82b",
+    "focused_tests_passed": 8,
+    "scope": "Source, five original images, primary and OCR results, runtime UI evidence, and final saved SQLite on both simulators"
+  },
+  "final_runtime_builds": {
+    "ios": "build/ai-import-derived/Build/Products/Debug-iphonesimulator/Runner.app",
+    "android": "build/app/outputs/flutter-apk/app-debug.apk"
+  },
+  "android_apk_sha256": "400c95c6136fd43c79ad51ee68bf5e976b29f2b256eb17833a72f0e65e1e4601",
+  "scope": "iOS EF43A038-4E4B-417D-A813-E2404D1220FD and Android emulator-5556, supplied five-image set",
+  "development_note": "An initial iOS OCR result returned but was lost from the unsaved draft during an incompatible development hot reload. The final iOS flow was rerun from a fresh build and is the evidence counted here. Both final flows used freshly installed builds.",
+  "fingerprints": {
+    "android-ocr-result.png": "eb05dd1777624264d67e1cfdc5a27d6b07fef1e93bed2c1d3fafaee06a28ccc7",
+    "source-fingerprints.json": "2d96b00eadd13a9e851ab1e2ffc19fdc8defe0210e5454b1f6d7c213f191fa0e",
+    "android-ocr-metadata.json": "234f7b4aaa2123676ba7c8ae82d50aaf0614574edcb649e9d19447cac0baa8be",
+    "ios-ocr-consent-ui.json": "7d55107c853e373cb8ac344cf6781eb286d199af10f9970839def8f4113aa091",
+    "android-ocr-confirm-ui.jsonl": "fcb7fda5cf041d84004c429f1bac43cc05cfca28bba903fc332483dbaf4ecc5b",
+    "ios-ocr-final.db": "9372e6f8861bee65beee0ecf54887a9f288de925dbe330dd5a3a5cd6054eb5b4",
+    "ios-ocr-before-fix-ui.json": "9b9989860d0c8ba317eaebbaa358ec719bd8016dea4400054029480b43396f0e",
+    "ios-primary.json": "bfd0c239ba7ccb682efe64ea2057807cd65169f6c4fca52eea30b966b2529f4e",
+    "ios-ocr-save-ui.json": "1eee7c41c6a4a7cdfe6d8d75e19ade9f46568c15b37ed74930380891b98546e2",
+    "android-ocr-consent-ui.jsonl": "b803f2daefd8b154cbf8ebfed7def6d56e17d934c16441bab782d54f1b9f40bc",
+    "android-ocr-saved-ui.jsonl": "82f3e24b179a51d9ca9b02e674fbc3516778cdaec5e91d2251c17f47177d3471",
+    "android-ocr-before-fix-ui.jsonl": "e0c47f14761e29332ebfee64743e28003949946237416e02673d0c1e4595a658",
+    "ios-ocr-result-ui.json": "cf414e05dbcafa79afc60afec25bd6f9302a6f25c86aa6b0eac1ea81e6d3b76f",
+    "ios-ocr-final.json": "caf6108f45de0e09ded8b167599f802382297a6a2c19b1aa782b0499135e5a49",
+    "android-ocr-first.json": "7e3e39ad35ff9de5d9e4c344a100f80077de7be93dc45e483e10b611d7e91c80",
+    "ios-primary-final.json": "58bde18a66e4af77ed4dafca54bdb64bc528cb31fd882e4cc2bf08b3b21b1fcc",
+    "android-ocr-final.json": "7e3e39ad35ff9de5d9e4c344a100f80077de7be93dc45e483e10b611d7e91c80",
+    "ios-ocr-metadata.json": "234f7b4aaa2123676ba7c8ae82d50aaf0614574edcb649e9d19447cac0baa8be",
+    "android-primary.json": "58bde18a66e4af77ed4dafca54bdb64bc528cb31fd882e4cc2bf08b3b21b1fcc",
+    "android-primary-final.json": "58bde18a66e4af77ed4dafca54bdb64bc528cb31fd882e4cc2bf08b3b21b1fcc",
+    "ios-ocr-result.jpg": "56f319c51d722d95c0ee16452de0108c1a54d6998bd1c172840a785f2f844b34",
+    "android-ocr-final.db": "07fa832bbe3a18892f6ac6b44e75391050ef6f3d19705341a1fb1f65e506b4c1",
+    "android-ocr-result-ui.jsonl": "ebfef39b6e688edc34f777ee339f2e85cc1713da659eb325f07e862b2c9f4a2f"
+  }
+}

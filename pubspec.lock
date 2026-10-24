@@ -440,10 +440,9 @@ packages:
   mobile_scanner:
     dependency: "direct main"
     description:
-      name: mobile_scanner
-      sha256: "023a71afb4d7cfb5529d0f2636aa8b43db66257905b9486d702085989769c5f2"
-      url: "https://pub.dev"
-    source: hosted
+      path: "packages/mobile_scanner"
+      relative: true
+    source: path
     version: "7.1.3"
   package_config:
     dependency: transitive

@@ -1,0 +1,50 @@
+{
+  "ro.product.manufacturer": "Xiaomi",
+  "ro.product.model": "23127PN0CC",
+  "ro.product.marketname": "Xiaomi 14",
+  "ro.build.version.release": "16",
+  "ro.build.version.sdk": "36",
+  "ro.mi.os.version.name": "OS3.0",
+  "ro.miui.ui.version.name": "V816",
+  "ro.product.cpu.abi": "arm64-v8a",
+  "ro.build.fingerprint": "Xiaomi/houji/houji:16/BP2A.250605.031.A3/OS3.0.307.0.WNCCNXM:user/release-keys",
+  "pageSize": "4096",
+  "packages": {
+    "com.google.android.gms": {
+      "record": "package:com.google.android.gms.location.history\npackage:com.google.android.gms",
+      "enabled": "package:com.google.android.gms.location.history\npackage:com.google.android.gms",
+      "path": "package:/data/app/~~mY28Kv7bZ85uDzHIHGUypQ==/com.google.android.gms-9lfarqhfwhNetLdZf3zZbw==/base.apk\npackage:/data/app/~~mY28Kv7bZ85uDzHIHGUypQ==/com.google.android.gms-9lfarqhfwhNetLdZf3zZbw==/split_AdsDynamite_installtime.apk\npackage:/data/app/~~mY28Kv7bZ85uDzHIHGUypQ==/com.google.android.gms-9lfarqhfwhNetLdZf3zZbw==/split_CronetDynamite_installtime.apk\npackage:/data/app/~~mY28Kv7bZ85uDzHIHGUypQ==/com.google.android.gms-9lfarqhfwhNetLdZf3zZbw==/split_DynamiteLoader_installtime.apk\npackage:/data/app/~~mY28Kv7bZ85uDzHIHGUypQ==/com.google.android.gms-9lfarqhfwhNetLdZf3zZbw==/split_DynamiteModulesA_installtime.apk\npackage:/data/app/~~mY28Kv7bZ85uDzHIHGUypQ==/com.google.android.gms-9lfarqhfwhNetLdZf3zZbw==/split_DynamiteModulesC_installtime.apk\npackage:/data/app/~~mY28Kv7bZ85uDzHIHGUypQ==/com.google.android.gms-9lfarqhfwhNetLdZf3zZbw==/split_GoogleCertificates_installtime.apk\npackage:/data/app/~~mY28Kv7bZ85uDzHIHGUypQ==/com.google.android.gms-9lfarqhfwhNetLdZf3zZbw==/split_MapsDynamite_installtime.apk\npackage:/data/app/~~mY28Kv7bZ85uDzHIHGUypQ==/com.google.android.gms-9lfarqhfwhNetLdZf3zZbw==/split_MeasurementDynamite_installtime.apk\npackage:/data/app/~~mY28Kv7bZ85uDzHIHGUypQ==/com.google.android.gms-9lfarqhfwhNetLdZf3zZbw==/split_config.xxhdpi.apk\npackage:/data/app/~~mY28Kv7bZ85uDzHIHGUypQ==/com.google.android.gms-9lfarqhfwhNetLdZf3zZbw==/split_config.zh.apk\npackage:/data/app/~~mY28Kv7bZ85uDzHIHGUypQ==/com.google.android.gms-9lfarqhfwhNetLdZf3zZbw==/split_maps_core_dynamite_ondemand.apk"
+    },
+    "com.android.vending": {
+      "record": "package:com.android.vending",
+      "enabled": "package:com.android.vending",
+      "path": "package:/data/app/~~KAlsak-FI-3FV5eImB98bg==/com.android.vending-YFP9pdxq6_WvCjVjxQ3QgA==/base.apk"
+    },
+    "com.google.android.gsf": {
+      "record": "package:com.google.android.gsf",
+      "enabled": "package:com.google.android.gsf",
+      "path": "package:/system_ext/priv-app/GoogleServicesFramework/GoogleServicesFramework.apk"
+    },
+    "love.sanqian.schedule": {
+      "record": "",
+      "enabled": "",
+      "path": ""
+    },
+    "local.sanqian.schedule": {
+      "record": "package:local.sanqian.schedule",
+      "enabled": "package:local.sanqian.schedule",
+      "path": "package:/data/app/~~EHR_SDjk4RagzlkS1jeF6Q==/local.sanqian.schedule-8SAGWxVrWJr4W0KqhfEZqw==/base.apk"
+    },
+    "love.sanqian.nogmsprobe": {
+      "record": "",
+      "enabled": "",
+      "path": ""
+    }
+  },
+  "network": {
+    "airplane_mode_on": "0",
+    "wifi_on": "1",
+    "mobile_data": "0"
+  },
+  "appVersion": []
+}

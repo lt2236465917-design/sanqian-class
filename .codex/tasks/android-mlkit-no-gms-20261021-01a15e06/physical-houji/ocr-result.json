@@ -1,0 +1,53 @@
+{
+  "targetPackage": "love.sanqian.schedule",
+  "sdk": 36,
+  "abi": "arm64-v8a",
+  "gmsPresent": true,
+  "vendingPresent": true,
+  "activeNetwork": "null",
+  "sampleType": "synthetic Chinese timetable text, Android Canvas, JPEG 1600x900",
+  "sampleSha256": "29451a70f585e9caa7a076613033cf5d700f400fac55d6d53f36019225dbcf65",
+  "expectedLines": [
+    "三千上课 课程表",
+    "星期一 高等数学",
+    "第一节 08:00-09:35",
+    "教学楼 A101",
+    "星期二 大学英语",
+    "教师 张老师"
+  ],
+  "runs": [
+    {
+      "run": 1,
+      "elapsedMs": 371,
+      "pageCount": 1,
+      "tokens": [
+        "三千上课裸程表",
+        "呈期一高等数学",
+        "第一节08:00-09:35",
+        "教学楼",
+        "A101",
+        "星期二大学英语",
+        "教数师",
+        "张老师"
+      ],
+      "keyTextMatched": true
+    },
+    {
+      "run": 2,
+      "elapsedMs": 112,
+      "pageCount": 1,
+      "tokens": [
+        "三千上课裸程表",
+        "呈期一高等数学",
+        "第一节08:00-09:35",
+        "教学楼",
+        "A101",
+        "星期二大学英语",
+        "教数师",
+        "张老师"
+      ],
+      "keyTextMatched": true
+    }
+  ],
+  "status": "PASS_PHYSICAL_OFFLINE_LOCAL_RELEASE_METHOD_ONLY_GMS_PRESENT"
+}

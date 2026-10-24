@@ -149,7 +149,7 @@ class ScheduleImportPlugin :
                 }
                 "recognizePhotosWithOCR" -> recognize(result) { client ->
                     val images = loadImages(call)
-                    val pages = MlKitChineseTimetableOcr().recognize(images, cancelled)
+                    val pages = PaddleChineseTimetableOcr(appContext ?: throw IllegalStateException("界面已销毁")).recognize(images, cancelled)
                     // Reject empty or illegal OCR before any image is uploaded.
                     DeepSeekTimetableClient.ocrReviewText(pages, images.size)
                     client.recognizeImages(images, pages)

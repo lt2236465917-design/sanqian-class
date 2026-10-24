@@ -1,0 +1,6 @@
+{
+  "airplaneMode": "enabled for offline validation; restore to off afterward",
+  "activeDefaultNetwork": [
+    "Active default network: none"
+  ]
+}

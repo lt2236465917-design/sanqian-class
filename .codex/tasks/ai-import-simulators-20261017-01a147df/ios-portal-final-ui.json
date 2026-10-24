@@ -1,0 +1,52 @@
+{
+  "confirmation": {
+    "type": "runtime-snapshot",
+    "rs": "1",
+    "screenHash": "0xj7yrb",
+    "seq": 104,
+    "count": 32,
+    "targets": [
+      "e27|tap|button|返回核对||",
+      "e28|tap|button|确认保存||"
+    ],
+    "scroll": [
+      "e20|swipe|scroll-view|||"
+    ],
+    "text": [
+      "e29|text|text|关闭||",
+      "e16|text|text|确认导入变化||",
+      "e21|text|text|新增 0||",
+      "e22|text|text|变更 0||",
+      "e23|text|text|移除 0||",
+      "e24|text|text|待定 2||",
+      "e25|text|text|数量按课程安排统计，待定项可能同时属于新增或变更。||",
+      "e26|text|text|有 2 门课程包含待定安排，缺失信息未自动补全，请核对。||"
+    ],
+    "udid": "EF43A038-4E4B-417D-A813-E2404D1220FD"
+  },
+  "saved": {
+    "type": "runtime-snapshot",
+    "rs": "1",
+    "screenHash": "1luzwxw",
+    "seq": 105,
+    "count": 46,
+    "targets": [
+      "e30|tap|button|课程截图导入课表 AI 联合识别课程截图，核对后保存||",
+      "e31|tap|button|导入内置课表（调试） 中国艺术研究院 · 2026 秋季，重复导入保留修改||",
+      "e16|tap|button|返回||",
+      "e29|tap|button|学校账号导入课表 登录账号后AI识别课表录入||",
+      "e32|tap|button|手动添加课程 补充课程、教师和上课安排||",
+      "e33|tap|button|管理学期课表 切换或新增一份课表||",
+      "e34|tap|button|课表导入与导出 二维码分享、导入及系统日历||"
+    ],
+    "scroll": [
+      "e21|swipe|scroll-view|||"
+    ],
+    "text": [
+      "e22|text|text|三千上课 让课表适合你 管理课程、导入新学期，安排提醒与桌面小组件。||",
+      "e24|text|text|我的课表||",
+      "e43|text|text|课表已保存，返回首页即可查看。||"
+    ],
+    "udid": "EF43A038-4E4B-417D-A813-E2404D1220FD"
+  }
+}

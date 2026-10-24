@@ -1,0 +1,63 @@
+{
+  "device": "Xiaomi 14 / houji / Android 16 API36 / HyperOS OS3.0.307.0.WNCCNXM",
+  "gmsPresent": true,
+  "apkSha256": "1c2f3a90a747e7dcc82d55adc103f6f8c86b4c22130b2e2afee3ccd2ecfef42e",
+  "ocr": {
+    "status": "PASS_LOCAL_RELEASE_METHOD_APP_ACTIVE_NETWORK_NULL_SYSTEM_OFFLINE_NOT_ESTABLISHED",
+    "evidence": "ocr-result.json",
+    "elapsedMs": [
+      371,
+      112
+    ],
+    "quality": "NOT_PASSED_SYNTHETIC_SAMPLE_CONTAINS_ERRORS",
+    "fullAiImport": "NOT_RUN",
+    "networkLimitation": "Probe activeNetwork null, but system recorded an active cellular default network; strict airplane/wifi-off verified only afterward."
+  },
+  "galleryQr": {
+    "status": "USER_REPORTED_CONFIRMATION_OBSERVED_FIXTURE_TITLE_ON_HOME",
+    "userReported": "已出现“导入这份课表？”",
+    "observed": "Home screen shows fixture title 无 GMS 离线验证; confirmation dialog was no longer visible at capture.",
+    "evidence": "gallery-confirmed.xml",
+    "networkAtCapture": {
+      "airplane_mode_on": 0,
+      "wifi_on": 1
+    },
+    "offlineDecode": "NOT_VERIFIED",
+    "confirmationCourseCount": "NOT_CAPTURED",
+    "persistence": "Fixture title visible on home; possible user-confirmed import, no deletion performed."
+  },
+  "cameraQr": {
+    "status": "PASS_PHYSICAL_CAMERA_USER_OPERATION_CONFIRMATION_VERIFIED",
+    "userReported": "相机也出来了",
+    "observed": {
+      "dialog": "导入这份课表？",
+      "title": "无 GMS 离线验证",
+      "courseCount": 0
+    },
+    "evidence": [
+      "camera-confirmed.xml",
+      "camera-network.json"
+    ],
+    "sample": "../qr-sample.png",
+    "savedByAgent": false,
+    "offlineDecode": "NOT_ESTABLISHED_NO_CONTINUOUS_NETWORK_EVIDENCE",
+    "limitations": "Single synthetic 0-course QR; no dense/multipart/low-light/motion coverage. Fixture title does not imply this phone lacks GMS."
+  },
+  "cleanup": {
+    "diagnosticPackageRemoved": true,
+    "networkRestored": true,
+    "qrFixtureRemoved": true,
+    "restoredSettings": {
+      "airplane_mode_on": 0,
+      "wifi_on": 1
+    },
+    "qrFixtureRetainedForPendingManualCheck": false,
+    "finalObservedSettings": {
+      "airplane_mode_on": "0",
+      "wifi_on": "0"
+    },
+    "finalNetworkSettingsChangedByAgent": false,
+    "note": "Previous turn restored airplane=0,wifi=1. Later camera snapshot shows wifi=0; no further automatic change made."
+  },
+  "limitation": "This physical phone has GMS. It cannot establish physical no-GMS compatibility."
+}

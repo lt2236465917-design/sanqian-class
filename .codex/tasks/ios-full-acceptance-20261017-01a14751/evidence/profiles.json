@@ -1,0 +1,76 @@
+[
+  {
+    "file": "/Users/zhuanzmima0000/Library/Developer/Xcode/UserData/Provisioning Profiles/c1860acb-6b05-4de0-92bb-b22397a00c75.mobileprovision",
+    "name": "iOS Team Store Provisioning Profile: local.sanqian.schedule",
+    "team": [
+      "ZPAU8L65J4"
+    ],
+    "app": "ZPAU8L65J4.local.sanqian.schedule",
+    "groups": [
+      "group.local.sanqian.schedule"
+    ],
+    "expires": "2027-09-30 12:45:20",
+    "devices": [],
+    "getTaskAllow": false
+  },
+  {
+    "file": "/Users/zhuanzmima0000/Library/Developer/Xcode/UserData/Provisioning Profiles/704bc705-4a28-46a7-8d69-c94b32c0519b.mobileprovision",
+    "name": "iOS Team Provisioning Profile: local.sanqian.schedule",
+    "team": [
+      "ZPAU8L65J4"
+    ],
+    "app": "ZPAU8L65J4.local.sanqian.schedule",
+    "groups": [
+      "group.local.sanqian.schedule"
+    ],
+    "expires": "2027-09-30 14:00:31",
+    "devices": [
+      "00008130-000819CA1A9A001C"
+    ],
+    "getTaskAllow": true
+  },
+  {
+    "file": "/Users/zhuanzmima0000/Library/Developer/Xcode/UserData/Provisioning Profiles/03b40a25-1532-448f-b8a7-4933293f40d1.mobileprovision",
+    "name": "iOS Team Provisioning Profile: local.sanqian.schedule.ScheduleWidgetExtension",
+    "team": [
+      "ZPAU8L65J4"
+    ],
+    "app": "ZPAU8L65J4.local.sanqian.schedule.ScheduleWidgetExtension",
+    "groups": [
+      "group.local.sanqian.schedule"
+    ],
+    "expires": "2027-09-30 14:00:34",
+    "devices": [
+      "00008130-000819CA1A9A001C"
+    ],
+    "getTaskAllow": true
+  },
+  {
+    "file": "/Users/zhuanzmima0000/Library/Developer/Xcode/UserData/Provisioning Profiles/798b0ef8-d308-4a5c-97f0-c6baaa1e7885.mobileprovision",
+    "name": "iOS Team Provisioning Profile: *",
+    "team": [
+      "ZPAU8L65J4"
+    ],
+    "app": "ZPAU8L65J4.*",
+    "groups": null,
+    "expires": "2027-09-30 12:50:53",
+    "devices": [
+      "00008130-000819CA1A9A001C"
+    ],
+    "getTaskAllow": true
+  },
+  {
+    "file": "/Users/zhuanzmima0000/Library/Developer/Xcode/UserData/Provisioning Profiles/1672ad52-d386-4356-a93e-063925cb1b7b.mobileprovision",
+    "name": "iOS Team Store Provisioning Profile: local.sanqian.schedule.ScheduleWidgetExtension",
+    "team": [
+      "ZPAU8L65J4"
+    ],
+    "app": "ZPAU8L65J4.local.sanqian.schedule.ScheduleWidgetExtension",
+    "groups": [
+      "group.local.sanqian.schedule"
+    ],
+    "expires": "2027-09-30 12:45:20",
+    "devices": [],
+    "getTaskAllow": false
+  }
+]

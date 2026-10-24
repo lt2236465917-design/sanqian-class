@@ -1,0 +1,10 @@
+<?xml version='1.0' encoding='utf-8' standalone='yes' ?>
+<map>
+    <string name="flutter.lastWeekMonday">2026-10-12</string>
+    <string name="flutter.reminder_status">{&quot;mode&quot;:&quot;calendar&quot;,&quot;synced&quot;:true,&quot;count&quot;:0,&quot;supplements&quot;:0,&quot;failed&quot;:0,&quot;permission&quot;:&quot;authorized&quot;}</string>
+    <string name="flutter.colorPool">[9, 13, 4, 8, 2, 6, 12, 10, 0, 3, 7, 11, 1, 5]</string>
+    <long name="flutter.weekIndex" value="1" />
+    <long name="flutter.tmpWeekIndex" value="1" />
+    <long name="flutter.tableId" value="2" />
+    <string name="flutter.calendarExport.2">{&quot;calendarId&quot;:&quot;2&quot;,&quot;events&quot;:{&quot;1:1&quot;:&quot;26&quot;,&quot;1:2&quot;:&quot;27&quot;,&quot;1:3&quot;:&quot;28&quot;,&quot;1:4&quot;:&quot;29&quot;,&quot;1:5&quot;:&quot;30&quot;,&quot;1:6&quot;:&quot;31&quot;,&quot;1:7&quot;:&quot;32&quot;,&quot;1:8&quot;:&quot;33&quot;,&quot;1:9&quot;:&quot;34&quot;,&quot;1:10&quot;:&quot;35&quot;,&quot;1:11&quot;:&quot;36&quot;,&quot;1:12&quot;:&quot;37&quot;,&quot;1:13&quot;:&quot;38&quot;,&quot;1:14&quot;:&quot;39&quot;,&quot;1:15&quot;:&quot;40&quot;,&quot;1:16&quot;:&quot;41&quot;,&quot;1:17&quot;:&quot;42&quot;,&quot;1:18&quot;:&quot;43&quot;,&quot;1:19&quot;:&quot;44&quot;,&quot;1:20&quot;:&quot;45&quot;,&quot;1:21&quot;:&quot;46&quot;,&quot;1:22&quot;:&quot;47&quot;,&quot;1:23&quot;:&quot;48&quot;,&quot;1:24&quot;:&quot;49&quot;,&quot;1:25&quot;:&quot;50&quot;}}</string>
+</map>

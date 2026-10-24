@@ -1,0 +1,89 @@
+{
+  "synthetic": true,
+  "payload": {
+    "t": "ncs_qr_schedule",
+    "v": 2,
+    "alg": "gz",
+    "meta": {
+      "app": "sanqian-class",
+      "exportedAt": "2026-10-21T15:43:33.733780Z",
+      "source": "local_sqlite",
+      "checksum": "201b47d1"
+    },
+    "table": {
+      "name": "引擎验收合成课表",
+      "data": "{\"semester_start_monday\":\"2026-10-19\"}"
+    },
+    "courses": [
+      {
+        "name": "高等数学",
+        "classroom": "教学楼A101",
+        "class_number": "SYN1",
+        "teacher": "张老师",
+        "test_time": "",
+        "test_location": "",
+        "link": "",
+        "info": "合成验收样本，非用户真实课表",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "week_time": 1,
+        "start_time": 1,
+        "time_count": 2,
+        "import_type": 1,
+        "course_id": null
+      },
+      {
+        "name": "大学英语",
+        "classroom": "文科楼B203",
+        "class_number": "SYN2",
+        "teacher": "李老师",
+        "test_time": "",
+        "test_location": "",
+        "link": "",
+        "info": "合成验收样本，非用户真实课表",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "week_time": 2,
+        "start_time": 3,
+        "time_count": 2,
+        "import_type": 1,
+        "course_id": null
+      },
+      {
+        "name": "大学物理",
+        "classroom": "实验楼C305",
+        "class_number": "SYN3",
+        "teacher": "王老师",
+        "test_time": "",
+        "test_location": "",
+        "link": "",
+        "info": "合成验收样本，非用户真实课表",
+        "weeks": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "week_time": 3,
+        "start_time": 5,
+        "time_count": 2,
+        "import_type": 1,
+        "course_id": null
+      }
+    ]
+  },
+  "frames": [
+    "ncs://qr/v2/s/H4sIAKXd2GoA_82RQW_TMBTHv4vPKYrjlkJug_su4wJ0itzEbFETp40dYFSV4AKdNlWdWBGTtjGkjW1AGVwYh4pvEyc98RV4TlhRp10Ql93s_7Pf-_9_r4skshF3hdOJHeGuMi8JGDLQY2RbBqLBClRXnoEQMkmR3UW03QZJUN7xKa-4ARUCquxpO4ol8xZ0N8u0blawWbHwPVyzq8Qm5EadkPot8wE8FVESuwyeBZFLA0d0Al_qiTDbbYkkLBrgZrXuYdQzkKRNMASDOQ31r3QyUq8H04-bavt7Ouyr_jA_-5m_P4EOHtUWUbeBBAuZkAwSSRpLJ4y4R9cayG7MvOHbDdTT_V2wI5hA9sPZiOmnt9l4XY2-puMP2pjOGEeRdqZGOyCqo8kCNvFFzeFJ2GQxlJfuL2pVMgpp4sLtQf78RfqjX6hCOtIvRlxcNQPpR7yUAp-3ypPPH0X6exGwDKsOztXu51-TzenefrZ9ovrn2e679Mv-LP4Txlo6BzYsgxjV5VL5MxED-ILF7KoPDqTnsli1H-oNOnKtXZZLLo7vIZsnQdAz_m7g8BgY5Bvf8rPxZTxvXmXHW4DnjmWSK_FYc3jU3uB64LHm8ZD_xpOtn2bDl5fwgB1t9mhyl5i1K_GQOTzZYON64CHzeGr_jGe59xu0PCOPaQQAAA==",
+    "ncs://qr/v2/m/1/3/1792597413745/H4sIAKXd2GoA_82RQW_TMBTHv4vPKYrjlkJug_su4wJ0itzEbFETp40dYFSV4AKdNlWdWBGTtjGkjW1AGVwYh4pvEyc98RV4TlhRp10Ql93s_7Pf-_9_r4skshF3hdOJHeGuMi8JGDLQY2RbBqLBClRXnoEQMkmR3UW03QZJUN7xKa-4ARUCquxpO4ol8xZ0N8u0blawWbHwPVyzq8Qm5EadkPot8wE8FVESuwyeBZFLA0d0Al_qiTDbbYkkLBrgZrXuYdQzkKRNMASDOQ31r3QyUq8H04-bavt7Ouyr_jA_",
+    "ncs://qr/v2/m/2/3/1792597413745/-5m_P4EOHtUWUbeBBAuZkAwSSRpLJ4y4R9cayG7MvOHbDdTT_V2wI5hA9sPZiOmnt9l4XY2-puMP2pjOGEeRdqZGOyCqo8kCNvFFzeFJ2GQxlJfuL2pVMgpp4sLtQf78RfqjX6hCOtIvRlxcNQPpR7yUAp-3ypPPH0X6exGwDKsOztXu51-TzenefrZ9ovrn2e679Mv-LP4Txlo6BzYsgxjV5VL5MxED-ILF7KoPDqTnsli1H-oNOnKtXZZLLo7vIZsnQdAz_m7g8BgY5Bvf8rPxZTxvXmXHW4DnjmWSK_FY",
+    "ncs://qr/v2/m/3/3/1792597413745/c3jU3uB64LHm8ZD_xpOtn2bDl5fwgB1t9mhyl5i1K_GQOTzZYON64CHzeGr_jGe59xu0PCOPaQQAAA=="
+  ]
+}

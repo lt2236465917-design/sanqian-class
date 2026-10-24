@@ -1,0 +1,5 @@
+{"text": "", "content-desc": "复核结果", "class": "android.view.View", "bounds": "[168,1013][912,1097]", "password": "false", "enabled": "true"}
+{"text": "", "content-desc": "课程课表已经很完整了，不需要再次添加了。", "class": "android.view.View", "bounds": "[168,1139][912,1260]", "password": "false", "enabled": "true"}
+{"text": "", "content-desc": "取消", "class": "android.widget.Button", "bounds": "[566,1324][707,1450]", "password": "false", "enabled": "true"}
+{"text": "", "content-desc": "采用", "class": "android.widget.Button", "bounds": "[728,1323][912,1452]", "password": "false", "enabled": "true"}
+{"text": "", "content-desc": "关闭", "class": "android.view.View", "bounds": "[0,0][1080,2400]", "password": "false", "enabled": "true"}

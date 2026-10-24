@@ -1,0 +1,18 @@
+{
+  "commit": "37f54f1c934fc0bc9bcbc3699e0e9b861ed9eb3b",
+  "tree": "1afcf14a3eec831837e65b55b1c8849f11b7d049",
+  "parent": "134eadac1b5309affcf63de4db0f2441ffc131dc",
+  "ref": "refs/codex/ios-acceptance-20261017-01a14751",
+  "changedFiles": [
+    "lib/Pages/AddCourse/EditCourseView.dart",
+    "lib/Pages/Personal/PersonalHomeView.dart",
+    "test/Pages/edit_course_test.dart"
+  ],
+  "indexSha256BeforeAfter": "e1449e4839baa558b51f3fefd0c62146fbf1f640fcd64587ff1cd6918ac7a430",
+  "head": "6363d5b2adbf62ff2a650e23be5b89d8eb4fd9d3",
+  "files": {
+    "lib/Pages/AddCourse/EditCourseView.dart": "6bb9e2e384db05736cf567c54162fdb4a3156fe28133b2d5b843879ffffc9515",
+    "lib/Pages/Personal/PersonalHomeView.dart": "d6043a1d66e161c1be176358fb2958dae7c8e0d0640744f9fd75cd77c8c10ef4",
+    "test/Pages/edit_course_test.dart": "6294766440106ca0d3e3b962e6976439c11e839296105d4f3a531e60c27a13f1"
+  }
+}

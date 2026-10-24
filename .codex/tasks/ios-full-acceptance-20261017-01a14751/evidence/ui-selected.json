@@ -1,0 +1,331 @@
+[
+  {
+    "schema": "xcodebuildmcp.output.ui-action-result",
+    "schemaVersion": "2",
+    "didError": false,
+    "error": null,
+    "data": {
+      "summary": {
+        "status": "SUCCEEDED"
+      },
+      "action": {
+        "type": "tap",
+        "elementRef": "e58",
+        "x": 328,
+        "y": 100
+      },
+      "artifacts": {
+        "simulatorId": "FBC49642-E3AF-4E73-952A-DAE24EEE8E35"
+      },
+      "capture": {
+        "type": "runtime-snapshot",
+        "rs": "1",
+        "screenHash": "0jq705p",
+        "seq": 12,
+        "count": 84,
+        "targets": [
+          "e17|tap|button|返回||",
+          "e56|tap|button|取消||",
+          "e58|tap|button|读取并识别||",
+          "e65|tap|button|填入已保存账号||",
+          "e67|tap|button|返回上页／关闭弹窗||",
+          "e69|tap|button|刷新页面||"
+        ],
+        "scroll": [
+          "e22|swipe|scroll-view|||",
+          "e73|swipe|scroll-view|||"
+        ],
+        "text": [
+          "e63|text|text|正在读取课表…||",
+          "e23|text|text|学校网页 · AI 识别 从学校带入课表 使用学号或统一身份认证用户名。验证码在学校网页填写，读取后先核对，再保存。||",
+          "e66|text|text|填入已保存账号||",
+          "e68|text|text|返回上页／关闭弹窗||",
+          "e70|text|text|刷新页面||",
+          "e29|text|text|2 识别课表||",
+          "e30|text|text|3 核对保存||",
+          "e31|text|text|学校账号 可以留空，在学校网页中自行登录。||",
+          "e43|text|text|打开网页后||"
+        ],
+        "udid": "FBC49642-E3AF-4E73-952A-DAE24EEE8E35"
+      }
+    },
+    "nextSteps": [
+      "Batch same-screen taps: batch({ simulatorId: \"FBC49642-E3AF-4E73-952A-DAE24EEE8E35\", steps: [{\"action\":\"tap\",\"elementRef\":\"e17\"},{\"action\":\"tap\",\"elementRef\":\"e56\"}] })",
+      "Tap an elementRef: tap({ simulatorId: \"FBC49642-E3AF-4E73-952A-DAE24EEE8E35\", elementRef: \"e17\" })",
+      "Scroll visible content: swipe({ simulatorId: \"FBC49642-E3AF-4E73-952A-DAE24EEE8E35\", withinElementRef: \"e73\", direction: \"up\", distance: 0.5 })"
+    ]
+  },
+  {
+    "schema": "xcodebuildmcp.output.capture-result",
+    "schemaVersion": "2",
+    "didError": false,
+    "error": null,
+    "data": {
+      "summary": {
+        "status": "SUCCEEDED"
+      },
+      "artifacts": {
+        "simulatorId": "FBC49642-E3AF-4E73-952A-DAE24EEE8E35"
+      },
+      "capture": {
+        "type": "runtime-snapshot",
+        "rs": "1",
+        "screenHash": "0mraod3",
+        "seq": 14,
+        "count": 84,
+        "targets": [
+          "e17|tap|button|返回||",
+          "e56|tap|button|取消||",
+          "e58|tap|button|读取并识别||",
+          "e65|tap|button|填入已保存账号||",
+          "e67|tap|button|返回上页／关闭弹窗||",
+          "e69|tap|button|刷新页面||"
+        ],
+        "scroll": [
+          "e22|swipe|scroll-view|||",
+          "e73|swipe|scroll-view|||"
+        ],
+        "text": [
+          "e63|text|text|当前页面没有可识别课表，请进入「我的课表」后重新读取。||",
+          "e23|text|text|学校网页 · AI 识别 从学校带入课表 使用学号或统一身份认证用户名。验证码在学校网页填写，读取后先核对，再保存。||",
+          "e66|text|text|填入已保存账号||",
+          "e68|text|text|返回上页／关闭弹窗||",
+          "e70|text|text|刷新页面||",
+          "e29|text|text|2 识别课表||",
+          "e30|text|text|3 核对保存||",
+          "e31|text|text|学校账号 可以留空，在学校网页中自行登录。||",
+          "e43|text|text|打开网页后||"
+        ],
+        "udid": "FBC49642-E3AF-4E73-952A-DAE24EEE8E35"
+      }
+    },
+    "nextSteps": [
+      "Refresh after layout changes: snapshot_ui({ simulatorId: \"FBC49642-E3AF-4E73-952A-DAE24EEE8E35\" })",
+      "Wait for UI to settle: wait_for_ui({ simulatorId: \"FBC49642-E3AF-4E73-952A-DAE24EEE8E35\", predicate: \"settled\" })",
+      "Batch same-screen taps: batch({ simulatorId: \"FBC49642-E3AF-4E73-952A-DAE24EEE8E35\", steps: [{\"action\":\"tap\",\"elementRef\":\"e17\"},{\"action\":\"tap\",\"elementRef\":\"e56\"}] })",
+      "Tap an elementRef: tap({ simulatorId: \"FBC49642-E3AF-4E73-952A-DAE24EEE8E35\", elementRef: \"e17\" })",
+      "Scroll visible content: swipe({ simulatorId: \"FBC49642-E3AF-4E73-952A-DAE24EEE8E35\", withinElementRef: \"e73\", direction: \"up\", distance: 0.5 })"
+    ]
+  },
+  {
+    "label": "week-after-edit-fixed",
+    "schema": "xcodebuildmcp.output.capture-result",
+    "schemaVersion": "2",
+    "didError": false,
+    "error": null,
+    "data": {
+      "summary": {
+        "status": "SUCCEEDED"
+      },
+      "artifacts": {
+        "simulatorId": "FBC49642-E3AF-4E73-952A-DAE24EEE8E35"
+      },
+      "capture": {
+        "type": "runtime-snapshot",
+        "rs": "1",
+        "screenHash": "0o6qp7q",
+        "seq": 37,
+        "count": 43,
+        "targets": [
+          "e28|tap|button|周六，08:00–08:50，IOS-QA-101-EDITIOS-QA-202，QA-ROOM IOS-QA-101-EDITIOS-QA-202 QA-ROOM||",
+          "e16|tap|button|关闭完整周表||"
+        ],
+        "scroll": [
+          "e26|swipe|scroll-view|||"
+        ],
+        "text": [
+          "e14|text|text|完整周表||",
+          "e15|text|text|第 1 周 · 10/12 — 10/18||",
+          "e18|text|text|周一||",
+          "e19|text|text|周二||",
+          "e20|text|text|周三||",
+          "e21|text|text|周四||",
+          "e22|text|text|周五||",
+          "e23|text|text|周六||",
+          "e24|text|text|周日||",
+          "e17|text|text|时间||",
+          "e27|text|text|08:00 08:50||",
+          "e29|text|text|09:00 09:50||",
+          "e30|text|text|10:10 11:00||",
+          "e31|text|text|11:10 12:00||"
+        ],
+        "udid": "FBC49642-E3AF-4E73-952A-DAE24EEE8E35"
+      }
+    },
+    "nextSteps": [
+      "Refresh after layout changes: snapshot_ui({ simulatorId: \"FBC49642-E3AF-4E73-952A-DAE24EEE8E35\" })",
+      "Wait for UI to settle: wait_for_ui({ simulatorId: \"FBC49642-E3AF-4E73-952A-DAE24EEE8E35\", predicate: \"settled\" })",
+      "Tap an elementRef: tap({ simulatorId: \"FBC49642-E3AF-4E73-952A-DAE24EEE8E35\", elementRef: \"e28\" })",
+      "Scroll visible content: swipe({ simulatorId: \"FBC49642-E3AF-4E73-952A-DAE24EEE8E35\", withinElementRef: \"e26\", direction: \"up\", distance: 0.5 })"
+    ]
+  },
+  {
+    "label": "month-view",
+    "schema": "xcodebuildmcp.output.ui-action-result",
+    "schemaVersion": "2",
+    "didError": false,
+    "error": null,
+    "data": {
+      "summary": {
+        "status": "SUCCEEDED"
+      },
+      "action": {
+        "type": "tap",
+        "elementRef": "e41",
+        "x": 297,
+        "y": 808
+      },
+      "artifacts": {
+        "simulatorId": "FBC49642-E3AF-4E73-952A-DAE24EEE8E35"
+      },
+      "capture": {
+        "type": "runtime-snapshot",
+        "rs": "1",
+        "screenHash": "1ots9vz",
+        "seq": 39,
+        "count": 89,
+        "targets": [
+          "e41|tap|button|2026年10月10日 星期六，上课次数 0 次||",
+          "e42|tap|button|2026年10月11日 星期日，上课次数 0 次||",
+          "e45|tap|button|2026年10月12日 星期一，上课次数 0 次||",
+          "e46|tap|button|2026年10月13日 星期二，上课次数 0 次||",
+          "e47|tap|button|2026年10月14日 星期三，上课次数 0 次||",
+          "e48|tap|button|2026年10月15日 星期四，上课次数 0 次||",
+          "e49|tap|button|2026年10月16日 星期五，上课次数 0 次||",
+          "e50|tap|button|2026年10月17日 星期六 今天，上课次数 1 次||",
+          "e51|tap|button|2026年10月18日 星期日，上课次数 0 次||",
+          "e54|tap|button|2026年10月19日 星期一，上课次数 0 次||",
+          "e55|tap|button|2026年10月20日 星期二，上课次数 0 次||",
+          "e56|tap|button|2026年10月21日 星期三，上课次数 0 次||",
+          "e57|tap|button|2026年10月22日 星期四，上课次数 0 次||",
+          "e58|tap|button|2026年10月23日 星期五，上课次数 0 次||",
+          "e59|tap|button|2026年10月24日 星期六，上课次数 1 次||",
+          "e60|tap|button|2026年10月25日 星期日，上课次数 0 次||",
+          "e63|tap|button|2026年10月26日 星期一，上课次数 0 次||",
+          "e64|tap|button|2026年10月27日 星期二，上课次数 0 次||",
+          "e65|tap|button|2026年10月28日 星期三，上课次数 0 次||",
+          "e66|tap|button|2026年10月29日 星期四，上课次数 0 次||",
+          "e67|tap|button|2026年10月30日 星期五，上课次数 0 次||",
+          "e68|tap|button|2026年10月31日 星期六，上课次数 1 次||",
+          "e15|tap|button|设置||",
+          "e23|tap|button|上个月||",
+          "e24|tap|button|下个月||",
+          "e30|tap|button|2026年10月1日 星期四，上课次数 0 次||",
+          "e31|tap|button|2026年10月2日 星期五，上课次数 0 次||",
+          "e32|tap|button|2026年10月3日 星期六，上课次数 0 次||",
+          "e33|tap|button|2026年10月4日 星期日，上课次数 0 次||",
+          "e36|tap|button|2026年10月5日 星期一，上课次数 0 次||",
+          "e37|tap|button|2026年10月6日 星期二，上课次数 0 次||",
+          "e38|tap|button|2026年10月7日 星期三，上课次数 0 次||",
+          "e39|tap|button|2026年10月8日 星期四，上课次数 0 次||",
+          "e40|tap|button|2026年10月9日 星期五，上课次数 0 次||",
+          "e74|tap|button|本月||",
+          "e84|tap|button|日课表||schedule-tab-0",
+          "e85|tap|button|周课表||schedule-tab-1",
+          "e86|tap|button|月课表||schedule-tab-2"
+        ],
+        "scroll": [
+          "e20|swipe|scroll-view|||"
+        ],
+        "text": [
+          "e14|text|text|月课表||",
+          "e16|text|text|默认课表||",
+          "e26|text|text|一 二 三 四 五 六 日||",
+          "e70|text|text|圆点表示当天有课||",
+          "e78|text|text|08:00–08:50 已结束 IOS-QA-101-EDITIOS-QA-202 QA-ROOM CHER||"
+        ],
+        "udid": "FBC49642-E3AF-4E73-952A-DAE24EEE8E35"
+      }
+    },
+    "nextSteps": [
+      "Batch same-screen taps: batch({ simulatorId: \"FBC49642-E3AF-4E73-952A-DAE24EEE8E35\", steps: [{\"action\":\"tap\",\"elementRef\":\"e15\"},{\"action\":\"tap\",\"elementRef\":\"e23\"}] })",
+      "Tap an elementRef: tap({ simulatorId: \"FBC49642-E3AF-4E73-952A-DAE24EEE8E35\", elementRef: \"e41\" })",
+      "Scroll visible content: swipe({ simulatorId: \"FBC49642-E3AF-4E73-952A-DAE24EEE8E35\", withinElementRef: \"e20\", direction: \"up\", distance: 0.5 })"
+    ]
+  },
+  {
+    "label": "calendar-denied",
+    "schema": "xcodebuildmcp.output.capture-result",
+    "schemaVersion": "2",
+    "didError": false,
+    "error": null,
+    "data": {
+      "summary": {
+        "status": "SUCCEEDED"
+      },
+      "artifacts": {
+        "simulatorId": "FBC49642-E3AF-4E73-952A-DAE24EEE8E35"
+      },
+      "capture": {
+        "type": "runtime-snapshot",
+        "rs": "1",
+        "screenHash": "1ydv7on",
+        "seq": 46,
+        "count": 25,
+        "targets": [
+          "e20|tap|button|知道了||",
+          "e21|tap|button|去设置||"
+        ],
+        "scroll": [],
+        "text": [
+          "e22|text|text|关闭||",
+          "e16|text|text|导出未完成||",
+          "e19|text|text|日历权限未开启，请在系统设置中允许访问日历后重试。||"
+        ],
+        "udid": "FBC49642-E3AF-4E73-952A-DAE24EEE8E35"
+      }
+    },
+    "nextSteps": [
+      "Refresh after layout changes: snapshot_ui({ simulatorId: \"FBC49642-E3AF-4E73-952A-DAE24EEE8E35\" })",
+      "Wait for UI to settle: wait_for_ui({ simulatorId: \"FBC49642-E3AF-4E73-952A-DAE24EEE8E35\", predicate: \"settled\" })",
+      "Batch same-screen taps: batch({ simulatorId: \"FBC49642-E3AF-4E73-952A-DAE24EEE8E35\", steps: [{\"action\":\"tap\",\"elementRef\":\"e20\"},{\"action\":\"tap\",\"elementRef\":\"e21\"}] })",
+      "Tap an elementRef: tap({ simulatorId: \"FBC49642-E3AF-4E73-952A-DAE24EEE8E35\", elementRef: \"e20\" })"
+    ]
+  },
+  {
+    "label": "photo-missing-key",
+    "schema": "xcodebuildmcp.output.capture-result",
+    "schemaVersion": "2",
+    "didError": false,
+    "error": null,
+    "data": {
+      "summary": {
+        "status": "SUCCEEDED"
+      },
+      "artifacts": {
+        "simulatorId": "FBC49642-E3AF-4E73-952A-DAE24EEE8E35"
+      },
+      "capture": {
+        "type": "runtime-snapshot",
+        "rs": "1",
+        "screenHash": "0dwsqxv",
+        "seq": 119,
+        "count": 45,
+        "targets": [
+          "e16|tap|button|返回||",
+          "e26|tap|button|选择课表图片||",
+          "e31|tap|button|查看第 1 张课表原图||",
+          "e32|tap|button|移除第 1 张||",
+          "e38|tap|button|AI 识别课表||",
+          "e41|tap|button|DeepSeek 设置||"
+        ],
+        "scroll": [
+          "e21|swipe|scroll-view|||"
+        ],
+        "text": [
+          "e22|text|text|多张截图 · AI 识别 从截图带入课表 选择同一学期的课表截图。尽量包含星期、周次和时间表头，识别后先核对，再保存。||",
+          "e27|text|text|已选择 1 张 每次最多 20 张||",
+          "e35|text|text|想要使用 AI 完整功能录入课表，请先在 DeepSeek 设置中保存 API Key。确认发送后，所选图片会发送到 DeepSeek，可能消耗账户余额。||"
+        ],
+        "udid": "FBC49642-E3AF-4E73-952A-DAE24EEE8E35"
+      }
+    },
+    "nextSteps": [
+      "Refresh after layout changes: snapshot_ui({ simulatorId: \"FBC49642-E3AF-4E73-952A-DAE24EEE8E35\" })",
+      "Wait for UI to settle: wait_for_ui({ simulatorId: \"FBC49642-E3AF-4E73-952A-DAE24EEE8E35\", predicate: \"settled\" })",
+      "Batch same-screen taps: batch({ simulatorId: \"FBC49642-E3AF-4E73-952A-DAE24EEE8E35\", steps: [{\"action\":\"tap\",\"elementRef\":\"e16\"},{\"action\":\"tap\",\"elementRef\":\"e26\"}] })",
+      "Tap an elementRef: tap({ simulatorId: \"FBC49642-E3AF-4E73-952A-DAE24EEE8E35\", elementRef: \"e16\" })",
+      "Scroll visible content: swipe({ simulatorId: \"FBC49642-E3AF-4E73-952A-DAE24EEE8E35\", withinElementRef: \"e21\", direction: \"up\", distance: 0.5 })"
+    ]
+  }
+]

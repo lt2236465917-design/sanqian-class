@@ -1,0 +1,43 @@
+{
+  "info" : {
+    "arguments" : [
+      "devicectl",
+      "device",
+      "info",
+      "apps",
+      "--device",
+      "61964016-3FAF-5035-8E4E-0BD1676430D2",
+      "--json-output",
+      ".codex/tasks/ios-full-acceptance-20261017-01a14751/evidence/device-apps.json"
+    ],
+    "commandType" : "devicectl.device.info.apps",
+    "environment" : {
+      "TERM" : "dumb"
+    },
+    "jsonVersion" : 3,
+    "outcome" : "success",
+    "version" : "518.31"
+  },
+  "result" : {
+    "apps" : [
+      {
+        "appClip" : false,
+        "builtByDeveloper" : true,
+        "bundleIdentifier" : "local.sanqian.schedule",
+        "bundleVersion" : "2",
+        "defaultApp" : false,
+        "hidden" : false,
+        "internalApp" : false,
+        "name" : "三千上课",
+        "removable" : true,
+        "url" : "file:///private/var/containers/Bundle/Application/B3FD096B-09D3-40DE-8FD6-1B4D3172F8DD/Runner.app/",
+        "version" : "1.0.0"
+      }
+    ],
+    "defaultAppsIncluded" : false,
+    "deviceIdentifier" : "61964016-3FAF-5035-8E4E-0BD1676430D2",
+    "hiddenAppsIncluded" : false,
+    "internalAppsIncluded" : false,
+    "removableAppsIncluded" : true
+  }
+}

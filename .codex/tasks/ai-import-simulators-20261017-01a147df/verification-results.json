@@ -1,0 +1,70 @@
+{
+  "recognition": [
+    {
+      "file": "ios-photos-fixed.json",
+      "source": "photos",
+      "courses": 18,
+      "occurrences": 97,
+      "pending": 2,
+      "teachers": 11,
+      "errors": [],
+      "passed": true
+    },
+    {
+      "file": "android-photos-fixed.json",
+      "source": "photos",
+      "courses": 18,
+      "occurrences": 97,
+      "pending": 2,
+      "teachers": 11,
+      "errors": [],
+      "passed": true
+    },
+    {
+      "file": "android-portal-fixed.json",
+      "source": "portal",
+      "courses": 14,
+      "occurrences": 73,
+      "pending": 2,
+      "teachers": 11,
+      "errors": [],
+      "passed": true
+    }
+  ],
+  "saved": [
+    {
+      "file": "android-final.db",
+      "table_id": 2,
+      "source": "photos",
+      "first_week_monday": "2026-09-07",
+      "courses": 18,
+      "rows": 30,
+      "occurrences": 97,
+      "pending": 2,
+      "first_class_date": "2026-09-21",
+      "last_class_date": "2027-01-01",
+      "passed": true,
+      "errors": []
+    },
+    {
+      "file": "android-final.db",
+      "table_id": 3,
+      "source": "school-portal",
+      "first_week_monday": "2026-09-07",
+      "courses": 14,
+      "rows": 25,
+      "occurrences": 73,
+      "pending": 2,
+      "first_class_date": "2026-09-21",
+      "last_class_date": "2027-01-01",
+      "passed": true,
+      "errors": []
+    }
+  ],
+  "unverified": [
+    "ios-latest-school-recognition",
+    "ios-photos-save",
+    "ios-school-save"
+  ],
+  "blocker": "Mac locked; awaiting user unlock for CUA actions"
+}

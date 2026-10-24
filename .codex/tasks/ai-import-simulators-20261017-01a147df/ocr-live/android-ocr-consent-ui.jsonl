@@ -1,0 +1,5 @@
+{"text": "", "content-desc": "用文字识别辅助复核", "class": "android.view.View", "bounds": "[168,952][912,1036]", "password": "false", "enabled": "true"}
+{"text": "", "content-desc": "如果发现有课程没有写上，可以把原课表图片和本机识别出的文字发给 DeepSeek 再检查一次，可能再次消耗账户余额。文字识别也可能出错。", "class": "android.view.View", "bounds": "[168,1078][912,1322]", "password": "false", "enabled": "true"}
+{"text": "", "content-desc": "取消", "class": "android.widget.Button", "bounds": "[447,1386][588,1512]", "password": "false", "enabled": "true"}
+{"text": "", "content-desc": "发送并复核", "class": "android.widget.Button", "bounds": "[609,1385][912,1513]", "password": "false", "enabled": "true"}
+{"text": "", "content-desc": "关闭", "class": "android.view.View", "bounds": "[0,0][1080,2400]", "password": "false", "enabled": "true"}

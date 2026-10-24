@@ -1,0 +1,10 @@
+{
+  "settings": {
+    "airplane_mode_on": "0",
+    "wifi_on": "0"
+  },
+  "activeDefaultNetworkLines": [
+    "Active default network: none"
+  ],
+  "scope": "Snapshot after camera confirmation, not continuous network monitoring during decode."
+}

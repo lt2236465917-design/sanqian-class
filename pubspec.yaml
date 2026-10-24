@@ -40,6 +40,9 @@ dependencies:
   image: any
 dependency_overrides:
   collection: ^1.19.0
+  # Android uses CameraX + ZXing-C++; Dart and Apple Vision sources are unchanged.
+  mobile_scanner:
+    path: packages/mobile_scanner
 
 dev_dependencies:
   sqflite_common_ffi: ^2.3.6

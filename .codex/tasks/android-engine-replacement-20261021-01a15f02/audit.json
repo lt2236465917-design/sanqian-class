@@ -1,0 +1,242 @@
+{
+  "sha256": "00cb1775d79a21bd24cb08a6d5398be4358f37e542067f5bcf3f761da59d3428",
+  "bytes": 73871033,
+  "native": [
+    {
+      "path": "lib/arm64-v8a/libapp.so",
+      "bytes": 9438128,
+      "loadAlign": [
+        65536,
+        65536,
+        65536
+      ]
+    },
+    {
+      "path": "lib/arm64-v8a/libdatastore_shared_counter.so",
+      "bytes": 7112,
+      "loadAlign": [
+        16384,
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/arm64-v8a/libflutter.so",
+      "bytes": 11037032,
+      "loadAlign": [
+        65536,
+        65536,
+        65536,
+        65536
+      ]
+    },
+    {
+      "path": "lib/arm64-v8a/libimage_processing_util_jni.so",
+      "bytes": 32544,
+      "loadAlign": [
+        16384,
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/arm64-v8a/libonnxruntime.so",
+      "bytes": 19347616,
+      "loadAlign": [
+        16384,
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/arm64-v8a/libonnxruntime4j_jni.so",
+      "bytes": 75752,
+      "loadAlign": [
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/arm64-v8a/libsurface_util_jni.so",
+      "bytes": 4896,
+      "loadAlign": [
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/arm64-v8a/libzxingcpp_android.so",
+      "bytes": 1712120,
+      "loadAlign": [
+        16384,
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/armeabi-v7a/libapp.so",
+      "bytes": 10617436,
+      "loadAlign": [
+        16384,
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/armeabi-v7a/libdatastore_shared_counter.so",
+      "bytes": 4416,
+      "loadAlign": [
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/armeabi-v7a/libflutter.so",
+      "bytes": 7926848,
+      "loadAlign": [
+        65536,
+        65536,
+        65536,
+        65536
+      ]
+    },
+    {
+      "path": "lib/armeabi-v7a/libimage_processing_util_jni.so",
+      "bytes": 24448,
+      "loadAlign": [
+        16384,
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/armeabi-v7a/libonnxruntime.so",
+      "bytes": 13992296,
+      "loadAlign": [
+        16384,
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/armeabi-v7a/libonnxruntime4j_jni.so",
+      "bytes": 50040,
+      "loadAlign": [
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/armeabi-v7a/libsurface_util_jni.so",
+      "bytes": 3460,
+      "loadAlign": [
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/armeabi-v7a/libzxingcpp_android.so",
+      "bytes": 1210336,
+      "loadAlign": [
+        16384,
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/x86_64/libapp.so",
+      "bytes": 9503664,
+      "loadAlign": [
+        65536,
+        65536,
+        65536
+      ]
+    },
+    {
+      "path": "lib/x86_64/libdatastore_shared_counter.so",
+      "bytes": 6224,
+      "loadAlign": [
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/x86_64/libflutter.so",
+      "bytes": 12143760,
+      "loadAlign": [
+        65536,
+        65536,
+        65536,
+        65536
+      ]
+    },
+    {
+      "path": "lib/x86_64/libimage_processing_util_jni.so",
+      "bytes": 49496,
+      "loadAlign": [
+        16384,
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/x86_64/libonnxruntime.so",
+      "bytes": 23181616,
+      "loadAlign": [
+        16384,
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/x86_64/libonnxruntime4j_jni.so",
+      "bytes": 73432,
+      "loadAlign": [
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/x86_64/libsurface_util_jni.so",
+      "bytes": 4912,
+      "loadAlign": [
+        16384,
+        16384
+      ]
+    },
+    {
+      "path": "lib/x86_64/libzxingcpp_android.so",
+      "bytes": 1776016,
+      "loadAlign": [
+        16384,
+        16384,
+        16384
+      ]
+    }
+  ],
+  "forbiddenEntries": [],
+  "forbiddenDexStrings": [],
+  "models": [
+    {
+      "path": "assets/ocr/ch_PP-OCRv4_det_mobile.onnx",
+      "sha256": "d2a7720d45a54257208b1e13e36a8479894cb74155a5efe29462512d42f49da9",
+      "bytes": 4745517
+    },
+    {
+      "path": "assets/ocr/ch_PP-OCRv4_rec_mobile.onnx",
+      "sha256": "48fc40f24f6d2a207a2b1091d3437eb3cc3eb6b676dc3ef9c37384005483683b",
+      "bytes": 10857958
+    }
+  ],
+  "zipalignExit": 0,
+  "package": "package: name='love.sanqian.schedule' versionCode='1' versionName='1.0.0' platformBuildVersionName='16' platformBuildVersionCode='36' compileSdkVersion='36' compileSdkVersionCodename='16'",
+  "manifestForbidden": true,
+  "signatureVerified": true,
+  "iosGitDiff": [],
+  "upstreamChanged": {
+    "lib": [
+      "lib/src/method_channel/mobile_scanner_method_channel.dart"
+    ],
+    "darwin": []
+  }
+}

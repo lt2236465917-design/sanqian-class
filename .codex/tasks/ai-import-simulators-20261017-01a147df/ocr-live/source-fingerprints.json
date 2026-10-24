@@ -1,0 +1,9 @@
+{
+  "lib/Pages/Import/ImportReviewView.dart": "5b694149e3fcd1d3804923b939b24a38fb004172194af4d9638049c80645c321",
+  "test/Pages/portal_ai_review_test.dart": "f916fbe29b253f166df2922cad4469e336d8aec406f5bde2d9c3a5ec1ecaca22",
+  "lib/Pages/Import/PhotoScheduleImportView.dart": "660f54f120458bd5b4e64ca18ccab083b427fed5f86f9ee3805fa21c7620f91b",
+  "ios/Runner/ScheduleImportPlugin.swift": "9c08777d8e0c1f373932dafc2544f2bade3bf8e7562967409c72208f5cd97d61",
+  "ios/Runner/DeepSeekTimetableClient.swift": "a69e50b1a18c7369dd577dcda284a71282f84c41a00793fb4992d944d19ceac0",
+  "android/app/src/main/kotlin/love/sanqian/schedule/ScheduleImportPlugin.kt": "ad51c45bea1277b66c027ccb3f7103583781b26dc4e14815ec68049aec2b5524",
+  "android/app/src/main/kotlin/love/sanqian/schedule/DeepSeekTimetableClient.kt": "076582a8aefc044f9080b1b378bffa79708447da9b4ccf7c2dd794fda9d96388"
+}
