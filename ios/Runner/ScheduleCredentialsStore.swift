@@ -116,38 +116,74 @@ public final class ScheduleCredentialsStore {
         return (username, password, id)
     }
 
-    private func query(_ item: String) -> [String: Any] {
-        [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service, kSecAttrAccount as String: item, kSecAttrSynchronizable as String: false]
+    /// ThisDeviceOnly cannot be combined with kSecAttrSynchronizable. On iPhone,
+    /// a query that includes the synchronizable key can miss an item that was
+    /// just saved, so the next screen thinks the Key is absent.
+    private enum KeychainSync {
+        case omitted
+        case legacyNotSynchronized
+        case any
     }
+
+    private func query(_ item: String, sync: KeychainSync) -> [String: Any] {
+        var query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service, kSecAttrAccount as String: item]
+        switch sync {
+        case .omitted:
+            break
+        case .legacyNotSynchronized:
+            query[kSecAttrSynchronizable as String] = false
+        case .any:
+            query[kSecAttrSynchronizable as String] = kSecAttrSynchronizableAny
+        }
+        return query
+    }
+
     private func save(_ data: Data, item: String) throws {
         lock.lock(); defer { lock.unlock() }
-        // Accessibility is reapplied on update as well as insert.
         let values: [String: Any] = [kSecValueData as String: data, kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly]
-        var status = SecItemUpdate(query(item) as CFDictionary, values as CFDictionary)
+        var status = SecItemUpdate(query(item, sync: .omitted) as CFDictionary, values as CFDictionary)
         if status == errSecItemNotFound {
-            var insert = query(item)
+            var insert = query(item, sync: .omitted)
             values.forEach { insert[$0.key] = $0.value }
             status = SecItemAdd(insert as CFDictionary, nil)
-            if status == errSecDuplicateItem { status = SecItemUpdate(query(item) as CFDictionary, values as CFDictionary) }
+        }
+        if status == errSecDuplicateItem {
+            // An older item can be invisible to the compatible query. Update its
+            // secret only; do not reapply ThisDeviceOnly through a synchronizable query.
+            let dataOnly: [String: Any] = [kSecValueData as String: data]
+            for sync in [KeychainSync.legacyNotSynchronized, .any] {
+                let next = SecItemUpdate(query(item, sync: sync) as CFDictionary, dataOnly as CFDictionary)
+                if next == errSecItemNotFound { continue }
+                status = next
+                break
+            }
         }
         guard status == errSecSuccess else { throw ScheduleCredentialsStoreError.status(status) }
     }
+
     private func load(item: String) throws -> Data? {
         lock.lock(); defer { lock.unlock() }
-        var values = query(item)
-        values[kSecReturnData as String] = true
-        values[kSecMatchLimit as String] = kSecMatchLimitOne
-        var result: CFTypeRef?
-        let status = SecItemCopyMatching(values as CFDictionary, &result)
-        if status == errSecItemNotFound { return nil }
-        guard status == errSecSuccess else { throw ScheduleCredentialsStoreError.status(status) }
-        guard let data = result as? Data else { throw ScheduleCredentialsStoreError.invalidValue }
-        return data
+        for sync in [KeychainSync.omitted, .legacyNotSynchronized, .any] {
+            var values = query(item, sync: sync)
+            values[kSecReturnData as String] = true
+            values[kSecMatchLimit as String] = kSecMatchLimitOne
+            var result: CFTypeRef?
+            let status = SecItemCopyMatching(values as CFDictionary, &result)
+            if status == errSecItemNotFound { continue }
+            guard status == errSecSuccess else { throw ScheduleCredentialsStoreError.status(status) }
+            guard let data = result as? Data else { throw ScheduleCredentialsStoreError.invalidValue }
+            return data
+        }
+        return nil
     }
+
     private func delete(item: String) throws {
         lock.lock(); defer { lock.unlock() }
-        let status = SecItemDelete(query(item) as CFDictionary)
-        guard status == errSecSuccess || status == errSecItemNotFound else { throw ScheduleCredentialsStoreError.status(status) }
+        for sync in [KeychainSync.omitted, .legacyNotSynchronized, .any] {
+            let status = SecItemDelete(query(item, sync: sync) as CFDictionary)
+            if status == errSecSuccess || status == errSecItemNotFound { continue }
+            throw ScheduleCredentialsStoreError.status(status)
+        }
     }
 }
 

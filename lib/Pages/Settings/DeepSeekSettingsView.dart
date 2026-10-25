@@ -101,8 +101,23 @@ class _DeepSeekSettingsViewState extends State<DeepSeekSettingsView> {
     super.dispose();
   }
 
+  Future<void> _commitFocusedKey() async {
+    if (!_keyFocus.hasFocus) return;
+    // iPhone keeps the secure field focused when 保存 is tapped. Detach the
+    // mask listener so resigning focus cannot put the old mask back first.
+    _keyFocus.removeListener(_onKeyFocus);
+    _keyFocus.unfocus();
+    try {
+      await WidgetsBinding.instance.endOfFrame;
+    } finally {
+      if (mounted) _keyFocus.addListener(_onKeyFocus);
+    }
+  }
+
   Future<void> _action(bool remove) async {
     if (_busy || _loading) return;
+    if (!remove) await _commitFocusedKey();
+    if (!mounted || _busy || _loading) return;
     final typed = _key.text.trim();
     if (!remove && (_keyMasked || typed.isEmpty)) {
       if (_saved == true && (_keyMasked || typed.isEmpty)) {
@@ -124,6 +139,16 @@ class _DeepSeekSettingsViewState extends State<DeepSeekSettingsView> {
         remove ? 'deleteAPIKey' : 'saveAPIKey',
         remove ? null : {'key': typed},
       );
+      final stored =
+          await ScheduleDerivedDataService.channel.invokeMethod<bool>(
+            'hasAPIKey',
+          ) ??
+          false;
+      if (remove ? stored : !stored) {
+        throw StateError(
+          remove ? '删除未完成，请重试。' : 'Key 已提交，但本机没有读回，请再保存一次。',
+        );
+      }
       if (mounted) {
         if (remove) {
           _keyMasked = false;

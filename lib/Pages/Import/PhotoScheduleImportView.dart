@@ -51,6 +51,12 @@ class _PhotoScheduleImportViewState extends State<PhotoScheduleImportView> {
     if (mounted) setState(() => _keyRevision++);
   }
 
+  Future<bool> _hasSavedKey() async =>
+      await ScheduleDerivedDataService.channel.invokeMethod<bool>(
+        'hasAPIKey',
+      ) ??
+      false;
+
   Future<void> _pick() async {
     try {
       final images = await ImagePicker().pickMultiImage();
@@ -79,18 +85,19 @@ class _PhotoScheduleImportViewState extends State<PhotoScheduleImportView> {
       _error = '';
     });
     try {
-      final hasKey =
-          await ScheduleDerivedDataService.channel.invokeMethod<bool>(
-            'hasAPIKey',
-          ) ??
-          false;
+      var hasKey = await _hasSavedKey();
       if (!mounted || ticket != _ticket) return;
       if (!hasKey) {
         await _openSettings();
-        if (mounted && ticket == _ticket) {
-          setState(() => _error = '配置 Key 后，点击“AI 识别课表”继续；已选图片保留');
+        if (!mounted || ticket != _ticket) return;
+        hasKey = await _hasSavedKey();
+        if (!mounted || ticket != _ticket) return;
+        if (!hasKey) {
+          setState(
+            () => _error = '配置 Key 后，点击“AI 识别课表”继续；已选图片保留',
+          );
+          return;
         }
-        return;
       }
       final ok = await showDialog<bool>(
         context: context,
