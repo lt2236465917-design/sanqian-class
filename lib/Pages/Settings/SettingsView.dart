@@ -158,7 +158,7 @@ class SettingsView extends StatelessWidget {
                   tile(
                     Icons.auto_stories_outlined,
                     '关于三千上课',
-                    '开源来源与许可证',
+                    '备案号、开源来源与许可证',
                     () => open(const AboutView()),
                   ),
                 ],

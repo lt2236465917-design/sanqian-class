@@ -1,7 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../Components/ScheduleFeedbackNotice.dart';
 import '../../Resources/PersonalTheme.dart';
+
+const _filingNumber = '京ICP备2026025115号-5A';
+final _filingQuery = Uri.parse('https://beian.miit.gov.cn/');
+
+Future<void> _openFiling(BuildContext context) async {
+  try {
+    final opened = await launchUrl(
+      _filingQuery,
+      mode: LaunchMode.externalApplication,
+    );
+    if (opened || !context.mounted) return;
+  } catch (_) {
+    if (!context.mounted) return;
+  }
+  ScheduleFeedbackNotice.show(context, '暂时无法打开工信部备案查询，请稍后重试。');
+}
 
 class AboutView extends StatelessWidget {
   const AboutView({super.key});
@@ -55,6 +73,13 @@ class AboutView extends StatelessWidget {
               ),
             ),
             child: const Text('开源许可与致谢'),
+          ),
+          const SizedBox(height: 36),
+          Center(
+            child: TextButton(
+              onPressed: () => _openFiling(context),
+              child: const Text(_filingNumber),
+            ),
           ),
         ],
       ),
