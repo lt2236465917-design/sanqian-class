@@ -1,7 +1,8 @@
 // Offline executable; excluded from the production build by default.
-// xcrun --sdk iphonesimulator swiftc -target arm64-apple-ios13.0-simulator -D AI_IMPORT_TESTS AIImportModels.swift DeepSeekTimetableClient.swift VisionScheduleDraftParser.swift VisionTimetableRecognizer.swift AIImportParserTests.swift -o /tmp/ai-import-tests
+// xcrun --sdk iphonesimulator swiftc -target arm64-apple-ios13.0-simulator -D AI_IMPORT_TESTS AIImportModels.swift DeepSeekTimetableClient.swift TimetableGridEvidence.swift VisionScheduleDraftParser.swift VisionTimetableRecognizer.swift AIImportParserTests.swift -o /tmp/ai-import-tests
 #if AI_IMPORT_TESTS
 import Foundation
+import UIKit
 import CoreGraphics
 import ImageIO
 
@@ -50,7 +51,90 @@ struct AIImportOfflineTests {
         precondition(CGImageDestinationFinalize(destination))
         return bytes as Data
     }
+    static func gridEvidenceTests() throws {
+        let cell: [String: Any] = ["id": "p0r1c1", "imageIndex": 0, "weekday": 1, "startMinute": 1140, "endMinute": 1290, "rowLabel": "晚上课 19:00--21:30", "texts": ["课程甲"]]
+        let text = #"{"courses":[{"name":"课程甲","meetings":[{"weekday":1,"weeks":[4],"startMinute":1140,"endMinute":1170,"cellRefs":["p0r1c1"]}]}]}"#
+        func parsed(_ value: String, cells: [[String: Any]] = [cell]) throws -> [String: Any] {
+            let result = try DeepSeekTimetableClient.parseResponse(envelope(value), gridCells: cells)
+            let obj = try JSONSerialization.jsonObject(with: Data(result.jsonText.utf8)) as! [String: Any]
+            return (obj["courses"] as! [[String: Any]])[0]
+        }
+        func first(_ course: [String: Any]) -> [String: Any] { (course["meetings"] as! [[String: Any]])[0] }
+        func warnings(_ course: [String: Any]) -> [String] {
+            let raw = course["raw"] as! [String: Any]
+            return (raw["recognitionWarnings"] as? [String] ?? []) + (raw["batchRecognitionWarnings"] as? [String] ?? [])
+        }
+        let singleRef = text.replacingOccurrences(of: #""cellRefs":["p0r1c1"]"#, with: #""cellRef":"p0r1c1""#)
+        check(first(try parsed(singleRef))["endMinute"] as? Int == 1290, "single-cell output contract uses the same validated anchor")
+        expect(.invalidCourseField("courses[0].meetings[0].cellRef"), "single cell ref cannot be an array") {
+            _ = try parsed(text.replacingOccurrences(of: "cellRefs", with: "cellRef"))
+        }
+        let corrected = try parsed(text)
+        check(first(corrected)["endMinute"] as? Int == 1290, "local summary corrects shortened evening")
+        check((first(corrected)["raw"] as? [String: Any])?["modelEndMinute"] as? Int == 1170, "clock repair retains original")
+        check(warnings(corrected).isEmpty, "valid reference is covered")
+        check(first(try parsed(text, cells: []))["endMinute"] as? Int == 1170, "no request context cannot fabricate correction")
+        let wrongDay = try parsed(text.replacingOccurrences(of: #""weekday":1"#, with: #""weekday":3"#))
+        check(first(wrongDay)["weekday"] is NSNull, "local column conflict stays pending")
+        check(!warnings(wrongDay).isEmpty, "column conflict is visible")
+        let wrongRef = try parsed(text.replacingOccurrences(of: "p0r1c1", with: "invented"))
+        check(first(wrongRef)["endMinute"] as? Int == 1170, "invented ref cannot change minutes")
+        check(warnings(wrongRef).contains(where: { $0.contains("无效") }), "invalid reference reported")
+        let explicit = try parsed(text.replacingOccurrences(of: #""cellRefs""#, with: #""sourceLine":"19:00-19:30","cellRefs""#))
+        check(first(explicit)["startMinute"] is NSNull && first(explicit)["endMinute"] is NSNull, "explicit contradictory clock not overwritten")
+        var other = cell; other["id"] = "p0r1c2"; other["weekday"] = 2
+        let omitted = try parsed(text, cells: [cell, other])
+        check(warnings(omitted).contains(where: { $0.contains("非空格子") }), "uncovered cell produces review warning")
+        let crossed = try parsed(text.replacingOccurrences(of: #"["p0r1c1"]"#, with: #"["p0r1c1","p0r1c2"]"#), cells: [cell, other])
+        check(first(crossed)["weekday"] is NSNull && first(crossed)["startMinute"] is NSNull, "different slots cannot be combined")
+        let agreeingSource = try parsed(text.replacingOccurrences(of: #""cellRefs""#, with: #""sourceLine":"19:00–21:30","cellRefs""#))
+        check(first(agreeingSource)["endMinute"] as? Int == 1290, "agreeing explicit full clock supports correction")
+        var partialBlock = cell; partialBlock["texts"] = ["课程甲", "19:00-19:30"]
+        check(first(try parsed(text, cells: [partialBlock]))["endMinute"] is NSNull, "course block clock prevents broad summary expansion")
+        var differentWeeks = cell; differentWeeks["id"] = "p1r1c1"; differentWeeks["texts"] = ["课程甲", "第7周", "B教室"]
+        check(warnings(try parsed(text, cells: [cell, differentWeeks])).contains(where: { $0.contains("非空格子") }), "same course slot does not cover different week and room")
+        var copy = cell; copy["id"] = "p1r1c1"
+        var response = try JSONSerialization.jsonObject(with: Data(text.utf8)) as! [String: Any]
+        var courses = response["courses"] as! [[String: Any]]
+        var meetings = courses[0]["meetings"] as! [[String: Any]]
+        var duplicate = meetings[0]; duplicate["cellRefs"] = ["p1r1c1"]; meetings.append(duplicate)
+        courses[0]["meetings"] = meetings; response["courses"] = courses
+        let duplicates = String(decoding: try JSONSerialization.data(withJSONObject: response), as: UTF8.self)
+        let combined = try parsed(duplicates, cells: [cell, copy])
+        check((combined["meetings"] as! [[String: Any]]).count == 1, "dedupe preserves one complete schedule")
+        check(((first(combined)["raw"] as! [String: Any])["cellRefs"] as! [String]).count == 2, "dedupe retains both cell references")
+        expect(.truncatedResponse, "grid evidence never accepts truncated JSON") {
+            _ = try DeepSeekTimetableClient.parseResponse(envelope(text, reason: "length"), gridCells: [cell])
+        }
+    }
+    static func pendingListRowsTests() throws {
+        func parse(_ lines: [String], meetings: [[String: Any]]) throws -> [String: Any] {
+            let value: [String: Any] = ["courses": [["sourceKind": "list", "titleText": "课程甲", "name": "课程甲", "listRows": lines, "meetings": meetings]]]
+            let text = String(decoding: try JSONSerialization.data(withJSONObject: value), as: UTF8.self)
+            let result = try DeepSeekTimetableClient.parseResponse(envelope(text))
+            let root = try JSONSerialization.jsonObject(with: Data(result.jsonText.utf8)) as! [String: Any]
+            return (root["courses"] as! [[String: Any]])[0]
+        }
+        let first: [String: Any] = ["listRow": 1, "weekday": 2, "weeks": [3], "startMinute": 540, "endMinute": 720]
+        let third: [String: Any] = ["listRow": 3, "weekday": 4, "weeks": [4], "startMinute": 810, "endMinute": 990]
+        let mixed = try parse(["3周二上午", "请与任课教师联系", "4周四下午"], meetings: [first, third])
+        let raw = mixed["raw"] as! [String: Any]
+        let rows = mixed["meetings"] as! [[String: Any]]
+        check(raw["listedMeetingCount"] as? Int == 2, "pending note excluded from scheduled list count")
+        check((raw["recognitionWarnings"] as! [String]).isEmpty, "filtered note does not cause missing row warning")
+        check((rows[1]["raw"] as! [String: Any])["listRow"] as? Int == 2, "original third row maps to second valid row")
+        check(rows[1]["sourceReference"] as? String == "4周四下午", "row filtering never shifts schedule evidence")
+        let pending = try parse(["2label.teachtask.courseclass.week.null-自排教室，请与任课教师联系上课时间和地点"], meetings: [])
+        let pendingRaw = pending["raw"] as! [String: Any]
+        check(pendingRaw["listedMeetingCount"] as? Int == 0, "placeholder is pending even with framework prefix digit")
+        check((pendingRaw["recognitionWarnings"] as! [String]).isEmpty, "pending placeholder has no omission warning")
+        check((pendingRaw["ignoredPendingListRows"] as! [[String: Any]]).count == 1, "ignored source remains auditable")
+        let scheduled = try parse(["6-10周二上午，请与任课教师联系"], meetings: [["listRow": 1, "weekday": 2, "weeks": [6,7,8,9,10], "startMinute": 540, "endMinute": 720]])
+        check((scheduled["raw"] as! [String: Any])["listedMeetingCount"] as? Int == 1, "contact note with real weeks retains meeting")
+    }
     static func main() async throws {
+        try gridEvidenceTests()
+        try pendingListRowsTests()
         check(try DeepSeekTimetableClient.parseResponse(envelope(valid)).finishReason == "stop", "missing room remains scheduled")
         expect(.invalidJSON, "broken JSON") { _ = try DeepSeekTimetableClient.parseResponse(envelope("{broken")) }
         expect(.emptyCourses, "empty courses") { _ = try DeepSeekTimetableClient.parseResponse(envelope(#"{"courses":[]}"#)) }
@@ -79,6 +163,42 @@ struct AIImportOfflineTests {
         check(referenceCourses.count == 3, "scheduled and pending all retained")
         let meeting = (referenceCourses[0]["meetings"] as! [[String: Any]])[0]
         check(meeting["weeks"] as? [Int] == [3,4,6,7], "range expansion preserves missing week")
+        let collapsed = try courses(#"{"courses":[{"name":"英语","meetings":[{"weekday":5,"weeks":[6,11],"startMinute":810,"endMinute":990,"location":"6406","sourceLine":"6-11周一-下午课-6406","gridWeekday":1,"gridWeeks":"6-11"}]}]}"#)
+        let collapsedMeeting = (collapsed[0]["meetings"] as! [[String: Any]])[0]
+        check(collapsedMeeting["weeks"] as? [Int] == [6,7,8,9,10,11], "source line expands a closed week range")
+        check(collapsedMeeting["weekday"] as? Int == 1, "matching list and grid repair the numeric weekday")
+        let sunday = try courses(#"{"courses":[{"name":"摄影","meetings":[{"weekday":5,"weeks":[5],"startMinute":540,"endMinute":720,"location":"虚拟教室1","sourceLine":"5周日-上午课-虚拟教室1","gridWeekday":7,"gridWeeks":"5"}]}]}"#)
+        check(((sunday[0]["meetings"] as! [[String: Any]])[0]["weekday"] as? Int) == 7, "周日 is weekday 7")
+        let conflicting = try courses(#"{"courses":[{"name":"证据冲突","sourceKind":"list","titleText":"证据冲突","listRows":["6-12周三","14周二"],"meetings":[{"listRow":1,"weekday":3,"weeks":[6,7,8,9,10,11,12],"startMinute":540,"endMinute":720,"sourceLine":"6-12周三","gridWeekday":4,"gridWeeks":"6-10"}]}]}"#)[0]
+        let conflictingRow = (conflicting["meetings"] as! [[String: Any]])[0]
+        check(conflictingRow["weekday"] is NSNull && conflictingRow["weeks"] is NSNull, "conflicting grid evidence cannot lock in a wrong day or widened range")
+        check((conflicting["pendingReason"] as? String)?.contains("名单有2条安排，识别为1条") == true, "missing list row is flagged")
+        check((conflictingRow["raw"] as? [String: Any])?["gridWeekday"] as? Int == 4, "conflicting evidence remains available")
+        let unsupported = try courses(#"{"courses":[{"name":"无网格证据","meetings":[{"weekday":4,"weeks":[6,7,8,9,10],"sourceLine":"6-12周三"}]}]}"#)[0]
+        let unsupportedRow = (unsupported["meetings"] as! [[String: Any]])[0]
+        check(unsupportedRow["weekday"] is NSNull && unsupportedRow["weeks"] is NSNull, "source transcription alone cannot overwrite conflicting fields")
+        let repeated = try courses(#"{"courses":[{"name":"重复节次","listedMeetingCount":1,"sourceLine":"12周二","meetings":[{"weekday":4,"weeks":[3,4],"startMinute":540,"endMinute":720,"location":"A"},{"weekday":4,"weeks":[3,4],"startMinute":540,"endMinute":720,"location":"A"}]}]}"#)[0]
+        let repeatedRows = repeated["meetings"] as! [[String: Any]]
+        check(repeatedRows.count == 1 && repeatedRows[0]["weekday"] as? Int == 4 && repeatedRows[0]["weeks"] as? [Int] == [3,4], "exact duplicate removed without borrowing the course source line")
+        check(repeated["pendingReason"] is NSNull, "count checks distinct arrangements")
+        check(DeepSeekTimetableClient.schedulePrefix("6–10、12 周二")?.weeks == [6,7,8,9,10,12], "unicode ranges preserve gaps")
+        check(DeepSeekTimetableClient.schedulePrefix("3-11周 三楼报告厅") == nil, "a room beginning with a weekday character is not a weekday")
+        check(DeepSeekTimetableClient.schedulePrefix("3-11周四上午")?.weekday == 4, "a weekday can directly precede a time label")
+        check(DeepSeekTimetableClient.schedulePrefix("1-7周二（单 周）") == nil, "spacing cannot erase alternating-week exceptions")
+        let identityCases = try courses(#"{"courses":[{"name":"专题甲-2","titleText":"专题甲-2","section":"2","sectionSource":"titleSuffix","sourceKind":"grid","listedMeetingCount":9,"listRows":["伪名单"],"meetings":[{"weekday":2,"weeks":[3],"startMinute":540,"endMinute":720}]},{"name":"专题乙","titleText":"专题甲","sourceKind":"grid","meetings":[{"weekday":2,"weeks":[3],"startMinute":540,"endMinute":720}]},{"name":"设计-2","titleText":"设计-2","sourceKind":"grid","meetings":[{"weekday":2,"weeks":[3],"startMinute":540,"endMinute":720}]}]}"#)
+        check(identityCases[0]["name"] as? String == "专题甲" && identityCases[0]["section"] as? String == "2", "confirmed teaching section is separated from the title")
+        let gridRaw = identityCases[0]["raw"] as! [String: Any]
+        check(gridRaw["listRows"] is NSNull && gridRaw["listedMeetingCount"] is NSNull, "grid-only evidence cannot claim a list count")
+        check(identityCases[1]["name"] as? String == "专题乙" && ((identityCases[1]["raw"] as! [String: Any])["recognitionWarnings"] as! [String]).contains(where: { $0.contains("课名与标题原文不一致") }), "semantic title disagreement is flagged without guessing a correction")
+        check(identityCases[2]["name"] as? String == "设计-2" && identityCases[2]["section"] is NSNull, "an unconfirmed numeric suffix is never stripped")
+        let numbered = try courses(#"{"courses":[{"name":"设计-2","titleText":"设计-2","section":"2","sectionSource":"field","sourceKind":"list","listRows":[],"meetings":[],"pendingReason":"待定"}]}"#)[0]
+        check(numbered["name"] as? String == "设计-2", "a numbered title is preserved when section comes from a separate field")
+        let constructedTitle = try courses(#"{"courses":[{"name":"专题甲","titleText":"专题甲-2","section":"2","sectionSource":"field","sourceKind":"list","listRows":[],"meetings":[],"pendingReason":"待定"}]}"#)[0]
+        check(((constructedTitle["raw"] as! [String: Any])["recognitionWarnings"] as! [String]).contains(where: { $0.contains("课名与标题原文不一致") }), "a separately labeled section cannot be appended to title evidence")
+        let coverage = try courses(#"{"courses":[{"name":"专题甲","titleText":"专题甲","sourceKind":"list","listRows":["3周二上午A","4周三上午B"],"meetings":[{"listRow":1,"weekday":2,"weeks":[3],"startMinute":540,"endMinute":720,"location":"A"},{"listRow":1,"weekday":2,"weeks":[3],"startMinute":810,"endMinute":990,"location":"A"}]}]}"#)[0]
+        check(((coverage["raw"] as! [String: Any])["recognitionWarnings"] as! [String]).contains(where: { $0.contains("名单第2行未对应") }), "equal counts cannot hide an uncovered list row")
+        let alternating = try courses(#"{"courses":[{"name":"专题甲","meetings":[{"sourceLine":"1-7周二(单周)","weekday":2,"weeks":[1,3,5,7],"gridWeekday":2,"gridWeeks":[1,3,5,7],"startMinute":540,"endMinute":720}]}]}"#)[0]
+        check((alternating["meetings"] as! [[String: Any]])[0]["weeks"] as? [Int] == [1,3,5,7], "a numeric prefix cannot fill excluded weeks")
         check(meeting["startMinute"] as? Int == 810 && meeting["endMinute"] as? Int == 990, "afternoon clocks retained")
         check(meeting["sourceReference"] as? String == "3,4,6-7周一下午", "source retained")
         check(referenceCourses[0]["teacher"] is NSNull, "a week line is not a teacher")
@@ -147,12 +267,13 @@ struct AIImportOfflineTests {
             requests += 1
             capturedContent = (body["messages"] as! [[String: Any]])[1]["content"] as! [[String: Any]]
             check(body["model"] as? String == "deepseek-flash", "fixed model")
+            check(body["max_tokens"] as? Int == DeepSeekTimetableClient.maxOutputTokens, "output ceiling is the model maximum")
             check((body["thinking"] as? [String: String])?["type"] == "disabled", "thinking disabled")
             check((body["response_format"] as? [String: String])?["type"] == "json_object", "JSON mode")
             return (200, try envelope(valid))
         }
         _ = try await client.recognize(images: [AIImportImage(data: tiny, mimeType: "image/png"), AIImportImage(data: tiny, mimeType: "image/png")])
-        check(capturedContent.count == 3 && capturedContent.filter { $0["type"] as? String == "text" }.count == 1, "default images have no OCR context")
+        check(capturedContent.count == 3 && capturedContent.filter { $0["type"] as? String == "text" }.count == 1, "low-level image-only calls have no OCR context")
         let imageContent = capturedContent.filter { $0["type"] as? String == "image_url" }
         let reviewPages = (0..<2).map { index in
             VisionTimetablePage(imageIndex: index, tokens: [VisionTimetableToken(imageIndex: index,
@@ -210,9 +331,77 @@ struct AIImportOfflineTests {
         await expectAsync(.invalidTimetableText, "no HTML") { _ = try await client.recognize(text: "<input password='x'>") }
         await expectAsync(.invalidTimetableText, "no SSO url") { _ = try await client.recognize(text: "https://school/login?token=x") }
         await expectAsync(.missingAPIKey, "missing key") { _ = try await DeepSeekTimetableClient(apiKey: " ", session: session).recognize(text: "英语课表") }
+        let english = #"{"courses":[{"name":"英语","teacher":null,"meetings":[{"weekday":1,"weeks":[3],"startMinute":540,"endMinute":600,"location":null}]}]}"#
+        let art = #"{"courses":[{"name":"英语","teacher":"张三","meetings":[{"weekday":2,"weeks":[4],"startMinute":810,"endMinute":900,"location":"6406"}]}]}"#
+        OfflineDeepSeekProtocol.handler = { _ in (200, try envelope(english, reason: "length")) }
+        await expectAsync(.truncatedResponse, "one image stays truncated") {
+            _ = try await client.recognize(images: [AIImportImage(data: tiny, mimeType: "image/png")])
+        }
+        var singlePages = 0
+        OfflineDeepSeekProtocol.handler = { request in
+            let data: Data
+            if let body = request.httpBody { data = body }
+            else {
+                let stream = request.httpBodyStream!
+                stream.open(); defer { stream.close() }
+                var bytes = Data(); var buffer = [UInt8](repeating: 0, count: 4096)
+                while stream.hasBytesAvailable { let count = stream.read(&buffer, maxLength: buffer.count); if count <= 0 { break }; bytes.append(buffer, count: count) }
+                data = bytes
+            }
+            let body = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+            check(body["max_tokens"] as? Int == DeepSeekTimetableClient.maxOutputTokens, "split requests keep the output ceiling")
+            let content = (body["messages"] as! [[String: Any]])[1]["content"] as! [[String: Any]]
+            let imageCount = content.filter { $0["type"] as? String == "image_url" }.count
+            if imageCount > 1 { return (200, try envelope(english, reason: "length")) }
+            singlePages += 1
+            return (200, try envelope(singlePages == 1 ? english : art))
+        }
+        let merged = try await client.recognize(images: [AIImportImage(data: tiny, mimeType: "image/png"), AIImportImage(data: png(width: 2), mimeType: "image/png")])
+        check(singlePages == 2, "two images become two requests after the combined response is truncated")
+        let mergedCourses = (try JSONSerialization.jsonObject(with: Data(merged.jsonText.utf8)) as! [String: Any])["courses"] as! [[String: Any]]
+        check(mergedCourses.count == 1, "split pages of the same course merge")
+        check(mergedCourses[0]["teacher"] as? String == "张三", "teacher found on the second page fills the blank")
+        check((mergedCourses[0]["meetings"] as! [[String: Any]]).count == 2, "distinct meetings from both pages are kept")
+        func courseNames(_ result: DeepSeekTimetableResult) throws -> [[String: Any]] {
+            (try JSONSerialization.jsonObject(with: Data(result.jsonText.utf8)) as! [String: Any])["courses"] as! [[String: Any]]
+        }
+        let ambiguousMerge = try DeepSeekTimetableClient.mergeResults(
+            DeepSeekTimetableResult(jsonText: #"{"courses":[{"name":"英语","teacher":null,"meetings":[{"weekday":1,"weeks":[3],"startMinute":540,"endMinute":600,"location":null}]}]}"#, finishReason: "stop"),
+            DeepSeekTimetableResult(jsonText: #"{"courses":[{"name":"英语","teacher":"张三","meetings":[{"weekday":2,"weeks":[4],"startMinute":810,"endMinute":900,"location":"6406"}]},{"name":"英语","teacher":"李四","meetings":[{"weekday":3,"weeks":[5],"startMinute":810,"endMinute":900,"location":"6407"}]}]}"#, finishReason: "stop")
+        )
+        let ambiguousCourses = try courseNames(ambiguousMerge)
+        check(ambiguousCourses.count == 3, "a blank teacher stays separate when two classes share the name")
+        let blankClass = ambiguousCourses.first { $0["teacher"] is NSNull }!
+        check(((blankClass["meetings"] as! [[String: Any]])[0]["weekday"] as? Int) == 1, "the unnamed meeting is not given to the first teacher")
+        let pendingMerge = try DeepSeekTimetableClient.mergeResults(
+            DeepSeekTimetableResult(jsonText: #"{"courses":[{"name":"英语","teacher":"张三","meetings":[],"pendingReason":"安排待定"}]}"#, finishReason: "stop"),
+            DeepSeekTimetableResult(jsonText: #"{"courses":[{"name":"英语","teacher":"张三","meetings":[{"weekday":1,"weeks":[3],"startMinute":540,"endMinute":600,"location":null}]}]}"#, finishReason: "stop")
+        )
+        check(try courseNames(pendingMerge).count == 2, "a pending course is not folded into a scheduled course")
+        let incompleteMerge = try DeepSeekTimetableClient.mergeResults(
+            DeepSeekTimetableResult(jsonText: #"{"courses":[{"name":"英语","teacher":"张三","meetings":[{"weekday":1,"weeks":[3],"startMinute":null,"endMinute":null,"location":"6406"}]}]}"#, finishReason: "stop"),
+            DeepSeekTimetableResult(jsonText: #"{"courses":[{"name":"英语","teacher":"张三","meetings":[{"weekday":1,"weeks":[3],"startMinute":null,"endMinute":null,"location":"6406"}]}]}"#, finishReason: "stop")
+        )
+        check(((try courseNames(incompleteMerge))[0]["meetings"] as! [[String: Any]]).count == 2, "meetings without clocks are both kept")
         OfflineDeepSeekProtocol.handler = { _ in preconditionFailure("pre-cancelled request sent") }
         let preCancelled = Task { withUnsafeCurrentTask { $0?.cancel() }; return try await client.recognize(text: "英语课表") }
         await expectAsync(.cancelled, "cancel before request") { _ = try await preCancelled.value }
+        let cancelledOCR = Task {
+            withUnsafeCurrentTask { $0?.cancel() }
+            return try await VisionTimetableRecognizer().recognize(images: [UIImage()])
+        }
+        do {
+            _ = try await cancelledOCR.value
+            check(false, "cancelled local OCR must not return pages")
+        } catch {
+            check(error as? VisionTimetableRecognizerError == .cancelled, "local OCR honours cancellation before image work")
+        }
+        do {
+            _ = try await VisionTimetableRecognizer().recognize(images: [UIImage()])
+            check(false, "unreadable OCR image must not return pages")
+        } catch {
+            check(error as? VisionTimetableRecognizerError == .invalidImage, "unreadable local OCR fails before the model request")
+        }
         let started = DispatchSemaphore(value: 0)
         OfflineDeepSeekProtocol.handler = { _ in started.signal(); return nil }
         let active = Task { try await client.recognize(text: "英语课表") }

@@ -53,6 +53,18 @@ public struct AIImportImage: Equatable {
     }
 }
 
+public struct DeepSeekCallUsage: Equatable {
+    public let finishReason: String
+    public let promptTokens: Int
+    public let completionTokens: Int
+
+    public init(finishReason: String, promptTokens: Int, completionTokens: Int) {
+        self.finishReason = finishReason
+        self.promptTokens = promptTokens
+        self.completionTokens = completionTokens
+    }
+}
+
 public struct DeepSeekTimetableResult: Equatable {
     /// Validated, normalized courses JSON for the shared draft parser.
     /// This layer deliberately does not write the schedule.

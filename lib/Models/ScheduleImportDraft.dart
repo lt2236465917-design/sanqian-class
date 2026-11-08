@@ -456,6 +456,31 @@ ScheduleRecognitionPreparation prepareScheduleRecognition(
       )
       .toList();
   final warnings = <String>[];
+  // Native evidence checks also cover identity fields. A complete timetable
+  // can still have an uncertain course title or teaching section.
+  final evidenceWarnings = <String>{};
+  for (final course in parsed) {
+    final batchMessages = course.raw['batchRecognitionWarnings'];
+    if (batchMessages is List) {
+      evidenceWarnings.addAll(
+        batchMessages.whereType<String>().where((message) => message.trim().isNotEmpty),
+      );
+    }
+    final messages = course.raw['recognitionWarnings'];
+    if (messages is List) {
+      for (final message in messages.whereType<String>()) {
+        if (message.trim().isNotEmpty) {
+          evidenceWarnings.add('“${course.name}”：${message.trim()}');
+        }
+      }
+    }
+    if (!course.isPending &&
+        (course.pendingReason ?? '').trim().isNotEmpty &&
+        (messages is! List || messages.isEmpty)) {
+      evidenceWarnings.add('“${course.name}”：${course.pendingReason!.trim()}');
+    }
+  }
+  warnings.addAll(evidenceWarnings);
   final merged = parsed.length - canonical.length;
   final removed =
       parsed.fold<int>(0, (n, c) => n + c.meetings.length) -
@@ -554,6 +579,7 @@ ScheduleRecognitionPreparation prepareScheduleRecognition(
   }
   warnings.addAll(overlaps);
   final anomaly =
+      evidenceWarnings.isNotEmpty ||
       merged > 0 ||
       removed > 0 ||
       ambiguous.isNotEmpty ||
@@ -580,7 +606,7 @@ bool _conflictsWithQuotedWeekday(ScheduleImportMeetingDraft meeting) {
   if (reference == null) return false;
   final quotedDays = <int, Set<int>>{};
   final pattern = RegExp(
-    r'(\d{1,2}(?:\s*[-–—~～,，、]\s*\d{1,2})*)\s*周\s*([一二三四五六日天])',
+    r'(\d{1,2}(?:\s*[-–—~～,，、]\s*\d{1,2})*)\s*(?:周|星期)\s*([一二三四五六日天])(?=$|[^\u3400-\u9fff]|上午|下午|晚上|晚间|早上|中午|全天)',
   );
   for (final match in pattern.allMatches(reference)) {
     final day = '一二三四五六日天'.indexOf(match.group(2)!) + 1;

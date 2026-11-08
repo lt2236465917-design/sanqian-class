@@ -31,6 +31,43 @@ Map<String, dynamic> course({
 };
 
 void main() {
+  test('batch coverage warning reaches review without blaming the first course', () {
+    const message = '图片中有1个非空格子尚未对应安排，请核对遗漏：图1周3 晚上课';
+    final result = prepareScheduleRecognition([
+      {
+        ...course(name: '课程甲'),
+        'raw': {'batchRecognitionWarnings': [message]},
+      },
+    ], source: 'photos');
+    expect(result.warnings, contains(message));
+    expect(result.warnings.any((warning) => warning.contains('“课程甲”：')), isFalse);
+    expect(result.hasStructuralAnomaly, isTrue);
+  });
+
+  test('identity evidence warnings reach review despite complete meetings', () {
+    final result = prepareScheduleRecognition([
+      {
+        ...course(name: '专题乙'),
+        'raw': {
+          'recognitionWarnings': ['课名与标题原文不一致：专题甲，请逐字核对'],
+        },
+      },
+    ], source: 'photos');
+    expect(result.courses.single['name'], '专题乙');
+    expect(result.warnings.single, contains('课名与标题原文不一致'));
+    expect(result.hasStructuralAnomaly, isTrue);
+    expect(result.shouldOfferOCR, isTrue);
+  });
+
+  test('non-time uncertainty is visible without erasing scheduled meetings', () {
+    final result = prepareScheduleRecognition([
+      {...course(name: '专题甲'), 'pendingReason': '课名局部不清，请核对'},
+    ], source: 'photos');
+    expect(result.courses.single['meetings'], hasLength(1));
+    expect(result.warnings.single, contains('课名局部不清'));
+    expect(result.shouldOfferOCR, isTrue);
+  });
+
   test(
     'quoted week and weekday contradictions warn without rewriting dates',
     () {
@@ -67,6 +104,27 @@ void main() {
       expect(result.warnings, isEmpty);
       expect(result.shouldOfferOCR, isFalse);
     }
+  });
+
+  test('week ranges followed by Chinese room names are not weekday evidence', () {
+    final result = prepareScheduleRecognition([
+      course(
+        meetings: [
+          {
+            ...meeting(day: 4, weeks: [3, 4, 5, 6, 7, 8, 9, 10, 11]),
+            'sourceReference': '周四 3-11周 三楼学术报告厅',
+          },
+        ],
+      ),
+    ], source: 'photos');
+    expect(result.warnings, isEmpty);
+    expect(result.courses.single['meetings'][0]['weekday'], 4);
+    final conflict = prepareScheduleRecognition([
+      course(meetings: [
+        {...meeting(day: 4, weeks: [3]), 'sourceReference': '3星期三上午'},
+      ]),
+    ], source: 'photos');
+    expect(conflict.warnings.single, contains('与 AI 引用的原文不一致'));
   });
 
   test('overlapping courses warn without discarding either arrangement', () {

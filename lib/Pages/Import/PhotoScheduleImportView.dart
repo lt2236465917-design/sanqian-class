@@ -104,7 +104,7 @@ class _PhotoScheduleImportViewState extends State<PhotoScheduleImportView> {
         builder: (c) => AlertDialog(
           title: const Text('使用 DeepSeek 识别'),
           content: const Text(
-            '所选课表图片将发送到 DeepSeek，可能消耗账户余额。请勿选择含密码或其他私密资料的图片。',
+            '所选课表图片及从中识别的文字将一并发送到 DeepSeek，可能消耗账户余额。请勿选择含密码或其他私密资料的图片。',
           ),
           actions: [
             TextButton(

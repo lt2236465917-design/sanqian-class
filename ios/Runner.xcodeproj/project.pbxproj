@@ -26,6 +26,7 @@
 		C92100000000000000010001 /* AIImportModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C92100000000000000000001 /* AIImportModels.swift */; };
 		C92100000000000000010002 /* VisionTimetableRecognizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = C92100000000000000000002 /* VisionTimetableRecognizer.swift */; };
 		C92100000000000000010003 /* DeepSeekTimetableClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = C92100000000000000000003 /* DeepSeekTimetableClient.swift */; };
+		C9210000000000000001000C /* TimetableGridEvidence.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9210000000000000000000C /* TimetableGridEvidence.swift */; };
 		C92100000000000000010004 /* ScheduleCredentialsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = C92100000000000000000004 /* ScheduleCredentialsStore.swift */; };
 		C92100000000000000010005 /* SchoolPortalModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C92100000000000000000005 /* SchoolPortalModels.swift */; };
 		C92100000000000000010006 /* SchoolPortalSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = C92100000000000000000006 /* SchoolPortalSession.swift */; };
@@ -1878,6 +1879,7 @@
 		C92100000000000000000001 /* AIImportModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIImportModels.swift; sourceTree = "<group>"; };
 		C92100000000000000000002 /* VisionTimetableRecognizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisionTimetableRecognizer.swift; sourceTree = "<group>"; };
 		C92100000000000000000003 /* DeepSeekTimetableClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepSeekTimetableClient.swift; sourceTree = "<group>"; };
+		C9210000000000000000000C /* TimetableGridEvidence.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimetableGridEvidence.swift; sourceTree = "<group>"; };
 		C92100000000000000000004 /* ScheduleCredentialsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleCredentialsStore.swift; sourceTree = "<group>"; };
 		C92100000000000000000005 /* SchoolPortalModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchoolPortalModels.swift; sourceTree = "<group>"; };
 		C92100000000000000000006 /* SchoolPortalSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SchoolPortalSession.swift; sourceTree = "<group>"; };
@@ -5816,6 +5818,7 @@
 				C92100000000000000000001 /* AIImportModels.swift */,
 				C92100000000000000000002 /* VisionTimetableRecognizer.swift */,
 				C92100000000000000000003 /* DeepSeekTimetableClient.swift */,
+				C9210000000000000000000C /* TimetableGridEvidence.swift */,
 				C92100000000000000000004 /* ScheduleCredentialsStore.swift */,
 				C92100000000000000000005 /* SchoolPortalModels.swift */,
 				C92100000000000000000006 /* SchoolPortalSession.swift */,
@@ -6029,6 +6032,7 @@
 				C92100000000000000010001 /* AIImportModels.swift in Sources */,
 				C92100000000000000010002 /* VisionTimetableRecognizer.swift in Sources */,
 				C92100000000000000010003 /* DeepSeekTimetableClient.swift in Sources */,
+				C9210000000000000001000C /* TimetableGridEvidence.swift in Sources */,
 				C92100000000000000010004 /* ScheduleCredentialsStore.swift in Sources */,
 				C92100000000000000010005 /* SchoolPortalModels.swift in Sources */,
 				C92100000000000000010006 /* SchoolPortalSession.swift in Sources */,

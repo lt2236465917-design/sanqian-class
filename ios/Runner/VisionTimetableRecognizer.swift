@@ -74,6 +74,71 @@ public final class VisionTimetableRecognizer {
         } catch is CancellationError { throw VisionTimetableRecognizerError.cancelled }
     }
 
+    /// Retry only locally detected, occupied grid cells that whole-page OCR missed.
+    /// The crop remains local and supplies text evidence; it never adds an API image.
+    public func fillMissingGridText(images: [AIImportImage], cells: [[String: Any]]) async throws -> [[String: Any]] {
+        try Task.checkCancellation()
+        var result = cells
+        var attempted = 0
+        var cropPixels = 0
+        for index in result.indices {
+            try Task.checkCancellation()
+            guard attempted < 8, let texts = result[index]["texts"] as? [String], texts.isEmpty,
+                  let page = result[index]["imageIndex"] as? Int, images.indices.contains(page),
+                  let box = result[index]["box"] as? [Double], box.count == 4,
+                  box.allSatisfy(\.isFinite), box[0] >= 0, box[1] >= 0, box[2] > 0, box[3] > 0,
+                  box[0] + box[2] <= 1.000001, box[1] + box[3] <= 1.000001 else { continue }
+            attempted += 1
+            let crop: UIImage? = autoreleasepool {
+                guard let source = CGImageSourceCreateWithData(images[page].data as CFData, [kCGImageSourceShouldCache: false] as CFDictionary),
+                      let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+                      let width = (properties[kCGImagePropertyPixelWidth] as? NSNumber)?.intValue,
+                      let height = (properties[kCGImagePropertyPixelHeight] as? NSNumber)?.intValue,
+                      (3...8192).contains(width), (3...8192).contains(height), width * height <= 16_000_000 else { return nil }
+                let options: [CFString: Any] = [
+                    kCGImageSourceCreateThumbnailFromImageAlways: true,
+                    kCGImageSourceCreateThumbnailWithTransform: true,
+                    kCGImageSourceThumbnailMaxPixelSize: max(width, height),
+                    kCGImageSourceShouldCacheImmediately: true
+                ]
+                guard let oriented = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else { return nil }
+                let w = Double(oriented.width), h = Double(oriented.height)
+                // Inward rounding keeps neighbouring cells out. No padding or resizing.
+                let left = ceil(box[0] * w), top = ceil(box[1] * h)
+                let right = floor(min(1, box[0] + box[2]) * w), bottom = floor(min(1, box[1] + box[3]) * h)
+                guard right > left, bottom > top else { return nil }
+                let pixels = Int(right - left) * Int(bottom - top)
+                guard pixels <= 4_000_000 - cropPixels else { return nil }
+                cropPixels += pixels
+                guard let cgCrop = oriented.cropping(to: CGRect(x: left, y: top, width: right - left, height: bottom - top)) else { return nil }
+                return UIImage(cgImage: cgCrop)
+            }
+            try Task.checkCancellation()
+            guard let crop else { continue }
+            do {
+                let tokens = try await recognize(image: crop, imageIndex: page)
+                try Task.checkCancellation()
+                let text = tokens.sorted {
+                    let a = $0.boundingBox, b = $1.boundingBox
+                    let ay = a.y + a.height / 2, by = b.y + b.height / 2
+                    return ay == by ? a.x < b.x : ay < by
+                }.map { $0.text.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+                if !text.isEmpty {
+                    result[index]["texts"] = text
+                    result[index]["textSource"] = "cellOCR"
+                }
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch VisionTimetableRecognizerError.cancelled {
+                throw VisionTimetableRecognizerError.cancelled
+            } catch {
+                // Optional cell evidence must not discard readable pages or start a model retry.
+            }
+        }
+        try Task.checkCancellation()
+        return result
+    }
+
     /// Vision boxes can sit a fraction outside the image. Keep a near-edge
     /// word and drop a box that misses the page, instead of failing the review.
     static func clipToUnit(_ box: AIImportBoundingBox) -> AIImportBoundingBox? {

@@ -25,10 +25,11 @@ class DeepSeekOcrReviewTest {
     fun endpointModelAndThinkingStayFixed() {
         assertEquals("https://api.deepseek.com/chat/completions", DeepSeekTimetableClient.ENDPOINT)
         assertEquals("deepseek-flash", DeepSeekTimetableClient.MODEL)
+        assertEquals(393216, DeepSeekTimetableClient.MAX_OUTPUT_TOKENS)
     }
 
     @Test
-    fun defaultRequestHasNoOcrBlockAndReviewKeepsEveryImage() {
+    fun lowLevelImageOnlyRequestAndOcrRequestKeepEveryImage() {
         withServer { server ->
             val api = client(server)
             server.enqueue(ok(course))
@@ -49,11 +50,13 @@ class DeepSeekOcrReviewTest {
             assertTrue(auxiliary.contains("摄影 第5周 周六 上午"))
             assertFalse(auxiliary.contains("辅助文字只保留了放得下的一部分"))
             assertTrue(auxiliary.contains("左上角"))
-            val evidence = JSONArray(auxiliary.substring(auxiliary.indexOf('[')))
+            val evidence = JSONArray(auxiliary.substringAfterLast('\n'))
             assertEquals(2, evidence.length())
-            assertTrue(evidence.getJSONObject(0).isNull("confidence"))
             assertEquals(0, evidence.getJSONObject(0).getInt("imageIndex"))
-            assertEquals(0.1, evidence.getJSONObject(0).getJSONObject("boundingBox").getDouble("x"), 0.00001)
+            val token = evidence.getJSONObject(0).getJSONArray("tokens").getJSONArray(0)
+            assertEquals("摄影 第5周 周六 上午", token.getString(0))
+            assertEquals(5, token.length())
+            assertEquals(0.1, token.getDouble(1), 0.00001)
         }
     }
 
@@ -65,7 +68,7 @@ class DeepSeekOcrReviewTest {
             val root = JSONObject(server.takeRequest().body.readUtf8())
             assertEquals("deepseek-flash", root.getString("model"))
             assertEquals(0, root.getInt("temperature"))
-            assertEquals(16384, root.getInt("max_tokens"))
+            assertEquals(DeepSeekTimetableClient.MAX_OUTPUT_TOKENS, root.getInt("max_tokens"))
             assertEquals("json_object", root.getJSONObject("response_format").getString("type"))
             assertEquals("disabled", root.getJSONObject("thinking").getString("type"))
             assertEquals(1, server.requestCount)
@@ -134,8 +137,11 @@ class DeepSeekOcrReviewTest {
             assertEquals(2, imageUrls(review).size)
             val auxiliary = textBlocks(review).last()
             assertFalse(auxiliary.contains("辅助文字只保留了放得下的一部分"))
-            val evidence = JSONArray(auxiliary.substring(auxiliary.indexOf('[')))
-            val texts = (0 until evidence.length()).map { evidence.getJSONObject(it).getString("text") }
+            val evidence = JSONArray(auxiliary.substringAfterLast('\n'))
+            val texts = (0 until evidence.length()).flatMap { page ->
+                val tokens = evidence.getJSONObject(page).getJSONArray("tokens")
+                (0 until tokens.length()).map { tokens.getJSONArray(it).getString(0) }
+            }
             assertTrue(texts.contains("课甲"))
             assertTrue(texts.contains("课乙"))
             assertTrue(texts.contains("课899"))
@@ -180,6 +186,50 @@ class DeepSeekOcrReviewTest {
             server.enqueue(MockResponse().setResponseCode(200).setBody(envelope(course, "length")))
             expect(DeepSeekTimetableClientError.TruncatedResponse) { api.recognizeText("英语 周一 09:00-10:00") }
             assertEquals(cases.size + 3, server.requestCount)
+        }
+    }
+
+    @Test
+    fun truncatedImagesSplitUntilEachPageFits() {
+        val english = """{"courses":[{"name":"英语","teacher":null,"meetings":[{"weekday":1,"weeks":[3],"startMinute":540,"endMinute":600,"location":null}]}]}"""
+        val art = """{"courses":[{"name":"英语","teacher":"张三","meetings":[{"weekday":2,"weeks":[4],"startMinute":810,"endMinute":900,"location":"6406"}]}]}"""
+        withServer { server ->
+            server.enqueue(ok(course, "length"))
+            expect(DeepSeekTimetableClientError.TruncatedResponse) { client(server).recognizeImages(listOf(first)) }
+            assertEquals(1, server.requestCount)
+
+            server.enqueue(ok(course, "length"))
+            server.enqueue(ok(english))
+            server.enqueue(ok(art))
+            val merged = JSONObject(client(server).recognizeImages(listOf(first, second)).jsonText)
+            assertEquals(4, server.requestCount)
+            val courses = merged.getJSONArray("courses")
+            assertEquals(1, courses.length())
+            assertEquals("张三", courses.getJSONObject(0).getString("teacher"))
+            assertEquals(2, courses.getJSONObject(0).getJSONArray("meetings").length())
+        }
+    }
+
+    @Test
+    fun splitMergeDoesNotAttachABlankTeacherOrDropAnIncompleteMeeting() {
+        val blank = """{"courses":[{"name":"英语","teacher":null,"meetings":[{"weekday":1,"weeks":[3],"startMinute":540,"endMinute":600,"location":null}]}]}"""
+        val twoTeachers = """{"courses":[{"name":"英语","teacher":"张三","meetings":[{"weekday":2,"weeks":[4],"startMinute":810,"endMinute":900,"location":"6406"}]},{"name":"英语","teacher":"李四","meetings":[{"weekday":3,"weeks":[5],"startMinute":810,"endMinute":900,"location":"6407"}]}]}"""
+        val noClock = """{"courses":[{"name":"英语","teacher":"张三","meetings":[{"weekday":1,"weeks":[3],"startMinute":null,"endMinute":null,"location":"6406"}]}]}"""
+        withServer { server ->
+            server.enqueue(ok(course, "length"))
+            server.enqueue(ok(blank))
+            server.enqueue(ok(twoTeachers))
+            val ambiguous = JSONObject(client(server).recognizeImages(listOf(first, second)).jsonText).getJSONArray("courses")
+            assertEquals(3, ambiguous.length())
+            val unnamed = (0 until ambiguous.length()).map { ambiguous.getJSONObject(it) }.first { it.isNull("teacher") }
+            assertEquals(1, unnamed.getJSONArray("meetings").getJSONObject(0).getInt("weekday"))
+
+            server.enqueue(ok(course, "length"))
+            server.enqueue(ok(noClock))
+            server.enqueue(ok(noClock))
+            val incomplete = JSONObject(client(server).recognizeImages(listOf(first, second)).jsonText)
+                .getJSONArray("courses").getJSONObject(0).getJSONArray("meetings")
+            assertEquals(2, incomplete.length())
         }
     }
 
@@ -304,7 +354,7 @@ class DeepSeekOcrReviewTest {
         }
     }
 
-    private fun ok(content: String) = MockResponse().setResponseCode(200).setBody(envelope(content))
+    private fun ok(content: String, reason: String = "stop") = MockResponse().setResponseCode(200).setBody(envelope(content, reason))
 
     private fun envelope(content: String, reason: String = "stop"): String {
         return JSONObject()
@@ -323,7 +373,7 @@ class DeepSeekOcrReviewTest {
         val root = JSONObject(body)
         assertEquals("deepseek-flash", root.getString("model"))
         assertEquals(0, root.getInt("temperature"))
-        assertEquals(16384, root.getInt("max_tokens"))
+        assertEquals(DeepSeekTimetableClient.MAX_OUTPUT_TOKENS, root.getInt("max_tokens"))
         assertEquals("json_object", root.getJSONObject("response_format").getString("type"))
         assertEquals("disabled", root.getJSONObject("thinking").getString("type"))
         return root.getJSONArray("messages").getJSONObject(1).getJSONArray("content")

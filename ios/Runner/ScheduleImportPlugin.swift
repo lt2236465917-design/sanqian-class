@@ -69,7 +69,6 @@ final class ScheduleImportPlugin: NSObject, FlutterPlugin {
                 guard recognition == nil else { throw ImportBridgeError.busy }
                 let paths = args["paths"] as? [String] ?? []
                 guard !paths.isEmpty, paths.count <= 20 else { throw ImportBridgeError.images }
-                let useOCR = call.method == "recognizePhotosWithOCR"
                 recognition = Task { [weak self] in
                     defer { self?.recognition = nil }
                     do {
@@ -84,10 +83,9 @@ final class ScheduleImportPlugin: NSObject, FlutterPlugin {
                             guard let bytes = image.jpegData(compressionQuality: 0.95) else { throw ImportBridgeError.images }
                             return AIImportImage(data: bytes)
                         }
-                        let pages: [VisionTimetablePage]?
-                        if useOCR {
-                            pages = try await VisionTimetableRecognizer().recognize(images: images)
-                        } else { pages = nil }
+                        // Both the initial import and an explicit recheck include
+                        // independent local text in the same image request.
+                        let pages = try await VisionTimetableRecognizer().recognize(images: images)
                         try Task.checkCancellation()
                         let output = try await DeepSeekTimetableClient(apiKey: key).recognize(images: input, ocrPages: pages)
                         let object = try JSONSerialization.jsonObject(with: Data(output.jsonText.utf8))

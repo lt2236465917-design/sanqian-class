@@ -144,11 +144,10 @@ class ScheduleImportPlugin :
                 "recognizeText" -> recognize(result) { client ->
                     client.recognizeText(call.argument<String>("text") ?: "")
                 }
-                "recognizePhotos" -> recognize(result) { client ->
-                    client.recognizeImages(loadImages(call))
-                }
-                "recognizePhotosWithOCR" -> recognize(result) { client ->
+                "recognizePhotos", "recognizePhotosWithOCR" -> recognize(result) { client ->
                     val images = loadImages(call)
+                    // Initial imports and explicit rechecks use the same local
+                    // text evidence with one batch of original images.
                     val pages = PaddleChineseTimetableOcr(appContext ?: throw IllegalStateException("界面已销毁")).recognize(images, cancelled)
                     // Reject empty or illegal OCR before any image is uploaded.
                     DeepSeekTimetableClient.ocrReviewText(pages, images.size)
@@ -205,7 +204,11 @@ class ScheduleImportPlugin :
         running = executor.submit {
             try {
                 val key = store.loadDeepSeekAPIKey() ?: throw DeepSeekTimetableClientError.MissingAPIKey
-                val client = DeepSeekTimetableClient(key, cancelled) { connection.set(it) }
+                val client = DeepSeekTimetableClient(key, cancelled,
+                    gridTextRecognizer = { crops ->
+                        PaddleChineseTimetableOcr(appContext ?: throw IllegalStateException("界面已销毁")).recognize(crops, cancelled)
+                    },
+                    connectionHolder = { connection.set(it) })
                 val output = work(client)
                 if (cancelled.get() || generation.get() != ticket) throw DeepSeekTimetableClientError.Cancelled
                 val parsed = DeepSeekTimetableClient.jsonToAny(JSONObject(output.jsonText))
