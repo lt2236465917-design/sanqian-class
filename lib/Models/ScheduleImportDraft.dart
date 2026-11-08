@@ -42,10 +42,63 @@ class ScheduleImportMeetingDraft {
 
   bool get hasClock => startMinute != null && endMinute != null;
 
+  /// Locally read section clocks are usable only while they exactly describe
+  /// this meeting. Editing its clock invalidates stale source-axis evidence.
+  List<Map<String, int>> get sourcePeriods {
+    final value = raw['sourcePeriods'];
+    if (!hasClock ||
+        periodIndex == null ||
+        value is! List ||
+        value.isEmpty ||
+        value.length != (periodCount ?? 0) + 1 ||
+        value.length > 200) {
+      return const [];
+    }
+    final result = <Map<String, int>>[];
+    for (var i = 0; i < value.length; i++) {
+      final p = value[i];
+      if (p is! Map ||
+          p['periodIndex'] is! int ||
+          p['startMinute'] is! int ||
+          p['endMinute'] is! int) {
+        return const [];
+      }
+      final number = p['periodIndex'] as int,
+          start = p['startMinute'] as int,
+          end = p['endMinute'] as int;
+      if (number != periodIndex! + i ||
+          number < 1 ||
+          number > 200 ||
+          start < 0 ||
+          end >= 1440 ||
+          start >= end ||
+          (i > 0 && result.last['endMinute'] != start)) {
+        return const [];
+      }
+      result.add({
+        'periodIndex': number,
+        'startMinute': start,
+        'endMinute': end,
+      });
+    }
+    if (result.first['startMinute'] != startMinute ||
+        result.last['endMinute'] != endMinute) {
+      return const [];
+    }
+    return result;
+  }
+
   String get timeDescription {
     String clock(int m) =>
         '${m ~/ 60}'.padLeft(2, '0') + ':' + '${m % 60}'.padLeft(2, '0');
-    if (hasClock) return '${clock(startMinute!)}–${clock(endMinute!)}';
+    if (hasClock) {
+      final range = '${clock(startMinute!)}–${clock(endMinute!)}';
+      if (sourcePeriods.isNotEmpty) {
+        final last = periodIndex! + (periodCount ?? 0);
+        return '第 $periodIndex${last == periodIndex ? '' : '–$last'} 节 · $range';
+      }
+      return range;
+    }
     if ((periodLabel ?? '').trim().isNotEmpty) {
       return '${periodLabel!.trim()}（具体时间待确认）';
     }
@@ -468,6 +521,7 @@ class ScheduleImportValidationException implements Exception {
 class ScheduleRecognitionPreparation {
   final List<Map<String, dynamic>> courses;
   final List<String> warnings;
+  final List<String> information;
   final List<String> missingCourses;
   final List<String> extraCourses;
   final bool hasStructuralAnomaly;
@@ -476,6 +530,7 @@ class ScheduleRecognitionPreparation {
   const ScheduleRecognitionPreparation({
     required this.courses,
     this.warnings = const [],
+    this.information = const [],
     this.missingCourses = const [],
     this.extraCourses = const [],
     this.hasStructuralAnomaly = false,
@@ -530,7 +585,28 @@ ScheduleRecognitionPreparation prepareScheduleRecognition(
   // Native evidence checks also cover identity fields. A complete timetable
   // can still have an uncertain course title or teaching section.
   final evidenceWarnings = <String>{};
+  final information = <String>{};
   for (final course in parsed) {
+    final reason = (course.pendingReason ?? '').trim();
+    // Exact teacher-only source notes may be informational; mixed or uncertain
+    // notes still warn. Null teacher alone is never proof that the image omitted it.
+    final compactReason = reason.replaceAll(RegExp(r'\s+'), '');
+    final teacherOnlyNote =
+        const [
+          '原图未提供教师',
+          '原课表未提供教师',
+          '教师未提供',
+          '教师信息未提供',
+        ].contains(compactReason) ||
+        RegExp(
+          r'^(?:原图|原课表)?教师(?:栏|字段)?(?:为|是|显示|标为)?(?:占位符)?[-—–]+[。.]?$',
+        ).hasMatch(compactReason);
+    final missingAtSource =
+        (course.teacher ?? '').trim().isEmpty &&
+        (course.raw['sourceMissingTeacher'] == true || teacherOnlyNote);
+    if (missingAtSource) {
+      information.add('“${course.name}”：原课表未提供教师，可按已识别的安排保存。');
+    }
     final batchMessages = course.raw['batchRecognitionWarnings'];
     if (batchMessages is List) {
       evidenceWarnings.addAll(
@@ -550,6 +626,7 @@ ScheduleRecognitionPreparation prepareScheduleRecognition(
     if (!course.isPending &&
         (course.pendingReason ?? '').trim().isNotEmpty &&
         course.pendingReason != '缺少钟点，请核对原课表' &&
+        !(missingAtSource && teacherOnlyNote) &&
         (messages is! List || messages.isEmpty)) {
       evidenceWarnings.add('“${course.name}”：${course.pendingReason!.trim()}');
     }
@@ -675,6 +752,7 @@ ScheduleRecognitionPreparation prepareScheduleRecognition(
   return ScheduleRecognitionPreparation(
     courses: canonical.map((course) => course.toJson()).toList(),
     warnings: List.unmodifiable(warnings),
+    information: List.unmodifiable(information),
     missingCourses: List.unmodifiable(missing),
     extraCourses: List.unmodifiable(extra),
     hasStructuralAnomaly: anomaly,

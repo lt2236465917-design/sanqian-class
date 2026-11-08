@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../Components/ScheduleDesign.dart';
@@ -21,6 +22,49 @@ class PhotoScheduleImportView extends StatefulWidget {
 class _PhotoScheduleImportViewState extends State<PhotoScheduleImportView> {
   final _imageScrollController = ScrollController();
   List<XFile> _images = [];
+  final Map<String, ({int width, int height})> _dimensions = {};
+  bool _checkingImages = false;
+  int _selectionTicket = 0;
+
+  String? get _qualityHint {
+    final small = <int>[];
+    for (var i = 0; i < _images.length; i++) {
+      final size = _dimensions[_images[i].path];
+      // This is only a resolution hint, not a claim that text is unreadable.
+      if (size != null && size.width <= 1280 && size.height <= 1280) {
+        small.add(i + 1);
+      }
+    }
+    return small.isEmpty
+        ? null
+        : '第 ${small.join('、')} 张图片尺寸较小，密集课表的小字可能不清晰。建议选择原图；仍可继续识别。';
+  }
+
+  Future<Map<String, ({int width, int height})>> _inspectImages(
+    List<XFile> images,
+  ) async {
+    final sizes = <String, ({int width, int height})>{};
+    for (final image in images) {
+      ui.ImmutableBuffer? buffer;
+      ui.ImageDescriptor? descriptor;
+      try {
+        if (!File(image.path).existsSync()) continue;
+        buffer = await ui.ImmutableBuffer.fromFilePath(image.path);
+        descriptor = await ui.ImageDescriptor.encoded(buffer);
+        sizes[image.path] = (
+          width: descriptor.width,
+          height: descriptor.height,
+        );
+      } catch (_) {
+        // Metadata failure must not block a readable image's existing import path.
+      } finally {
+        descriptor?.dispose();
+        buffer?.dispose();
+      }
+    }
+    return sizes;
+  }
+
   bool _busy = false, _recognizing = false;
   int _ticket = 0;
   int _keyRevision = 0;
@@ -29,6 +73,7 @@ class _PhotoScheduleImportViewState extends State<PhotoScheduleImportView> {
   @override
   void dispose() {
     _ticket++;
+    _selectionTicket++;
     _imageScrollController.dispose();
     if (_recognizing) {
       unawaited(
@@ -58,6 +103,7 @@ class _PhotoScheduleImportViewState extends State<PhotoScheduleImportView> {
       false;
 
   Future<void> _pick() async {
+    final ticket = ++_selectionTicket;
     try {
       final images = await ImagePicker().pickMultiImage();
       if (!mounted || images.isEmpty) return;
@@ -65,20 +111,32 @@ class _PhotoScheduleImportViewState extends State<PhotoScheduleImportView> {
         setState(() => _error = '每次最多选择 20 张课表图片');
         return;
       }
+      setState(() => _checkingImages = true);
+      final sizes = await _inspectImages(images);
+      if (!mounted || ticket != _selectionTicket) return;
       if (_imageScrollController.hasClients) {
         _imageScrollController.jumpTo(0);
       }
       setState(() {
         _images = images;
+        _dimensions
+          ..clear()
+          ..addAll(sizes);
+        _checkingImages = false;
         _error = '';
       });
     } catch (e) {
-      if (mounted) setState(() => _error = _message(e));
+      if (mounted) {
+        setState(() {
+          _checkingImages = false;
+          _error = _message(e);
+        });
+      }
     }
   }
 
   Future<void> _recognize() async {
-    if (_busy || _images.isEmpty) return;
+    if (_busy || _checkingImages || _images.isEmpty) return;
     final ticket = ++_ticket;
     setState(() {
       _busy = true;
@@ -93,9 +151,7 @@ class _PhotoScheduleImportViewState extends State<PhotoScheduleImportView> {
         hasKey = await _hasSavedKey();
         if (!mounted || ticket != _ticket) return;
         if (!hasKey) {
-          setState(
-            () => _error = '配置 Key 后，点击“AI 识别课表”继续；已选图片保留',
-          );
+          setState(() => _error = '配置 Key 后，点击“AI 识别课表”继续；已选图片保留');
           return;
         }
       }
@@ -103,8 +159,11 @@ class _PhotoScheduleImportViewState extends State<PhotoScheduleImportView> {
         context: context,
         builder: (c) => AlertDialog(
           title: const Text('使用 DeepSeek 识别'),
-          content: const Text(
-            '所选课表图片及从中识别的文字将一并发送到 DeepSeek，可能消耗账户余额。请勿选择含密码或其他私密资料的图片。',
+          content: Text(
+            [
+              if (_qualityHint != null) _qualityHint!,
+              '所选课表图片及从中识别的文字将一并发送到 DeepSeek，可能消耗账户余额。请勿选择含密码或其他私密资料的图片。',
+            ].join('\n\n'),
           ),
           actions: [
             TextButton(
@@ -265,8 +324,8 @@ class _PhotoScheduleImportViewState extends State<PhotoScheduleImportView> {
               ),
               title: Text(_images.isEmpty ? '选择课表图片' : '重新选择课表图片'),
               trailing: const Icon(Icons.chevron_right_rounded, size: 20),
-              enabled: !_busy,
-              onTap: _busy ? null : _pick,
+              enabled: !_busy && !_checkingImages,
+              onTap: _busy || _checkingImages ? null : _pick,
             ),
           ),
           const SizedBox(height: 16),
@@ -287,6 +346,12 @@ class _PhotoScheduleImportViewState extends State<PhotoScheduleImportView> {
               ),
             ],
           ),
+          if (_checkingImages) const Text('正在读取图片尺寸…'),
+          if (_qualityHint != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: ScheduleNotice(_qualityHint),
+            ),
           if (_images.isNotEmpty) ...[
             Padding(
               padding: const EdgeInsets.only(top: 8, bottom: 4),
@@ -354,7 +419,9 @@ class _PhotoScheduleImportViewState extends State<PhotoScheduleImportView> {
                                       vertical: 4,
                                     ),
                                     child: Text(
-                                      '${i + 1}',
+                                      _dimensions[_images[i].path] == null
+                                          ? '${i + 1}'
+                                          : '${i + 1}\n${_dimensions[_images[i].path]!.width}×${_dimensions[_images[i].path]!.height}',
                                       style: const TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
@@ -415,7 +482,9 @@ class _PhotoScheduleImportViewState extends State<PhotoScheduleImportView> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             FilledButton(
-              onPressed: _busy || _images.isEmpty ? null : _recognize,
+              onPressed: _busy || _checkingImages || _images.isEmpty
+                  ? null
+                  : _recognize,
               child: Text(_recognizing ? 'AI 正在识别…' : 'AI 识别课表'),
             ),
             if (_recognizing)

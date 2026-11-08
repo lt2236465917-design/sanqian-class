@@ -112,6 +112,103 @@ void main() {
   }
 
   test(
+    'numbered source axis survives SQLite without filling the evening break',
+    () async {
+      final axis = [
+        for (var i = 1; i <= 4; i++)
+          {
+            'periodIndex': i,
+            'startMinute': 540 + (i - 1) * 45,
+            'endMinute': 540 + i * 45,
+          },
+        for (var i = 5; i <= 8; i++)
+          {
+            'periodIndex': i,
+            'startMinute': 810 + (i - 5) * 45,
+            'endMinute': 810 + (i - 4) * 45,
+          },
+        {'periodIndex': 9, 'startMinute': 1140, 'endMinute': 1180},
+        {'periodIndex': 10, 'startMinute': 1230, 'endMinute': 1290},
+      ];
+      ScheduleImportMeetingDraft segment(
+        int first,
+        int last, {
+        List<int> weeks = const [1],
+      }) {
+        final periods = axis.sublist(first - 1, last);
+        return ScheduleImportMeetingDraft.fromJson({
+          'weekday': 1,
+          'weeks': weeks,
+          'location': '6401',
+          'periodIndex': first,
+          'periodCount': last - first,
+          'startMinute': periods.first['startMinute'],
+          'endMinute': periods.last['endMinute'],
+          'raw': {'sourcePeriods': periods},
+        });
+      }
+
+      final input = draft([
+        course('MORNING', [
+          segment(1, 4, weeks: [1, 3]),
+        ]),
+        course('AFTERNOON', [segment(5, 8)]),
+        course('NIGHT', [segment(9, 9), segment(10, 10)]),
+      ]);
+      final saved = await ScheduleImportService.commit(input, database: db);
+      final schedule = await savedSchedule(saved.tableId);
+      expect(schedule.periods, hasLength(10));
+      expect(
+        schedule.periods.map((p) => p['source_period']),
+        orderedEquals(List.generate(10, (i) => i + 1)),
+      );
+      expect(schedule.pending, isEmpty);
+      expect(schedule.occurrences, hasLength(5));
+      final morning = schedule.occurrences.first;
+      expect(morning.course.timeCount, 3);
+      expect(morning.clockRange, '09:00–12:00');
+      final atBreak = DateTime(2026, 9, 7, 19, 50);
+      expect(schedule.occurrences.any((c) => c.isOngoing(atBreak)), isFalse);
+      expect(schedule.next(atBreak)!.start, DateTime(2026, 9, 7, 20, 30));
+      final night = ScheduleCalendarExporter.exportable(
+        schedule,
+      ).where((c) => c.course.name == '课程 NIGHT').toList();
+      expect(night.map((c) => c.clockRange), ['19:00–19:40', '20:30–21:30']);
+      final exported =
+          ScheduleDerivedDataService.snapshot(schedule)['occurrences'] as List;
+      // All derived intervals, regardless of their display fields, leave the break free.
+      final probe = DateTime.utc(2026, 9, 7, 11, 50).millisecondsSinceEpoch;
+      expect(
+        exported.any((e) => e['startMs'] <= probe && e['endMs'] > probe),
+        isFalse,
+      );
+      expect(exported, hasLength(5));
+      final again = await ScheduleImportService.commit(input, database: db);
+      expect(again.inserted, 0);
+      expect(await rows(), hasLength(4));
+      expect((await savedSchedule(saved.tableId)).periods, hasLength(10));
+
+      final changed = ScheduleImportMeetingDraft.fromJson({
+        ...segment(1, 4).toJson(),
+        'startMinute': 550,
+      });
+      expect(
+        changed.sourcePeriods,
+        isEmpty,
+        reason: 'edited clocks invalidate stale source precision',
+      );
+      expect(changed.timeDescription, '09:10–12:00');
+      final malformed = ScheduleImportMeetingDraft.fromJson({
+        ...segment(9, 9).toJson(),
+        'raw': {
+          'sourcePeriods': [axis[8], axis[9]],
+        },
+      });
+      expect(malformed.sourcePeriods, isEmpty);
+    },
+  );
+
+  test(
     'real reviewed image survives SQLite as 14 identities, 23 meetings, 73 dated sessions and 2 undated courses',
     () async {
       final input = realCourses();

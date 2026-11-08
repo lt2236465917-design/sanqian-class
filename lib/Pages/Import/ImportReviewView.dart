@@ -1055,6 +1055,16 @@ class _ImportReviewViewState extends State<ImportReviewView> {
               padding: const EdgeInsets.all(20),
               children: [
                 const ImportJourney(step: 2),
+                for (final message in _preparation.information)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Text(
+                      message,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
                 for (final warning in _reviewWarnings) ScheduleNotice(warning),
                 if (_courses.isNotEmpty)
                   Padding(
@@ -1357,6 +1367,11 @@ class _CourseEditorState extends State<_CourseEditor> {
             end = _minute(m['endMinute']!.text);
         final label = m['periodLabel']!.text.trim();
         final labelChanged = label != '${old['periodLabel'] ?? ''}'.trim();
+        final clockChanged =
+            start != old['startMinute'] || end != old['endMinute'];
+        final preservePeriods = !clockChanged && !labelChanged;
+        final raw = Map<String, dynamic>.from(old['raw'] as Map? ?? {});
+        if (!preservePeriods) raw.remove('sourcePeriods');
         meetings.add({
           if (i < original.length) ...Map<String, dynamic>.from(original[i]),
           'weekday': m['weekday']!.text.trim().isEmpty
@@ -1367,13 +1382,12 @@ class _CourseEditorState extends State<_CourseEditor> {
               : weeks.split(RegExp('[,， ]+')).map(int.parse).toList(),
           'startMinute': start,
           'endMinute': end,
-          'periodLabel': start != null || label.isEmpty ? null : label,
-          'periodIndex': start != null || labelChanged
-              ? null
-              : old['periodIndex'],
-          'periodCount': start != null || labelChanged
-              ? null
-              : old['periodCount'],
+          'periodLabel': preservePeriods
+              ? old['periodLabel']
+              : (start != null || label.isEmpty ? null : label),
+          'raw': raw,
+          'periodIndex': preservePeriods ? old['periodIndex'] : null,
+          'periodCount': preservePeriods ? old['periodCount'] : null,
           'location': m['location']!.text,
         });
       }

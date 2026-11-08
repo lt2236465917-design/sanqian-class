@@ -132,7 +132,47 @@ struct AIImportOfflineTests {
         let scheduled = try parse(["6-10周二上午，请与任课教师联系"], meetings: [["listRow": 1, "weekday": 2, "weeks": [6,7,8,9,10], "startMinute": 540, "endMinute": 720]])
         check((scheduled["raw"] as! [String: Any])["listedMeetingCount"] as? Int == 1, "contact note with real weeks retains meeting")
     }
+    static func numberedPeriodTests() throws {
+        for (text, number) in [("第一节 09:00–09:45", 1), ("第十节", 10), ("第十二节", 12), ("第20节", 20), ("第一百零一节", 101)] {
+            check(TimetableGridEvidence.periodNumber(text) == number, "read explicit numbered period: \(text)")
+        }
+        for text in ["上午课", "第1-4节", "第一二节", "第201节"] {
+            check(TimetableGridEvidence.periodNumber(text) == nil, "do not fabricate a single period: \(text)")
+        }
+        let night = [["periodIndex": 9, "startMinute": 1140, "endMinute": 1180],
+                     ["periodIndex": 10, "startMinute": 1230, "endMinute": 1290]]
+        let morning = (1...4).map { ["periodIndex": $0, "startMinute": 540 + ($0 - 1) * 45, "endMinute": 540 + $0 * 45] }
+        func parse(_ periods: [[String: Int]], start: Int = 1140, end: Int = 1290, ref: String = "p0") throws -> [String: Any] {
+            let cell: [String: Any] = ["id": "p0", "imageIndex": 0, "weekday": 1, "startMinute": start,
+                "endMinute": end, "texts": ["课程甲"], "periods": periods]
+            let payload: [String: Any] = ["courses": [["name": "课程甲", "teacher": NSNull(), "teacherSourceText": "--",
+                "meetings": [["weekday": 1, "weeks": [4, 6], "startMinute": start, "endMinute": end, "cellRef": ref]]]]]
+            let value = String(decoding: try JSONSerialization.data(withJSONObject: payload), as: UTF8.self)
+            let result = try DeepSeekTimetableClient.parseResponse(envelope(value), gridCells: [cell])
+            let root = try JSONSerialization.jsonObject(with: Data(result.jsonText.utf8)) as! [String: Any]
+            return (root["courses"] as! [[String: Any]])[0]
+        }
+        let evening = try parse(night)
+        let split = evening["meetings"] as! [[String: Any]]
+        check(split.count == 2, "numbered periods split a real evening gap")
+        check(split[0]["startMinute"] as? Int == 1140 && split[0]["endMinute"] as? Int == 1180, "first lesson keeps its own end")
+        check(split[1]["startMinute"] as? Int == 1230 && split[1]["endMinute"] as? Int == 1290, "second lesson keeps its own start")
+        check(split[0]["periodIndex"] as? Int == 9 && split[1]["periodIndex"] as? Int == 10, "source period numbers survive")
+        check(split.allSatisfy { $0["weeks"] as? [Int] == [4,6] }, "splitting preserves disjoint weeks")
+        check((evening["raw"] as! [String: Any])["sourceMissingTeacher"] as? Bool == true, "explicit teacher placeholder is typed source evidence")
+        let daytime = (try parse(morning, start: 540, end: 720))["meetings"] as! [[String: Any]]
+        check(daytime.count == 1 && daytime[0]["periodCount"] as? Int == 3, "adjacent four lessons remain one meeting")
+        check(((daytime[0]["raw"] as! [String: Any])["sourcePeriods"] as! [[String: Int]]).count == 4, "all four source clocks retained")
+        let incomplete = (try parse([night[0]]))["meetings"] as! [[String: Any]]
+        check(incomplete.count == 1 && incomplete[0]["periodIndex"] == nil, "partial axis cannot invent missing sections")
+        let overlap = [["periodIndex": 9, "startMinute": 1140, "endMinute": 1240], night[1]]
+        check(((try parse(overlap))["meetings"] as! [[String: Any]]).count == 1, "contradictory overlapping periods do not split")
+        let invalid = (try parse(night, ref: "invented"))["meetings"] as! [[String: Any]]
+        check(invalid.count == 1 && invalid[0]["periodIndex"] == nil, "invalid cell reference cannot attach an axis")
+    }
+
     static func main() async throws {
+        try numberedPeriodTests()
         try gridEvidenceTests()
         try pendingListRowsTests()
         check(try DeepSeekTimetableClient.parseResponse(envelope(valid)).finishReason == "stop", "missing room remains scheduled")

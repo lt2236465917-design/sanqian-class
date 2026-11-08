@@ -78,8 +78,37 @@ class ScheduleImportService {
     final extra = <String, Map<String, dynamic>>{};
     String clock(int m) =>
         '${m ~/ 60}'.padLeft(2, '0') + ':' + '${m % 60}'.padLeft(2, '0');
+    final source = meetings.expand((m) => m.sourcePeriods).toList();
+    for (final p in source) {
+      // Conflicting axes stay as explicit clock ranges rather than fabricated numbers.
+      if (source.any(
+        (q) =>
+            (q['periodIndex'] == p['periodIndex'] &&
+                (q['startMinute'] != p['startMinute'] ||
+                    q['endMinute'] != p['endMinute'])) ||
+            (q['startMinute'] == p['startMinute'] &&
+                q['endMinute'] == p['endMinute'] &&
+                q['periodIndex'] != p['periodIndex']),
+      )) {
+        continue;
+      }
+      final start = clock(p['startMinute']!), end = clock(p['endMinute']!);
+      extra['clock:$start:$end'] = {
+        'import_time_kind': 'clock',
+        'source_period': p['periodIndex'],
+        'source_period_count': 0,
+        'label': '第 ${p['periodIndex']} 节',
+        'start': start,
+        'end': end,
+      };
+    }
+    final sourceSlots = extra.values.toList()
+      ..sort((a, b) => (a['start'] as String).compareTo(b['start'] as String));
     for (final meeting in meetings) {
       if (meeting.hasClock) {
+        if (_clockSlot(meeting, sourceSlots, allowSpan: false) != null) {
+          continue;
+        }
         final start = clock(meeting.startMinute!),
             end = clock(meeting.endMinute!);
         extra['clock:$start:$end'] = {
@@ -345,18 +374,38 @@ class ScheduleImportService {
         .toList();
     final managed = data['import_periods_managed'] == true || slots.isEmpty;
     if (managed) data['import_periods_managed'] = true;
+    if (managed) {
+      for (final p in periodsFor(draft.courses).where(
+        (p) => p['source_period'] is int && p['import_time_kind'] == 'clock',
+      )) {
+        if (!slots.any(
+          (old) =>
+              old['source_period'] == p['source_period'] &&
+              old['start'] == p['start'] &&
+              old['end'] == p['end'],
+        )) {
+          slots.add(p);
+        }
+      }
+    }
     for (final course in draft.courses) {
       for (final meeting in course.meetings) {
         if (meeting.hasClock) {
           if (_clockSlot(meeting, slots, allowSpan: !managed) == null) {
-            slots.add(
-              periodsFor([
-                ScheduleImportCourseDraft(
-                  name: course.name,
-                  meetings: [meeting],
-                ),
-              ]).single,
-            );
+            // An existing custom/overlapping axis may not accommodate a span.
+            // Keep an exact standalone range without shifting previous slots.
+            String clock(int value) =>
+                '${value ~/ 60}'.padLeft(2, '0') +
+                ':' +
+                '${value % 60}'.padLeft(2, '0');
+            final start = clock(meeting.startMinute!),
+                end = clock(meeting.endMinute!);
+            slots.add({
+              'import_time_kind': 'clock',
+              'label': '$start–$end',
+              'start': start,
+              'end': end,
+            });
           }
         } else if (meeting.periodIndex != null) {
           if ((managed || !_userPeriodRange(meeting, slots)) &&
@@ -724,11 +773,35 @@ class ScheduleImportService {
             .every((p) => p['import_time_kind'] == null);
   }
 
+  static ({int index, int count})? _sourceClockSlot(
+    ScheduleImportMeetingDraft meeting,
+    List<Map<String, dynamic>> periods,
+  ) {
+    final source = meeting.sourcePeriods;
+    if (source.isEmpty) return null;
+    for (var start = 0; start + source.length <= periods.length; start++) {
+      var matches = true;
+      for (var i = 0; i < source.length; i++) {
+        final slot = periods[start + i], expected = source[i];
+        if (slot['source_period'] != expected['periodIndex'] ||
+            _minute(slot['start']) != expected['startMinute'] ||
+            _minute(slot['end']) != expected['endMinute']) {
+          matches = false;
+          break;
+        }
+      }
+      if (matches) return (index: start, count: source.length - 1);
+    }
+    return null;
+  }
+
   static ({int index, int count})? _clockSlot(
     ScheduleImportMeetingDraft meeting,
     List<Map<String, dynamic>> periods, {
     required bool allowSpan,
   }) {
+    final sourceMatch = _sourceClockSlot(meeting, periods);
+    if (sourceMatch != null) return sourceMatch;
     final starts = <int>[], ends = <int>[];
     for (var i = 0; i < periods.length; i++) {
       final sameStart = _minute(periods[i]['start']) == meeting.startMinute;
@@ -737,8 +810,7 @@ class ScheduleImportService {
       if (sameStart) starts.add(i);
       if (sameEnd) ends.add(i);
     }
-    if (allowSpan &&
-        starts.length == 1 &&
+    if (starts.length == 1 &&
         ends.length == 1 &&
         ends.single >= starts.single &&
         periods
@@ -746,7 +818,18 @@ class ScheduleImportService {
             .every(
               (p) => _minute(p['start']) != null && _minute(p['end']) != null,
             )) {
-      return (index: starts.single, count: ends.single - starts.single);
+      final range = periods.sublist(starts.single, ends.single + 1);
+      final contiguousSource =
+          range.every((p) => p['source_period'] is int) &&
+          List.generate(range.length - 1, (i) => i).every(
+            (i) =>
+                range[i]['source_period'] + 1 ==
+                    range[i + 1]['source_period'] &&
+                range[i]['end'] == range[i + 1]['start'],
+          );
+      if (allowSpan || contiguousSource) {
+        return (index: starts.single, count: ends.single - starts.single);
+      }
     }
     return null;
   }

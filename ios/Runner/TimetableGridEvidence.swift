@@ -3,7 +3,7 @@ import CoreGraphics
 import ImageIO
 
 /// Optional local layout evidence. It identifies visible grid positions and
-/// summary clocks, never courses, weeks, rooms, or teachers.
+/// summary and numbered-period clocks, never courses, weeks, rooms, or teachers.
 enum TimetableGridEvidence {
     private static let maximumPixels = 16_000_000
     private static let maximumDimension = 8_192
@@ -12,6 +12,7 @@ enum TimetableGridEvidence {
     private static let headerPattern = try! NSRegularExpression(pattern: #"^(?:周|星期|礼拜)([一二三四五六日天1-7])$"#)
 
     private struct Clock: Hashable { let start: Int; let end: Int }
+    private struct NumberedPeriod { let index: Int; let time: Clock }
     private struct Cell {
         let row: Int
         let column: Int
@@ -27,6 +28,7 @@ enum TimetableGridEvidence {
         let headers: [Int: Int]
         let headerConflict: Bool
         let cells: [Cell]
+        let periods: [NumberedPeriod]
         var isTemplate: Bool {
             !headerConflict && columns.count == 7 && headers.count >= 3 &&
                 headers.allSatisfy { columns.firstIndex(of: $0.key).map { $0 + 1 } == $0.value }
@@ -66,6 +68,20 @@ enum TimetableGridEvidence {
             if compatible {
                 for (index, column) in layout.columns.enumerated() where headers[column] == nil { headers[column] = index + 1 }
             }
+            // Only layouts sharing the same explicit weekday template may share an axis.
+            // Conflicting clocks for a section invalidate precision, never pick a winner.
+            let peers = compatible ? layouts.filter { peer in
+                !peer.headerConflict && peer.columns.count == 7 &&
+                    peer.headers.allSatisfy { key, day in peer.columns.firstIndex(of: key).map { $0 + 1 } == day } &&
+                    peer.boundaries.count == layout.boundaries.count &&
+                    zip(peer.boundaries, layout.boundaries).allSatisfy { abs($0 - $1) <= 0.03 }
+            } : [layout]
+            let byPeriod = Dictionary(grouping: peers.flatMap(\.periods), by: \.index)
+            let consistent = byPeriod.values.allSatisfy { Set($0.map(\.time)).count == 1 }
+            let axis: [[String: Int]] = consistent ? byPeriod.keys.sorted().compactMap { index in
+                guard let value = byPeriod[index]?.first else { return nil }
+                return ["periodIndex": index, "startMinute": value.time.start, "endMinute": value.time.end]
+            } : []
             for cell in layout.cells {
                 guard let weekday = headers[cell.column] else { continue }
                 result.append([
@@ -77,7 +93,8 @@ enum TimetableGridEvidence {
                     "headerSource": layout.headers[cell.column] != nil ? "visibleHeader" : "sharedSevenColumnHeader",
                     "rowLabel": cell.label,
                     "box": cell.box,
-                    "texts": cell.texts
+                    "texts": cell.texts,
+                    "periods": orderedPeriods(axis, start: cell.time.start, end: cell.time.end)
                 ])
             }
         }
@@ -178,6 +195,7 @@ enum TimetableGridEvidence {
             headers[column] = day
         }
         var cells: [Cell] = []
+        var periods: [NumberedPeriod] = []
         for row in 0..<(ys.count - 1) {
             try Task.checkCancellation()
             let rowTokens = tokens.filter { cellIndex(centerY($0) * Double(height), edges: ys) == row }
@@ -186,6 +204,7 @@ enum TimetableGridEvidence {
             let times = Set(labelTokens.flatMap { clocks($0.text) })
             guard times.count == 1, let time = times.first else { continue }
             let label = labelTokens.map(\.text).joined(separator: " ")
+            if let index = periodNumber(label) { periods.append(NumberedPeriod(index: index, time: time)) }
             guard ["上午", "下午", "晚上", "晚间", "早上", "中午", "全天"].contains(where: label.contains) ||
                     (label.contains("课") && !label.contains("第") && time.end - time.start >= 90) else { continue }
             for column in columns {
@@ -206,7 +225,48 @@ enum TimetableGridEvidence {
         }
         let first = xs[columns.first!], span = xs[columns.last! + 1] - first
         let boundaries = (columns.map { xs[$0] } + [xs[columns.last! + 1]]).map { Double($0 - first) / Double(span) }
-        return Layout(imageIndex: page.imageIndex, columns: columns, boundaries: boundaries, headers: headers, headerConflict: headerConflict, cells: cells)
+        return Layout(imageIndex: page.imageIndex, columns: columns, boundaries: boundaries, headers: headers, headerConflict: headerConflict, cells: cells, periods: periods)
+    }
+
+    /// Require a complete, ordered axis inside the visible summary. Never invent
+    /// missing sections or extend a partial crop to the summary endpoints.
+    static func orderedPeriods(_ records: [[String: Int]], start: Int, end: Int) -> [[String: Int]] {
+        let rows = records.filter {
+            guard let a = $0["startMinute"], let b = $0["endMinute"] else { return false }
+            return a >= start && b <= end
+        }.sorted { ($0["periodIndex"] ?? 0) < ($1["periodIndex"] ?? 0) }
+        guard !rows.isEmpty, rows.count <= 200,
+              rows.first?["startMinute"] == start, rows.last?["endMinute"] == end else { return [] }
+        for (index, row) in rows.enumerated() {
+            guard let number = row["periodIndex"], (1...200).contains(number),
+                  let a = row["startMinute"], let b = row["endMinute"],
+                  (0..<1440).contains(a), (0..<1440).contains(b), a < b else { return [] }
+            if index > 0 {
+                guard number == rows[index - 1]["periodIndex"]! + 1,
+                      a >= rows[index - 1]["endMinute"]! else { return [] }
+            }
+        }
+        return rows
+    }
+
+    static func periodNumber(_ label: String) -> Int? {
+        let pattern = #"^\s*第?\s*([0-9一二三四五六七八九十百零〇两]+)\s*节"#
+        guard let range = label.range(of: pattern, options: .regularExpression) else { return nil }
+        let value = String(label[range]).filter { !$0.isWhitespace && $0 != "第" && $0 != "节" }
+        if let number = Int(value) { return (1...200).contains(number) ? number : nil }
+        guard value.range(of: #"^(?:[一二三四五六七八九两]|[一二三四五六七八九两]?十[一二三四五六七八九]?|[一二两]百(?:零[一二三四五六七八九]|[一二三四五六七八九]十[一二三四五六七八九]?)?)$"#, options: .regularExpression) != nil else { return nil }
+        let digits: [Character: Int] = ["零": 0, "〇": 0, "一": 1, "二": 2, "两": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9]
+        var total = 0, digit = 0, previousUnit = 1000
+        for character in value {
+            if let next = digits[character] { digit = next }
+            else {
+                let unit = character == "百" ? 100 : 10
+                guard unit < previousUnit else { return nil }
+                total += max(1, digit) * unit; digit = 0; previousUnit = unit
+            }
+        }
+        let number = total + digit
+        return (1...200).contains(number) ? number : nil
     }
 
     private static func centerX(_ token: VisionTimetableToken) -> Double { token.boundingBox.x + token.boundingBox.width / 2 }
