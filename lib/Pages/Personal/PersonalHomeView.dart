@@ -638,11 +638,26 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
       ..sort(
         (a, b) => (a.course.startTime ?? 0).compareTo(b.course.startTime ?? 0),
       );
-    final visible = ordered.length <= 2 ? ordered : ordered.take(1).toList();
-    final overflow = ordered.length - visible.length;
+    // This overview shows distinct courses in a day part, not individual periods.
+    final seen = <String>{};
+    final distinct = ordered.where((item) {
+      final course = item.course;
+      final name = (course.name ?? '').trim();
+      if (name.isEmpty) return true;
+      return seen.add(
+        jsonEncode([
+          course.courseId,
+          name,
+          (course.classNumber ?? '').trim(),
+          (course.teacher ?? '').trim(),
+        ]),
+      );
+    }).toList();
+    final visible = distinct.length <= 2 ? distinct : distinct.take(1).toList();
+    final overflow = distinct.length - visible.length;
     final chips = <Widget>[
       for (final course in visible)
-        _miniCourseChip(course, maxLines: ordered.length == 1 ? 2 : 1),
+        _miniCourseChip(course, maxLines: distinct.length == 1 ? 2 : 1),
       if (overflow > 0) _miniOverflowChip(overflow),
     ];
     return Container(
@@ -692,7 +707,7 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
       borderRadius: BorderRadius.circular(5),
     ),
     child: Text(
-      '+$count 节',
+      '+$count 门',
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
       style: TextStyle(
