@@ -5,11 +5,13 @@ import '../../Components/ScheduleDesign.dart';
 import '../../Utils/States/MainState.dart';
 import '../../Models/CourseTableModel.dart';
 import '../../Models/ScheduleImportDraft.dart';
+import '../../Models/ScheduleImportPresentation.dart';
 import '../../Utils/ScheduleImportService.dart';
 import '../../Utils/ScheduleDerivedDataService.dart';
 import '../../Utils/ScheduleFeedback.dart';
 import '../Personal/Widgets/ScheduleStatusBadge.dart';
 import 'Widgets/RecognitionProgress.dart';
+import 'Widgets/ImportSourceImages.dart';
 
 enum _ImportStage {
   idle,
@@ -233,7 +235,12 @@ class _ImportReviewViewState extends State<ImportReviewView> {
 
   Future<void> _edit(int index) async {
     final result = await Navigator.of(context).push<Map<String, dynamic>>(
-      MaterialPageRoute(builder: (_) => _CourseEditor(course: _courses[index])),
+      MaterialPageRoute(
+        builder: (_) => _CourseEditor(
+          course: _courses[index],
+          imagePaths: widget.imagePaths,
+        ),
+      ),
     );
     if (result != null && mounted) {
       setState(() {
@@ -1005,7 +1012,15 @@ class _ImportReviewViewState extends State<ImportReviewView> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: Text(_needsPortalAI ? 'AI 识别网页课表' : '核对导入课表')),
+    appBar: AppBar(
+      title: Text(_needsPortalAI ? 'AI 识别网页课表' : '核对导入课表'),
+      actions: [
+        ImportSourceImagesButton(
+          imagePaths: widget.imagePaths,
+          enabled: !_busy,
+        ),
+      ],
+    ),
     body: SafeArea(
       child: Column(
         children: [
@@ -1235,52 +1250,8 @@ class _ImportReviewViewState extends State<ImportReviewView> {
       ),
     ),
   );
-  String _summary(Map<String, dynamic> course) {
-    final identity = [
-      for (final field in const [
-        ['teacher', '教师'],
-        ['section', '教学班'],
-        ['courseCode', '课程编码'],
-      ])
-        if ('${course[field[0]] ?? ''}'.trim().isNotEmpty)
-          '${field[1]}：${'${course[field[0]]}'.trim()}',
-    ];
-    final meetings = (course['meetings'] as List? ?? []).whereType<Map>();
-    final schedule = meetings.isEmpty
-        ? '${course['pendingReason'] ?? '安排待定'}'
-        : meetings
-              .map(
-                (m) =>
-                    '${_weekdayLabel(m['weekday'])} · ${_weekLabel(m['weeks'])}\n'
-                    '${ScheduleImportMeetingDraft.fromJson(Map<String, dynamic>.from(m)).timeDescription} · ${m['location'] ?? '地点待定'}',
-              )
-              .join('\n');
-    return [...identity, schedule].join('\n');
-  }
-}
-
-String _weekdayLabel(dynamic day) => day is int && day >= 1 && day <= 7
-    ? '星期${const ['一', '二', '三', '四', '五', '六', '日'][day - 1]}'
-    : '星期待定';
-
-String _weekLabel(dynamic value) {
-  final weeks = value is List
-      ? value.whereType<int>().toSet().toList()
-      : <int>[];
-  if (weeks.isEmpty) return '周次待定';
-  weeks.sort();
-  final ranges = <String>[];
-  var start = weeks.first, end = start;
-  for (final week in weeks.skip(1)) {
-    if (week == end + 1) {
-      end = week;
-    } else {
-      ranges.add(start == end ? '$start' : '$start–$end');
-      start = end = week;
-    }
-  }
-  ranges.add(start == end ? '$start' : '$start–$end');
-  return '第 ${ranges.join('、')} 周';
+  String _summary(Map<String, dynamic> course) =>
+      ScheduleImportPresentation.courseSummary(course);
 }
 
 String _clock(dynamic minute) => minute is int
@@ -1289,7 +1260,8 @@ String _clock(dynamic minute) => minute is int
 
 class _CourseEditor extends StatefulWidget {
   final Map<String, dynamic> course;
-  const _CourseEditor({required this.course});
+  final List<String> imagePaths;
+  const _CourseEditor({required this.course, required this.imagePaths});
   @override
   State<_CourseEditor> createState() => _CourseEditorState();
 }
@@ -1297,6 +1269,7 @@ class _CourseEditor extends StatefulWidget {
 class _CourseEditorState extends State<_CourseEditor> {
   late final Map<String, TextEditingController> _fields;
   late final List<Map<String, TextEditingController>> _meetings;
+  late final List<int> _displayOrder;
   String? _error;
   bool _showFieldErrors = false;
   @override
@@ -1333,6 +1306,18 @@ class _CourseEditorState extends State<_CourseEditor> {
           },
         )
         .toList();
+    // Keep source indices attached to controls, even when their display order
+    // differs. Do not reorder while the user is typing into an arrangement.
+    _displayOrder = ScheduleImportPresentation.meetingOrder(
+      (widget.course['meetings'] as List? ?? [])
+          .whereType<Map>()
+          .map(
+            (m) => ScheduleImportMeetingDraft.fromJson(
+              Map<String, dynamic>.from(m),
+            ),
+          )
+          .toList(),
+    ).toList();
   }
 
   @override
@@ -1624,7 +1609,10 @@ class _CourseEditorState extends State<_CourseEditor> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('编辑课程')),
+    appBar: AppBar(
+      title: const Text('编辑课程'),
+      actions: [ImportSourceImagesButton(imagePaths: widget.imagePaths)],
+    ),
     body: SafeArea(
       child: ListView(
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
@@ -1653,15 +1641,16 @@ class _CourseEditorState extends State<_CourseEditor> {
                 ),
               ),
             ),
-          for (var i = 0; i < _meetings.length; i++)
+          for (final (position, i) in _displayOrder.indexed)
             Card(
+              key: ValueKey('import-meeting-$i'),
               margin: const EdgeInsets.only(bottom: 16),
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
                     Text(
-                      '安排 ${i + 1}',
+                      '安排 ${position + 1}',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w600,
@@ -1681,8 +1670,9 @@ class _CourseEditorState extends State<_CourseEditor> {
               ),
             ),
           TextButton(
-            onPressed: () => setState(
-              () => _meetings.add({
+            onPressed: () => setState(() {
+              _displayOrder.add(_meetings.length);
+              _meetings.add({
                 for (final k in [
                   'weekday',
                   'weeks',
@@ -1692,8 +1682,8 @@ class _CourseEditorState extends State<_CourseEditor> {
                   'location',
                 ])
                   k: TextEditingController(),
-              }),
-            ),
+              });
+            }),
             child: const Text('添加安排'),
           ),
           if (_error != null) Text(_error!),

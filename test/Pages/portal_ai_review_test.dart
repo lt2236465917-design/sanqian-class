@@ -1393,4 +1393,195 @@ void main() {
       );
     },
   );
+  testWidgets(
+    'source viewer preserves review fields and scroll without recognition',
+    (tester) async {
+      await showReview(
+        tester,
+        source: 'photos',
+        courses: [for (var i = 0; i < 8; i++) course('核对课程 $i')],
+        imagePaths: ['/fixture/first.png', '/fixture/second.png'],
+      );
+      await tester.scrollUntilVisible(
+        field('学期名称'),
+        500,
+        scrollable: find
+            .byWidgetPredicate(
+              (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+            )
+            .first,
+      );
+      await tester.enterText(field('学期名称'), '保留学期');
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('核对课程 5'),
+        500,
+        scrollable: find
+            .byWidgetPredicate(
+              (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+            )
+            .first,
+      );
+      await tester.pumpAndSettle();
+      final before = tester.getTopLeft(find.text('核对课程 5'));
+      final callCount = calls.length;
+      await tester.tap(find.text('查看原图'));
+      await tester.pumpAndSettle();
+      expect(find.text('第 1 张课表图片'), findsOneWidget);
+      expect(
+        tester
+            .widget<IconButton>(
+              find.byWidgetPredicate(
+                (w) => w is IconButton && w.tooltip == '上一张原图',
+              ),
+            )
+            .onPressed,
+        isNull,
+      );
+      await tester.tap(find.byTooltip('放大原图'));
+      await tester.pump();
+      expect(
+        tester
+            .widget<InteractiveViewer>(find.byType(InteractiveViewer))
+            .transformationController!
+            .value
+            .getMaxScaleOnAxis(),
+        2,
+      );
+      await tester.tap(find.byTooltip('下一张原图'));
+      await tester.pumpAndSettle();
+      expect(find.text('第 2 张课表图片'), findsOneWidget);
+      expect(
+        tester
+            .widget<InteractiveViewer>(find.byType(InteractiveViewer))
+            .transformationController!
+            .value
+            .getMaxScaleOnAxis(),
+        1,
+      );
+      expect(
+        tester
+            .widget<IconButton>(
+              find.byWidgetPredicate(
+                (w) => w is IconButton && w.tooltip == '下一张原图',
+              ),
+            )
+            .onPressed,
+        isNull,
+      );
+      await tester.tap(find.byTooltip('关闭原图'));
+      await tester.pumpAndSettle();
+      expect(tester.getTopLeft(find.text('核对课程 5')), before);
+      expect(calls.length, callCount);
+      await tester.scrollUntilVisible(
+        field('学期名称'),
+        -500,
+        scrollable: find
+            .byWidgetPredicate(
+              (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+            )
+            .first,
+      );
+      expect(tester.widget<TextField>(field('学期名称')).controller!.text, '保留学期');
+      expect(await db.query('Course'), isEmpty);
+    },
+  );
+
+  testWidgets(
+    'sorted editor keeps source row identity and unsaved edits while viewing images',
+    (tester) async {
+      final later = {
+        'weekday': 2,
+        'weeks': [12],
+        'startMinute': 540,
+        'endMinute': 720,
+        'location': '6310',
+        'raw': {'sourceReferenceId': 'later'},
+      };
+      final earlier = {
+        'weekday': 2,
+        'weeks': [3, 4],
+        'startMinute': 540,
+        'endMinute': 720,
+        'location': '第五会议室',
+        'raw': {'sourceReferenceId': 'earlier'},
+      };
+      await showReview(
+        tester,
+        source: 'photos',
+        courses: [
+          {
+            'name': '分周教室',
+            'meetings': [later, earlier],
+          },
+        ],
+        imagePaths: ['/fixture/course.png'],
+      );
+      await tester.ensureVisible(find.text('分周教室'));
+      await tester.tap(find.text('分周教室'));
+      await tester.pumpAndSettle();
+      final firstCard = find.byKey(const ValueKey('import-meeting-1'));
+      await tester.ensureVisible(firstCard);
+      final room = find.descendant(of: firstCard, matching: field('教室'));
+      await tester.ensureVisible(room);
+      expect(tester.widget<TextField>(room).controller!.text, '第五会议室');
+      await tester.enterText(room, '更正教室');
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pumpAndSettle();
+      final scroll = tester.getTopLeft(firstCard);
+      final callCount = calls.length;
+      await tester.tap(find.text('查看原图'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('关闭原图'));
+      await tester.pumpAndSettle();
+      expect(tester.widget<TextField>(room).controller!.text, '更正教室');
+      expect(tester.getTopLeft(firstCard), scroll);
+      await tester.scrollUntilVisible(
+        find.text('完成核对'),
+        500,
+        scrollable: find
+            .byWidgetPredicate(
+              (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+            )
+            .first,
+      );
+      await tester.tap(find.text('完成核对'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('分周教室'));
+      await tester.tap(find.text('分周教室'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(firstCard);
+      expect(
+        tester
+            .widget<TextField>(
+              find.descendant(of: firstCard, matching: field('教室')),
+            )
+            .controller!
+            .text,
+        '更正教室',
+      );
+      final laterCard = find.byKey(const ValueKey('import-meeting-0'));
+      await tester.scrollUntilVisible(
+        laterCard,
+        500,
+        scrollable: find
+            .byWidgetPredicate(
+              (w) => w is Scrollable && w.axisDirection == AxisDirection.down,
+            )
+            .first,
+      );
+      expect(
+        tester
+            .widget<TextField>(
+              find.descendant(of: laterCard, matching: field('教室')),
+            )
+            .controller!
+            .text,
+        '6310',
+      );
+      expect(calls.length, callCount);
+      expect(await db.query('Course'), isEmpty);
+    },
+  );
 }

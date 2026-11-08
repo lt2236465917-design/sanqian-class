@@ -11,6 +11,7 @@ import '../Settings/DeepSeekSettingsView.dart';
 import 'ImportReviewView.dart';
 import 'Widgets/AIKeyStatus.dart';
 import 'Widgets/RecognitionProgress.dart';
+import 'Widgets/ImportSourceImages.dart';
 
 class PhotoScheduleImportView extends StatefulWidget {
   const PhotoScheduleImportView({super.key});
@@ -241,47 +242,10 @@ class _PhotoScheduleImportViewState extends State<PhotoScheduleImportView> {
   }
 
   void _previewImage(int index) {
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) => Dialog(
-        child: SizedBox(
-          height: MediaQuery.sizeOf(context).height * .75,
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 8, 0),
-                child: Row(
-                  children: [
-                    Expanded(child: Text('第 ${index + 1} 张课表图片')),
-                    IconButton(
-                      tooltip: '关闭原图',
-                      onPressed: () => Navigator.pop(dialogContext),
-                      icon: const Icon(Icons.close),
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: InteractiveViewer(
-                  minScale: 1,
-                  maxScale: 5,
-                  child: Image.file(
-                    File(_images[index].path),
-                    fit: BoxFit.contain,
-                    semanticLabel: '课表原图，可双指缩放',
-                    errorBuilder: (_, error, stack) =>
-                        const Center(child: Text('图片无法读取，请重新选择。')),
-                  ),
-                ),
-              ),
-              const Padding(
-                padding: EdgeInsets.all(12),
-                child: Text('双指缩放查看细节'),
-              ),
-            ],
-          ),
-        ),
-      ),
+    showImportSourceImages(
+      context,
+      imagePaths: _images.map((image) => image.path).toList(),
+      initialIndex: index,
     );
   }
 
