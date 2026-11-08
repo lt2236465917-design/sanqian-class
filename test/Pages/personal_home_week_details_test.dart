@@ -64,7 +64,7 @@ void main() {
     ];
     final courses = [
       for (final item in cases)
-        Course(1, item.$1, item.$2, 1, 1, 1, 0, classroom: '6406'),
+        Course(1, item.$1, item.$2, 1, 1, 0, 0, classroom: '6406'),
     ];
     final schedule = PersonalSchedule(
       tableId: 1,

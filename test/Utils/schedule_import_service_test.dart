@@ -975,7 +975,7 @@ void sqliteTests() {
       },
     );
     test(
-      'exact clocks map to periods; unmatched times and unknown weeks stay pending with raw values',
+      'exact clocks get matching slots and unknown weeks preserve the known weekday',
       () async {
         final input = draft([
           course(
@@ -1009,8 +1009,10 @@ void sqliteTests() {
         final saved = await rows();
         expect(saved[0]['start_time'], 2);
         expect(saved[0]['weeks'], '[1,3]');
-        expect(saved[1]['week_time'], 0);
-        expect(saved[2]['week_time'], 0);
+        expect(saved[1]['week_time'], 3);
+        expect(saved[1]['weeks'], '[1]');
+        expect(saved[2]['week_time'], 4);
+        expect(saved[2]['weeks'], '[]');
         final meta = jsonDecode(
           saved[1]['data'] as String,
         )['schedule_import_row'];

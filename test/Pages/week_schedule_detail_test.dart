@@ -23,6 +23,113 @@ PersonalSchedule reviewedSchedule() {
 }
 
 void main() {
+  for (final labels in [
+    ['上午课', '下午课', '午间研讨'],
+    ['第 3–4 节', '第 7–8 节'],
+  ]) {
+    testWidgets(
+      'same course in distinct named slots remains independently tappable: $labels',
+      (tester) async {
+        tester.view.physicalSize = const Size(430, 1200);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        final schedule = PersonalSchedule(
+          tableId: 1,
+          name: '无钟点的独立安排',
+          firstMonday: DateTime(2026, 9, 7),
+          periods: [
+            for (final label in labels)
+              {'label': label, 'start': '', 'end': ''},
+          ],
+          courses: [
+            for (var slot = 1; slot <= labels.length; slot++)
+              Course(
+                1,
+                '同一门课程',
+                '[1]',
+                1,
+                slot,
+                0,
+                1,
+                classroom: 'A101',
+                courseId: 7,
+              ),
+          ],
+        );
+        final opened = <Course>[];
+        await tester.pumpWidget(
+          MaterialApp(
+            home: WeekScheduleDetailPage(
+              schedule: schedule,
+              week: 1,
+              now: DateTime(2026, 9, 7),
+              colorForCourse: (_) => Colors.purple,
+              onCourseTap: opened.add,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        final cells = find.text('同一门课程');
+        expect(cells, findsNWidgets(labels.length));
+        for (var i = 0; i < labels.length; i++) {
+          await tester.tap(cells.at(i));
+          await tester.pumpAndSettle();
+        }
+        expect(opened.map((c) => c.startTime), [
+          for (var i = 1; i <= labels.length; i++) i,
+        ]);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+  testWidgets(
+    'mixed clock and named time bands remain visible in the full week grid',
+    (tester) async {
+      tester.view.physicalSize = const Size(430, 1200);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final schedule = PersonalSchedule(
+        tableId: 1,
+        name: '混合时间精度',
+        firstMonday: DateTime(2026, 9, 7),
+        periods: [
+          {'label': '上午', 'start': '', 'end': ''},
+          {'label': '08:17–09:41', 'start': '08:17', 'end': '09:41'},
+          {'label': '午间研讨', 'start': '', 'end': ''},
+          {'label': '第 3–4 节', 'start': '', 'end': ''},
+        ],
+        courses: [
+          for (var i = 1; i <= 4; i++) Course(1, '课程 $i', '[1]', i, i, 0, 1),
+        ],
+      );
+      final opened = <Course>[];
+      await tester.pumpWidget(
+        MaterialApp(
+          home: WeekScheduleDetailPage(
+            schedule: schedule,
+            week: 1,
+            now: DateTime(2026, 9, 7),
+            colorForCourse: (_) => Colors.purple,
+            onCourseTap: opened.add,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      for (final label in ['上午', '08:17\n09:41', '午间研讨', '第 3–4 节']) {
+        expect(find.text(label), findsOneWidget);
+      }
+      for (var i = 1; i <= 4; i++) {
+        expect(find.text('课程 $i'), findsOneWidget);
+        await tester.tap(find.text('课程 $i'));
+        await tester.pumpAndSettle();
+      }
+      expect(opened.map((c) => c.name), ['课程 1', '课程 2', '课程 3', '课程 4']);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('week detail uses class periods and has no text list', (
     tester,
   ) async {

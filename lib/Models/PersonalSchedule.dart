@@ -89,9 +89,40 @@ class PersonalSchedule {
             c.weekTime == null ||
             c.weekTime! < 1 ||
             c.weekTime! > 7 ||
-            _weeks(c).isEmpty,
+            _weeks(c).isEmpty ||
+            !_hasTimeSlot(c),
       )
       .toList();
+
+  bool _hasTimeSlot(Course course) {
+    final slot = course.startTime ?? 0, count = course.timeCount ?? 0;
+    return slot >= 1 && count >= 0 && slot + count <= periods.length;
+  }
+
+  int get pendingCourseCount => pending
+      .map((course) {
+        try {
+          final metadata = jsonDecode(
+            course.data ?? '{}',
+          )['schedule_import_row'];
+          if (metadata is Map && metadata['identity'] != null) {
+            return jsonEncode([metadata['source_key'], metadata['identity']]);
+          }
+        } catch (_) {
+          /* Legacy/manual rows have no import identity. */
+        }
+        if (course.courseId != null) {
+          return jsonEncode([
+            course.courseId,
+            course.name,
+            course.classNumber,
+            course.teacher,
+          ]);
+        }
+        return 'row:${course.id ?? identityHashCode(course)}';
+      })
+      .toSet()
+      .length;
 
   static List<int> _weeks(Course course) => CourseWeeks.parse(course.weeks);
 
@@ -99,7 +130,7 @@ class PersonalSchedule {
     final result = <CourseOccurrence>[];
     for (final course in courses) {
       final weekday = course.weekTime ?? 0;
-      if (weekday < 1 || weekday > 7) continue;
+      if (weekday < 1 || weekday > 7 || !_hasTimeSlot(course)) continue;
       final slot = course.startTime ?? 0;
       final count = course.timeCount ?? 0;
       final range = ClassTimeUtil.clockRange(periods, slot, count);

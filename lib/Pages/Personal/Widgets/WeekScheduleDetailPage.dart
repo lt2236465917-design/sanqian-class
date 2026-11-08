@@ -237,7 +237,9 @@ class WeekScheduleDetailPage extends StatelessWidget {
       fit: BoxFit.scaleDown,
       alignment: Alignment.centerLeft,
       child: Text(
-        '${row.start}\n${row.end}',
+        row.start.isEmpty && row.end.isEmpty
+            ? row.label
+            : '${row.start}\n${row.end}',
         style: TextStyle(fontSize: 10, height: 1.15, color: color),
       ),
     );
@@ -364,6 +366,7 @@ class _TimeCourse {
 class _TimeRow {
   final String start;
   final String end;
+  final String label;
   double height;
   final bool isBreak;
   final int? sourcePeriod;
@@ -373,6 +376,7 @@ class _TimeRow {
     required this.end,
     required this.height,
     required this.isBreak,
+    this.label = '时间待定',
     this.sourcePeriod,
   });
 }
@@ -405,7 +409,10 @@ class _TimeAxis {
       final p = periods[i];
       final start = '${p['start'] ?? ''}';
       final end = '${p['end'] ?? ''}';
-      if (rows.isNotEmpty && _minutes(start) - _minutes(rows.last.end) > 5) {
+      if (rows.isNotEmpty &&
+          start.isNotEmpty &&
+          rows.last.end.isNotEmpty &&
+          _minutes(start) - _minutes(rows.last.end) > 5) {
         rows.add(
           _TimeRow(
             start: rows.last.end,
@@ -419,6 +426,7 @@ class _TimeAxis {
         _TimeRow(
           start: start,
           end: end,
+          label: '${p['label'] ?? '第 ${i + 1} 节'}',
           height: 68 * scale,
           isBreak: false,
           sourcePeriod: i,
@@ -495,9 +503,11 @@ class _CourseBlock {
   final int day;
   final int startRow;
   int endRow;
+  _TimeCourse lastMergedCourse;
 
   _CourseBlock(_TimeCourse course)
     : courses = [course],
+      lastMergedCourse = course,
       day = course.item.date.weekday,
       startRow = course.startRow,
       endRow = course.endRow;
@@ -517,8 +527,11 @@ List<_CourseBlock> _blocks(List<_TimeCourse> courses) {
       final sameSession =
           result.last.courses.length == 1 &&
           touches &&
-          _sameSession(result.last.courses.first, course);
+          _sameSession(result.last.lastMergedCourse, course);
       if (sameSession) {
+        if (course.item.end!.isAfter(result.last.lastMergedCourse.item.end!)) {
+          result.last.lastMergedCourse = course;
+        }
         result.last.endRow = math.max(result.last.endRow, course.endRow);
         continue;
       }
@@ -575,6 +588,16 @@ double _textHeight(
 }
 
 bool _sameSession(_TimeCourse a, _TimeCourse b) {
+  // Adjacent display rows do not establish continuity for named time bands
+  // or source section numbers. Only known clocks can join separate rows.
+  final start = a.item.start, end = a.item.end, nextStart = b.item.start;
+  if (start == null || end == null || nextStart == null || b.item.end == null) {
+    return false;
+  }
+  if (nextStart.isBefore(start) ||
+      nextStart.isAfter(end.add(const Duration(minutes: 5)))) {
+    return false;
+  }
   if (!PersonalSchedule.sameDay(a.item.date, b.item.date)) return false;
   final left = a.item.course;
   final right = b.item.course;

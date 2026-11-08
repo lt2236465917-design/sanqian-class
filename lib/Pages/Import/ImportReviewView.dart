@@ -914,21 +914,7 @@ class _ImportReviewViewState extends State<ImportReviewView> {
         courses: _courses.map(ScheduleImportCourseDraft.fromJson).toList(),
       );
       draft.requireValid();
-      final periods = <Map<String, dynamic>>[];
-      for (final course in draft.courses) {
-        for (final meeting in course.meetings) {
-          if (meeting.startMinute != null && meeting.endMinute != null) {
-            final start = _clock(meeting.startMinute),
-                end = _clock(meeting.endMinute);
-            if (!periods.any((p) => p['start'] == start && p['end'] == end)) {
-              periods.add({'start': start, 'end': end, 'label': '$start–$end'});
-            }
-          }
-        }
-      }
-      periods.sort(
-        (a, b) => (a['start'] as String).compareTo(b['start'] as String),
-      );
+      final periods = ScheduleImportService.periodsFor(draft.courses);
       var diff = await ScheduleImportService.preview(
         draft,
         mergeTableId: _target,
@@ -962,6 +948,10 @@ class _ImportReviewViewState extends State<ImportReviewView> {
                 spacing: 8,
                 runSpacing: 8,
                 children: [
+                  Text(
+                    '${draft.courses.length} 门课程 · ${draft.courses.fold<int>(0, (n, c) => n + c.meetings.length)} 条上课安排',
+                  ),
+                  const Text('下方变化按安排条数统计，未排课课程各保留一条。'),
                   ScheduleStatusBadge('新增 ${diff.added.length}'),
                   ScheduleStatusBadge('变更 ${diff.changed.length}'),
                   ScheduleStatusBadge('移除 ${diff.removed.length}'),
@@ -1252,7 +1242,7 @@ class _ImportReviewViewState extends State<ImportReviewView> {
               .map(
                 (m) =>
                     '${_weekdayLabel(m['weekday'])} · ${_weekLabel(m['weeks'])}\n'
-                    '${_clock(m['startMinute'])}–${_clock(m['endMinute'])} · ${m['location'] ?? '地点待定'}',
+                    '${ScheduleImportMeetingDraft.fromJson(Map<String, dynamic>.from(m)).timeDescription} · ${m['location'] ?? '地点待定'}',
               )
               .join('\n');
     return [...identity, schedule].join('\n');
@@ -1326,6 +1316,9 @@ class _CourseEditorState extends State<_CourseEditor> {
             'endMinute': TextEditingController(
               text: m['endMinute'] == null ? '' : _clock(m['endMinute']),
             ),
+            'periodLabel': TextEditingController(
+              text: '${m['periodLabel'] ?? ''}',
+            ),
             'location': TextEditingController(text: '${m['location'] ?? ''}'),
           },
         )
@@ -1357,6 +1350,13 @@ class _CourseEditorState extends State<_CourseEditor> {
       for (var i = 0; i < _meetings.length; i++) {
         final m = _meetings[i];
         final weeks = m['weeks']!.text.trim();
+        final old = i < original.length
+            ? Map<String, dynamic>.from(original[i])
+            : <String, dynamic>{};
+        final start = _minute(m['startMinute']!.text),
+            end = _minute(m['endMinute']!.text);
+        final label = m['periodLabel']!.text.trim();
+        final labelChanged = label != '${old['periodLabel'] ?? ''}'.trim();
         meetings.add({
           if (i < original.length) ...Map<String, dynamic>.from(original[i]),
           'weekday': m['weekday']!.text.trim().isEmpty
@@ -1365,10 +1365,15 @@ class _CourseEditorState extends State<_CourseEditor> {
           'weeks': weeks.isEmpty
               ? null
               : weeks.split(RegExp('[,， ]+')).map(int.parse).toList(),
-          'startMinute': _minute(m['startMinute']!.text),
-          'endMinute': _minute(m['endMinute']!.text),
-          'periodIndex': null,
-          'periodCount': null,
+          'startMinute': start,
+          'endMinute': end,
+          'periodLabel': start != null || label.isEmpty ? null : label,
+          'periodIndex': start != null || labelChanged
+              ? null
+              : old['periodIndex'],
+          'periodCount': start != null || labelChanged
+              ? null
+              : old['periodCount'],
           'location': m['location']!.text,
         });
       }
@@ -1651,6 +1656,7 @@ class _CourseEditorState extends State<_CourseEditor> {
                     for (final e in const {
                       'weekday': '星期（1–7）',
                       'weeks': '周次，用逗号分隔；空白为未知',
+                      'periodLabel': '时段（如上午、午间研讨）',
                       'startMinute': '开始 HH:mm',
                       'endMinute': '结束 HH:mm',
                       'location': '教室',
@@ -1668,6 +1674,7 @@ class _CourseEditorState extends State<_CourseEditor> {
                   'weeks',
                   'startMinute',
                   'endMinute',
+                  'periodLabel',
                   'location',
                 ])
                   k: TextEditingController(),

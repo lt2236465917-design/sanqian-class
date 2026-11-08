@@ -523,7 +523,12 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
 
   Widget _weekDistribution(PersonalSchedule schedule, int week) {
     final occurrences = schedule.inWeek(week);
-    const rows = ['上午', '下午', '晚上'];
+    final rows = [
+      '上午',
+      '下午',
+      '晚上',
+      if (occurrences.any((item) => _dayPart(item) == '其他时段')) '其他时段',
+    ];
     final children = <TableRow>[
       TableRow(
         children: [
@@ -704,14 +709,13 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
       for (final part in ['上午', '下午', '晚上']) {
         if (item.period.startsWith(part)) return part;
       }
+      if (item.period == '早上' || item.period == '早晨' || item.period == '早自习') {
+        return '上午';
+      }
+      if (item.period == '晚间' || item.period == '晚自习') return '晚上';
+      return '其他时段';
     }
-    final hour = clock == null
-        ? ((item.course.startTime ?? 1) <= 4
-              ? 9
-              : (item.course.startTime ?? 1) <= 8
-              ? 14
-              : 19)
-        : int.tryParse(clock.split(':').first) ?? 9;
+    final hour = int.tryParse(clock.split(':').first) ?? 0;
     if (hour < 12) return '上午';
     if (hour < 18) return '下午';
     return '晚上';
@@ -989,7 +993,7 @@ class _PersonalHomeViewState extends State<PersonalHomeView>
       collapsedShape: const Border(),
       leading: Icon(Icons.more_time_rounded, color: _colors.primary),
       title: Text(
-        '${schedule.pending.length} 门课程待安排',
+        '${schedule.pendingCourseCount} 门课程待安排',
         style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
       ),
       children: [

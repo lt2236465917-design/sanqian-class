@@ -69,6 +69,78 @@ class ScheduleImportService {
   static const snapshotKey = 'course_snapshot';
   static const rowMetadataKey = 'schedule_import_row';
 
+  /// Build slots from supplied evidence. Source section numbers are metadata,
+  /// independent of display indices. Named bands never imply a clock.
+  static List<Map<String, dynamic>> periodsFor(
+    Iterable<ScheduleImportCourseDraft> courses,
+  ) {
+    final meetings = courses.expand((course) => course.meetings).toList();
+    final extra = <String, Map<String, dynamic>>{};
+    String clock(int m) =>
+        '${m ~/ 60}'.padLeft(2, '0') + ':' + '${m % 60}'.padLeft(2, '0');
+    for (final meeting in meetings) {
+      if (meeting.hasClock) {
+        final start = clock(meeting.startMinute!),
+            end = clock(meeting.endMinute!);
+        extra['clock:$start:$end'] = {
+          'import_time_kind': 'clock',
+          'label': '$start–$end',
+          'start': start,
+          'end': end,
+        };
+      } else if (meeting.periodIndex != null) {
+        final first = meeting.periodIndex!, count = meeting.periodCount ?? 0;
+        extra['period:$first:$count'] = {
+          'import_time_kind': 'period',
+          'source_period': first,
+          'source_period_count': count,
+          'label': '第 $first${count == 0 ? '' : '–${first + count}'} 节',
+          'start': '',
+          'end': '',
+        };
+      } else if (meeting.periodLabel != null) {
+        final label = meeting.periodLabel!.trim();
+        extra['label:$label'] = {
+          'import_time_kind': 'label',
+          'label': label,
+          'start': '',
+          'end': '',
+        };
+      }
+    }
+    // These ranks order visible labels only; they never become class clocks.
+    int order(Map<String, dynamic> period) {
+      if (period['import_time_kind'] == 'period') {
+        return period['source_period'] as int;
+      }
+      final minute = _minute(period['start']);
+      if (minute != null) return minute;
+      return const {
+            '全天': 0,
+            '早自习': 1,
+            '早晨': 2,
+            '早上': 3,
+            '上午': 4,
+            '中午': 720,
+            '午间': 721,
+            '下午': 722,
+            '晚上': 1080,
+            '晚间': 1081,
+            '晚自习': 1082,
+          }[period['label']] ??
+          1440;
+    }
+
+    final ordered = extra.values.toList()
+      ..sort((a, b) {
+        final compared = order(a).compareTo(order(b));
+        return compared != 0
+            ? compared
+            : (a['label'] as String).compareTo(b['label'] as String);
+      });
+    return ordered;
+  }
+
   static ScheduleImportDiff diff(
     ScheduleImportDraft draft, {
     Iterable<ScheduleImportStoredCourse> existing = const [],
@@ -248,15 +320,81 @@ class ScheduleImportService {
       throw StateError('merge_table_missing');
     }
     final data = _map(table?['data']);
-    if (table == null && periods != null) {
-      for (final period in periods) {
+    if (table == null) {
+      final initialPeriods = periods ?? periodsFor(draft.courses);
+      for (final period in initialPeriods) {
         final start = _minute(period['start']), end = _minute(period['end']);
-        if (start == null || end == null || start >= end) {
+        final labelOnly =
+            '${period['start'] ?? ''}'.isEmpty &&
+            '${period['end'] ?? ''}'.isEmpty &&
+            '${period['label'] ?? ''}'.trim().isNotEmpty;
+        if (!labelOnly && (start == null || end == null || start >= end)) {
           throw const FormatException('invalid_class_time_list');
         }
       }
-      data['class_time_list'] = periods;
+      data['class_time_list'] = initialPeriods;
+      data['import_periods_managed'] =
+          periods == null ||
+          initialPeriods.isEmpty ||
+          initialPeriods.every((period) => period['import_time_kind'] != null);
     }
+    // Add evidence-based slots without moving or replacing user-defined slots.
+    // Source section numbers are not indices into an automatically built axis.
+    final slots = (data['class_time_list'] as List? ?? const [])
+        .map(_map)
+        .toList();
+    final managed = data['import_periods_managed'] == true || slots.isEmpty;
+    if (managed) data['import_periods_managed'] = true;
+    for (final course in draft.courses) {
+      for (final meeting in course.meetings) {
+        if (meeting.hasClock) {
+          if (_clockSlot(meeting, slots, allowSpan: !managed) == null) {
+            slots.add(
+              periodsFor([
+                ScheduleImportCourseDraft(
+                  name: course.name,
+                  meetings: [meeting],
+                ),
+              ]).single,
+            );
+          }
+        } else if (meeting.periodIndex != null) {
+          if ((managed || !_userPeriodRange(meeting, slots)) &&
+              !slots.any(
+                (p) =>
+                    p['import_time_kind'] == 'period' &&
+                    p['source_period'] == meeting.periodIndex &&
+                    p['source_period_count'] == (meeting.periodCount ?? 0),
+              )) {
+            slots.add(
+              periodsFor([
+                ScheduleImportCourseDraft(
+                  name: course.name,
+                  meetings: [meeting],
+                ),
+              ]).single,
+            );
+          }
+        } else if (meeting.periodIndex == null && meeting.periodLabel != null) {
+          final label = meeting.periodLabel!.trim();
+          if (!slots.any(
+            (p) =>
+                p['label'] == label &&
+                (p['import_time_kind'] == 'label' ||
+                    ('${p['start'] ?? ''}'.isEmpty &&
+                        '${p['end'] ?? ''}'.isEmpty)),
+          )) {
+            slots.add({
+              'import_time_kind': 'label',
+              'label': label,
+              'start': '',
+              'end': '',
+            });
+          }
+        }
+      }
+    }
+    if (slots.isNotEmpty) data['class_time_list'] = slots;
     final previousSource = data['import_source_key'];
     if (previousSource != null && previousSource != draft.sourceKey) {
       throw StateError('import_source_account_or_term_mismatch');
@@ -312,7 +450,8 @@ class ScheduleImportService {
           .toList();
       if (!incoming.containsKey(binding.key) ||
           candidates.length != 1 ||
-          tombstones.contains(binding.key)) {
+          (tombstones.contains(binding.key) ||
+              tombstones.contains(_legacyKey(incoming[binding.key]!)))) {
         throw StateError('legacy_binding_invalid_target');
       }
       if (_rowMeta(candidates.single).isNotEmpty ||
@@ -337,9 +476,18 @@ class ScheduleImportService {
       final key = entry.key,
           row = entry.value,
           identity = _identity(entry.value);
-      if (row['week_time'] == 0) pending.add(key);
+      if (_rowMeta(row)['pending_reason'] != null) pending.add(key);
       if (tombstones.contains(key)) {
         preserved++;
+        continue;
+      }
+      final legacyKey = _legacyKey(row);
+      if (legacyKey != null && tombstones.contains(legacyKey)) {
+        // Old keys did not distinguish named sessions or unresolved quotes.
+        // Preserve deletion intent when the old data cannot identify which
+        // of the new, more precise arrangements the user removed.
+        preserved++;
+        conflicts.add('$key:legacy_deleted_arrangement');
         continue;
       }
       final explicitLegacyId = legacyBindings[key];
@@ -499,7 +647,11 @@ class ScheduleImportService {
       deletes.add(row['id'] as int);
       snapshots.remove(entry.key);
       // Confirmed source removals are also durable and never reappear silently.
-      tombstones.add(entry.key);
+      // A key-format upgrade replaces the old snapshot, not the user's
+      // arrangement. A broad old tombstone would block later valid sessions.
+      if (!incoming.values.any((row) => _legacyKey(row) == entry.key)) {
+        tombstones.add(entry.key);
+      }
     }
     return _Plan(
       table?['id'] as int?,
@@ -559,6 +711,46 @@ class ScheduleImportService {
     );
   }
 
+  static bool _userPeriodRange(
+    ScheduleImportMeetingDraft meeting,
+    List<Map<String, dynamic>> periods,
+  ) {
+    final first = meeting.periodIndex ?? 0, count = meeting.periodCount ?? 0;
+    return first >= 1 &&
+        count >= 0 &&
+        first + count <= periods.length &&
+        periods
+            .sublist(first - 1, first + count)
+            .every((p) => p['import_time_kind'] == null);
+  }
+
+  static ({int index, int count})? _clockSlot(
+    ScheduleImportMeetingDraft meeting,
+    List<Map<String, dynamic>> periods, {
+    required bool allowSpan,
+  }) {
+    final starts = <int>[], ends = <int>[];
+    for (var i = 0; i < periods.length; i++) {
+      final sameStart = _minute(periods[i]['start']) == meeting.startMinute;
+      final sameEnd = _minute(periods[i]['end']) == meeting.endMinute;
+      if (sameStart && sameEnd) return (index: i, count: 0);
+      if (sameStart) starts.add(i);
+      if (sameEnd) ends.add(i);
+    }
+    if (allowSpan &&
+        starts.length == 1 &&
+        ends.length == 1 &&
+        ends.single >= starts.single &&
+        periods
+            .sublist(starts.single, ends.single + 1)
+            .every(
+              (p) => _minute(p['start']) != null && _minute(p['end']) != null,
+            )) {
+      return (index: starts.single, count: ends.single - starts.single);
+    }
+    return null;
+  }
+
   static List<Map<String, dynamic>> _courseRows(
     ScheduleImportCourseDraft course,
     Map<String, dynamic> data,
@@ -570,51 +762,72 @@ class ScheduleImportService {
     final meetings = course.meetings.isEmpty
         ? [ScheduleImportMeetingDraft()]
         : course.meetings;
+    final unresolvedKeys = <String, int>{};
     return meetings.map((meeting) {
       int? slot, count;
-      if (meeting.startMinute != null && meeting.endMinute != null) {
-        final exact = <int>[], starts = <int>[], ends = <int>[];
-        for (var i = 0; i < periods.length; i++) {
-          final sameStart = _minute(periods[i]['start']) == meeting.startMinute;
-          final sameEnd = _minute(periods[i]['end']) == meeting.endMinute;
-          // Several ranges often share only a start or only an end. An exact
-          // range still belongs on its own row; otherwise the whole course is
-          // stored with no weekday and disappears from the timetable.
-          if (sameStart && sameEnd) exact.add(i);
-          if (sameStart) starts.add(i);
-          if (sameEnd) ends.add(i);
+      if (meeting.hasClock) {
+        final match = _clockSlot(
+          meeting,
+          periods,
+          allowSpan: data['import_periods_managed'] != true,
+        );
+        if (match != null) {
+          slot = match.index + 1;
+          count = match.count;
         }
-        if (exact.isNotEmpty) {
-          slot = exact.first + 1;
+      } else if (meeting.periodIndex != null) {
+        final index = periods.indexWhere(
+          (p) =>
+              p['import_time_kind'] == 'period' &&
+              p['source_period'] == meeting.periodIndex &&
+              p['source_period_count'] == (meeting.periodCount ?? 0),
+        );
+        if (index >= 0) {
+          slot = index + 1;
           count = 0;
-        } else if (starts.length == 1 &&
-            ends.length == 1 &&
-            ends.single >= starts.single) {
-          slot = starts.single + 1;
-          count = ends.single - starts.single;
+        } else if (data['import_periods_managed'] != true &&
+            _userPeriodRange(meeting, periods)) {
+          slot = meeting.periodIndex;
+          count = meeting.periodCount ?? 0;
         }
-      } else if (meeting.periodIndex != null &&
-          meeting.periodIndex! >= 1 &&
-          meeting.periodIndex! + (meeting.periodCount ?? 0) <= periods.length) {
-        slot = meeting.periodIndex;
-        count = meeting.periodCount ?? 0;
+      } else if (meeting.periodLabel != null) {
+        final index = periods.indexWhere(
+          (period) =>
+              period['label'] == meeting.periodLabel!.trim() &&
+              (period['import_time_kind'] == 'label' ||
+                  ('${period['start'] ?? ''}'.isEmpty &&
+                      '${period['end'] ?? ''}'.isEmpty)),
+        );
+        if (index >= 0) {
+          slot = index + 1;
+          count = 0;
+        }
       }
       final isPending =
           slot == null ||
           meeting.weekday == null ||
           meeting.weeks == null ||
           meeting.weeks!.isEmpty;
+      var meetingKey = meeting.meetingKey;
+      if (meeting.isPending) {
+        final duplicate = unresolvedKeys.update(
+          meetingKey,
+          (n) => n + 1,
+          ifAbsent: () => 0,
+        );
+        if (duplicate > 0) meetingKey = '$meetingKey:unresolved:$duplicate';
+      }
       return <String, dynamic>{
         'name': course.name.trim(),
         'class_number': course.courseCode,
         'teacher': course.teacher,
         'classroom': meeting.location,
         'weeks': jsonEncode(
-          isPending ? <int>[] : (meeting.weeks!.toList()..sort()),
+          meeting.weeks == null ? <int>[] : (meeting.weeks!.toList()..sort()),
         ),
-        'week_time': isPending ? 0 : meeting.weekday,
-        'start_time': isPending ? 0 : slot,
-        'time_count': isPending ? 0 : count,
+        'week_time': meeting.weekday ?? 0,
+        'start_time': slot ?? 0,
+        'time_count': count ?? 0,
         'import_type': Constant.ADD_BY_IMPORT,
         'info': course.pendingReason,
         'data': jsonEncode({
@@ -622,7 +835,7 @@ class ScheduleImportService {
             'schema_version': schemaVersion,
             'source_key': sourceKey,
             'identity': course.identity,
-            'meeting_key': meeting.meetingKey,
+            'meeting_key': meetingKey,
             'candidate_only': !course.hasStableIdentity,
             'original_meeting': meeting.toJson(),
             'original_course': course.toJson(),
@@ -680,6 +893,17 @@ class ScheduleImportService {
       _rowMeta(row)['identity']?.toString() ?? 'unbound:${row['id']}';
   static String _key(Map<String, dynamic> row) =>
       jsonEncode([_identity(row), _rowMeta(row)['meeting_key']]);
+  static String? _legacyKey(Map<String, dynamic> row) {
+    final metadata = _rowMeta(row);
+    final original = _map(metadata['original_meeting']);
+    if (original.isEmpty) return null;
+    final meeting = ScheduleImportMeetingDraft.fromJson(original);
+    final parts = jsonDecode(meeting.meetingKey) as List;
+    final legacy = jsonEncode(parts.take(7).toList());
+    if (metadata['meeting_key'] == legacy) return null;
+    return jsonEncode([_identity(row), legacy]);
+  }
+
   static String _snapshotKey(Map<String, dynamic> snapshot) =>
       jsonEncode([snapshot['identity'], snapshot['meeting_key']]);
   static Map<String, dynamic> _fields(Map<String, dynamic> row) => {

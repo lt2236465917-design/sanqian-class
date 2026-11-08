@@ -1,0 +1,984 @@
+{
+  "provenance": "First iPhone 17 Pro Max simulator screenshot-import review output, 2026-11-08; deduplicated original_course metadata from read-only SQLite export after UI save. Not a raw DeepSeek response. No manually supplied clocks or teachers. Source screenshot SHA256 is documented in the external task evidence.",
+  "courses": [
+    {
+      "stableId": null,
+      "courseCode": "90001001",
+      "name": "中国特色社会主义理论与实践研究",
+      "section": "1",
+      "teacher": null,
+      "meetings": [
+        {
+          "weekday": 4,
+          "weeks": [
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11
+          ],
+          "periodIndex": null,
+          "periodCount": null,
+          "startMinute": null,
+          "endMinute": null,
+          "location": "三楼学术报告厅(主校区)",
+          "sourceReference": "3-11周四-上午课-三楼学术报告厅(主校区)",
+          "raw": {
+            "listRow": 1,
+            "gridWeekday": null,
+            "knownEndMinute": null,
+            "conflicts": [],
+            "gridWeeks": null,
+            "knownStartMinute": null,
+            "modelWeeks": [
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11
+            ],
+            "modelWeekday": 4
+          }
+        }
+      ],
+      "pendingReason": "缺少钟点，请核对原课表",
+      "raw": {
+        "sourceLine": null,
+        "titleText": "中国特色社会主义理论与实践研究",
+        "listRows": [
+          "3-11周四-上午课-三楼学术报告厅(主校区)"
+        ],
+        "recognition": "deepseek",
+        "recognitionWarnings": [],
+        "sectionSource": "field",
+        "sourceKind": "list",
+        "listedMeetingCount": 1,
+        "ignoredPendingListRows": []
+      }
+    },
+    {
+      "stableId": null,
+      "courseCode": "10121S102",
+      "name": "艺术意识形态分析",
+      "section": "1",
+      "teacher": null,
+      "meetings": [
+        {
+          "weekday": 5,
+          "weeks": [
+            5,
+            6,
+            7,
+            8
+          ],
+          "periodIndex": null,
+          "periodCount": null,
+          "startMinute": null,
+          "endMinute": null,
+          "location": "6408(主校区)",
+          "sourceReference": "5-8周五-下午课-6408(主校区)",
+          "raw": {
+            "listRow": 1,
+            "gridWeekday": null,
+            "knownEndMinute": null,
+            "conflicts": [],
+            "gridWeeks": null,
+            "knownStartMinute": null,
+            "modelWeeks": [
+              5,
+              6,
+              7,
+              8
+            ],
+            "modelWeekday": 5
+          }
+        }
+      ],
+      "pendingReason": "缺少钟点，请核对原课表",
+      "raw": {
+        "sourceLine": null,
+        "titleText": "艺术意识形态分析",
+        "listRows": [
+          "5-8周五-下午课-6408(主校区)"
+        ],
+        "recognition": "deepseek",
+        "recognitionWarnings": [],
+        "sectionSource": "field",
+        "sourceKind": "list",
+        "listedMeetingCount": 1,
+        "ignoredPendingListRows": []
+      }
+    },
+    {
+      "stableId": null,
+      "courseCode": "90001003",
+      "name": "中国艺术史",
+      "section": "1",
+      "teacher": null,
+      "meetings": [
+        {
+          "weekday": 1,
+          "weeks": [
+            6,
+            7,
+            8,
+            9,
+            10,
+            11
+          ],
+          "periodIndex": null,
+          "periodCount": null,
+          "startMinute": null,
+          "endMinute": null,
+          "location": "6406(主校区)",
+          "sourceReference": "6-11周一-下午课-6406(主校区)",
+          "raw": {
+            "listRow": 1,
+            "gridWeekday": null,
+            "knownEndMinute": null,
+            "conflicts": [],
+            "gridWeeks": null,
+            "knownStartMinute": null,
+            "modelWeeks": [
+              6,
+              7,
+              8,
+              9,
+              10,
+              11
+            ],
+            "modelWeekday": 1
+          }
+        },
+        {
+          "weekday": 1,
+          "weeks": [
+            3,
+            4
+          ],
+          "periodIndex": null,
+          "periodCount": null,
+          "startMinute": null,
+          "endMinute": null,
+          "location": "6406(主校区)",
+          "sourceReference": "3,4周一-下午课-6406(主校区)",
+          "raw": {
+            "listRow": 2,
+            "gridWeekday": null,
+            "knownEndMinute": null,
+            "conflicts": [],
+            "gridWeeks": null,
+            "knownStartMinute": null,
+            "modelWeeks": [
+              3,
+              4
+            ],
+            "modelWeekday": 1
+          }
+        }
+      ],
+      "pendingReason": "缺少钟点，请核对原课表",
+      "raw": {
+        "sourceLine": null,
+        "titleText": "中国艺术史",
+        "listRows": [
+          "6-11周一-下午课-6406(主校区)",
+          "3,4周一-下午课-6406(主校区)"
+        ],
+        "recognition": "deepseek",
+        "recognitionWarnings": [],
+        "sectionSource": "field",
+        "sourceKind": "list",
+        "listedMeetingCount": 2,
+        "ignoredPendingListRows": []
+      }
+    },
+    {
+      "stableId": null,
+      "courseCode": "90001005",
+      "name": "艺术美学",
+      "section": "1",
+      "teacher": null,
+      "meetings": [
+        {
+          "weekday": 2,
+          "weeks": [
+            6,
+            7,
+            8,
+            9,
+            10,
+            11
+          ],
+          "periodIndex": null,
+          "periodCount": null,
+          "startMinute": null,
+          "endMinute": null,
+          "location": "6406(主校区)",
+          "sourceReference": "6-11周二-下午课-6406(主校区)",
+          "raw": {
+            "listRow": 1,
+            "gridWeekday": null,
+            "knownEndMinute": null,
+            "conflicts": [],
+            "gridWeeks": null,
+            "knownStartMinute": null,
+            "modelWeeks": [
+              6,
+              7,
+              8,
+              9,
+              10,
+              11
+            ],
+            "modelWeekday": 2
+          }
+        },
+        {
+          "weekday": 2,
+          "weeks": [
+            3,
+            4
+          ],
+          "periodIndex": null,
+          "periodCount": null,
+          "startMinute": null,
+          "endMinute": null,
+          "location": "6406(主校区)",
+          "sourceReference": "3,4周二-下午课-6406(主校区)",
+          "raw": {
+            "listRow": 2,
+            "gridWeekday": null,
+            "knownEndMinute": null,
+            "conflicts": [],
+            "gridWeeks": null,
+            "knownStartMinute": null,
+            "modelWeeks": [
+              3,
+              4
+            ],
+            "modelWeekday": 2
+          }
+        }
+      ],
+      "pendingReason": "缺少钟点，请核对原课表",
+      "raw": {
+        "sourceLine": null,
+        "titleText": "艺术美学",
+        "listRows": [
+          "6-11周二-下午课-6406(主校区)",
+          "3,4周二-下午课-6406(主校区)"
+        ],
+        "recognition": "deepseek",
+        "recognitionWarnings": [],
+        "sectionSource": "field",
+        "sourceKind": "list",
+        "listedMeetingCount": 2,
+        "ignoredPendingListRows": []
+      }
+    },
+    {
+      "stableId": null,
+      "courseCode": "90001011",
+      "name": "导师课",
+      "section": "1",
+      "teacher": null,
+      "meetings": [],
+      "pendingReason": "无具体上课周次、时间、地点安排",
+      "raw": {
+        "sourceLine": null,
+        "titleText": "导师课",
+        "listRows": [],
+        "recognition": "deepseek",
+        "recognitionWarnings": [],
+        "sectionSource": "field",
+        "sourceKind": "list",
+        "listedMeetingCount": 0,
+        "ignoredPendingListRows": []
+      }
+    },
+    {
+      "stableId": null,
+      "courseCode": "S90001014",
+      "name": "硕士英语(全日制学术型)",
+      "section": "1",
+      "teacher": null,
+      "meetings": [
+        {
+          "weekday": 2,
+          "weeks": [
+            12
+          ],
+          "periodIndex": null,
+          "periodCount": null,
+          "startMinute": null,
+          "endMinute": null,
+          "location": "6310(主校区)",
+          "sourceReference": "12周二-上午课-6310(主校区)",
+          "raw": {
+            "listRow": 1,
+            "gridWeekday": null,
+            "knownEndMinute": null,
+            "conflicts": [],
+            "gridWeeks": null,
+            "knownStartMinute": null,
+            "modelWeeks": [
+              12
+            ],
+            "modelWeekday": 2
+          }
+        },
+        {
+          "weekday": 2,
+          "weeks": [
+            6,
+            7,
+            8,
+            9,
+            10
+          ],
+          "periodIndex": null,
+          "periodCount": null,
+          "startMinute": null,
+          "endMinute": null,
+          "location": "6310(主校区)",
+          "sourceReference": "6-10周二-上午课-6310(主校区)",
+          "raw": {
+            "listRow": 2,
+            "gridWeekday": null,
+            "knownEndMinute": null,
+            "conflicts": [],
+            "gridWeeks": null,
+            "knownStartMinute": null,
+            "modelWeeks": [
+              6,
+              7,
+              8,
+              9,
+              10
+            ],
+            "modelWeekday": 2
+          }
+        },
+        {
+          "weekday": 2,
+          "weeks": [
+            3,
+            4
+          ],
+          "periodIndex": null,
+          "periodCount": null,
+          "startMinute": null,
+          "endMinute": null,
+          "location": "第五会议室(主校区)",
+          "sourceReference": "3,4周二-上午课-第五会议室(主校区)",
+          "raw": {
+            "listRow": 3,
+            "gridWeekday": null,
+            "knownEndMinute": null,
+            "conflicts": [],
+            "gridWeeks": null,
+            "knownStartMinute": null,
+            "modelWeeks": [
+              3,
+              4
+            ],
+            "modelWeekday": 2
+          }
+        }
+      ],
+      "pendingReason": "缺少钟点，请核对原课表",
+      "raw": {
+        "sourceLine": null,
+        "titleText": "硕士英语(全日制学术型)",
+        "listRows": [
+          "12周二-上午课-6310(主校区)",
+          "6-10周二-上午课-6310(主校区)",
+          "3,4周二-上午课-第五会议室(主校区)"
+        ],
+        "recognition": "deepseek",
+        "recognitionWarnings": [],
+        "sectionSource": "field",
+        "sourceKind": "list",
+        "listedMeetingCount": 3,
+        "ignoredPendingListRows": []
+      }
+    },
+    {
+      "stableId": null,
+      "courseCode": "30101009",
+      "name": "曲艺学导论",
+      "section": "1",
+      "teacher": null,
+      "meetings": [
+        {
+          "weekday": 1,
+          "weeks": [
+            6
+          ],
+          "periodIndex": null,
+          "periodCount": null,
+          "startMinute": null,
+          "endMinute": null,
+          "location": "自排教室:6401教室",
+          "sourceReference": "6周一-晚上课-自排教室:6401教室",
+          "raw": {
+            "listRow": 1,
+            "gridWeekday": null,
+            "knownEndMinute": null,
+            "conflicts": [],
+            "gridWeeks": null,
+            "knownStartMinute": null,
+            "modelWeeks": [
+              6
+            ],
+            "modelWeekday": 1
+          }
+        },
+        {
+          "weekday": 3,
+          "weeks": [
+            4
+          ],
+          "periodIndex": null,
+          "periodCount": null,
+          "startMinute": null,
+          "endMinute": null,
+          "location": "自排教室:6401教室",
+          "sourceReference": "4周三-晚上课-自排教室:6401教室",
+          "raw": {
+            "listRow": 2,
+            "gridWeekday": null,
+            "knownEndMinute": null,
+            "conflicts": [],
+            "gridWeeks": null,
+            "knownStartMinute": null,
+            "modelWeeks": [
+              4
+            ],
+            "modelWeekday": 3
+          }
+        },
+        {
+          "weekday": 2,
+          "weeks": [
+            4
+          ],
+          "periodIndex": null,
+          "periodCount": null,
+          "startMinute": null,
+          "endMinute": null,
+          "location": "自排教室:6401教室",
+          "sourceReference": "4周二-晚上课-自排教室:6401教室",
+          "raw": {
+            "listRow": 3,
+            "gridWeekday": null,
+            "knownEndMinute": null,
+            "conflicts": [],
+            "gridWeeks": null,
+            "knownStartMinute": null,
+            "modelWeeks": [
+              4
+            ],
+            "modelWeekday": 2
+          }
+        },
+        {
+          "weekday": 1,
+          "weeks": [
+            4
+          ],
+          "periodIndex": null,
+          "periodCount": null,
+          "startMinute": null,
+          "endMinute": null,
+          "location": "自排教室:6401教室",
+          "sourceReference": "4周一-晚上课-自排教室:6401教室",
+          "raw": {
+            "listRow": 4,
+            "gridWeekday": null,
+            "knownEndMinute": null,
+            "conflicts": [],
+            "gridWeeks": null,
+            "knownStartMinute": null,
+            "modelWeeks": [
+              4
+            ],
+            "modelWeekday": 1
+          }
+        }
+      ],
+      "pendingReason": "缺少钟点，请核对原课表",
+      "raw": {
+        "sourceLine": null,
+        "titleText": "曲艺学导论",
+        "listRows": [
+          "6周一-晚上课-自排教室:6401教室",
+          "4周三-晚上课-自排教室:6401教室",
+          "4周二-晚上课-自排教室:6401教室",
+          "4周一-晚上课-自排教室:6401教室"
+        ],
+        "recognition": "deepseek",
+        "recognitionWarnings": [],
+        "sectionSource": "field",
+        "sourceKind": "list",
+        "listedMeetingCount": 4,
+        "ignoredPendingListRows": []
+      }
+    },
+    {
+      "stableId": null,
+      "courseCode": "10118B103",
+      "name": "艺术人类学理论与沿革专题研究",
+      "section": "1",
+      "teacher": null,
+      "meetings": [
+        {
+          "weekday": 3,
+          "weeks": [
+            6,
+            7
+          ],
+          "periodIndex": null,
+          "periodCount": null,
+          "startMinute": null,
+          "endMinute": null,
+          "location": "6408(主校区)",
+          "sourceReference": "6,7周三-下午课-6408(主校区)",
+          "raw": {
+            "listRow": 1,
+            "gridWeekday": null,
+            "knownEndMinute": null,
+            "conflicts": [],
+            "gridWeeks": null,
+            "knownStartMinute": null,
+            "modelWeeks": [
+              6,
+              7
+            ],
+            "modelWeekday": 3
+          }
+        },
+        {
+          "weekday": 3,
+          "weeks": [
+            3,
+            4
+          ],
+          "periodIndex": null,
+          "periodCount": null,
+          "startMinute": null,
+          "endMinute": null,
+          "location": "6408(主校区)",
+          "sourceReference": "3,4周三-下午课-6408(主校区)",
+          "raw": {
+            "listRow": 2,
+            "gridWeekday": null,
+            "knownEndMinute": null,
+            "conflicts": [],
+            "gridWeeks": null,
+            "knownStartMinute": null,
+            "modelWeeks": [
+              3,
+              4
+            ],
+            "modelWeekday": 3
+          }
+        }
+      ],
+      "pendingReason": "缺少钟点，请核对原课表",
+      "raw": {
+        "sourceLine": null,
+        "titleText": "艺术人类学理论与沿革专题研究",
+        "listRows": [
+          "6,7周三-下午课-6408(主校区)",
+          "3,4周三-下午课-6408(主校区)"
+        ],
+        "recognition": "deepseek",
+        "recognitionWarnings": [],
+        "sectionSource": "field",
+        "sourceKind": "list",
+        "listedMeetingCount": 2,
+        "ignoredPendingListRows": []
+      }
+    },
+    {
+      "stableId": null,
+      "courseCode": "49106104",
+      "name": "黑白摄影暗房工艺基础",
+      "section": "1",
+      "teacher": null,
+      "meetings": [
+        {
+          "weekday": 7,
+          "weeks": [
+            5
+          ],
+          "periodIndex": null,
+          "periodCount": null,
+          "startMinute": null,
+          "endMinute": null,
+          "location": "虚拟教室1(主校区)",
+          "sourceReference": "5周日-上午课-虚拟教室1(主校区)",
+          "raw": {
+            "listRow": 1,
+            "gridWeekday": null,
+            "knownEndMinute": null,
+            "conflicts": [],
+            "gridWeeks": null,
+            "knownStartMinute": null,
+            "modelWeeks": [
+              5
+            ],
+            "modelWeekday": 7
+          }
+        },
+        {
+          "weekday": 6,
+          "weeks": [
+            5
+          ],
+          "periodIndex": null,
+          "periodCount": null,
+          "startMinute": null,
+          "endMinute": null,
+          "location": "虚拟教室1(主校区)",
+          "sourceReference": "5周六-上午课-虚拟教室1(主校区)",
+          "raw": {
+            "listRow": 2,
+            "gridWeekday": null,
+            "knownEndMinute": null,
+            "conflicts": [],
+            "gridWeeks": null,
+            "knownStartMinute": null,
+            "modelWeeks": [
+              5
+            ],
+            "modelWeekday": 6
+          }
+        },
+        {
+          "weekday": 7,
+          "weeks": [
+            5
+          ],
+          "periodIndex": null,
+          "periodCount": null,
+          "startMinute": null,
+          "endMinute": null,
+          "location": "虚拟教室1(主校区)",
+          "sourceReference": "5周日-下午课-虚拟教室1(主校区)",
+          "raw": {
+            "listRow": 3,
+            "gridWeekday": null,
+            "knownEndMinute": null,
+            "conflicts": [],
+            "gridWeeks": null,
+            "knownStartMinute": null,
+            "modelWeeks": [
+              5
+            ],
+            "modelWeekday": 7
+          }
+        },
+        {
+          "weekday": 6,
+          "weeks": [
+            5
+          ],
+          "periodIndex": null,
+          "periodCount": null,
+          "startMinute": null,
+          "endMinute": null,
+          "location": "虚拟教室1(主校区)",
+          "sourceReference": "5周六-下午课-虚拟教室1(主校区)",
+          "raw": {
+            "listRow": 4,
+            "gridWeekday": null,
+            "knownEndMinute": null,
+            "conflicts": [],
+            "gridWeeks": null,
+            "knownStartMinute": null,
+            "modelWeeks": [
+              5
+            ],
+            "modelWeekday": 6
+          }
+        }
+      ],
+      "pendingReason": "缺少钟点，请核对原课表",
+      "raw": {
+        "sourceLine": null,
+        "titleText": "黑白摄影暗房工艺基础",
+        "listRows": [
+          "5周日-上午课-虚拟教室1(主校区)",
+          "5周六-上午课-虚拟教室1(主校区)",
+          "5周日-下午课-虚拟教室1(主校区)",
+          "5周六-下午课-虚拟教室1(主校区)"
+        ],
+        "recognition": "deepseek",
+        "recognitionWarnings": [],
+        "sectionSource": "field",
+        "sourceKind": "list",
+        "listedMeetingCount": 4,
+        "ignoredPendingListRows": []
+      }
+    },
+    {
+      "stableId": null,
+      "courseCode": "10121S104",
+      "name": "保护非物质文化遗产政策法规解读专题",
+      "section": "1",
+      "teacher": null,
+      "meetings": [
+        {
+          "weekday": 3,
+          "weeks": [
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13
+          ],
+          "periodIndex": null,
+          "periodCount": null,
+          "startMinute": null,
+          "endMinute": null,
+          "location": "6607(主校区)",
+          "sourceReference": "6-13周三-上午课-6607(主校区)",
+          "raw": {
+            "listRow": 1,
+            "gridWeekday": null,
+            "knownEndMinute": null,
+            "conflicts": [],
+            "gridWeeks": null,
+            "knownStartMinute": null,
+            "modelWeeks": [
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13
+            ],
+            "modelWeekday": 3
+          }
+        }
+      ],
+      "pendingReason": "缺少钟点，请核对原课表",
+      "raw": {
+        "sourceLine": null,
+        "titleText": "保护非物质文化遗产政策法规解读专题",
+        "listRows": [
+          "6-13周三-上午课-6607(主校区)"
+        ],
+        "recognition": "deepseek",
+        "recognitionWarnings": [],
+        "sectionSource": "field",
+        "sourceKind": "list",
+        "listedMeetingCount": 1,
+        "ignoredPendingListRows": []
+      }
+    },
+    {
+      "stableId": null,
+      "courseCode": "10118s300",
+      "name": "艺术跨学科理论前沿",
+      "section": "1",
+      "teacher": null,
+      "meetings": [
+        {
+          "weekday": 5,
+          "weeks": [
+            14,
+            15,
+            16,
+            17
+          ],
+          "periodIndex": null,
+          "periodCount": null,
+          "startMinute": null,
+          "endMinute": null,
+          "location": "虚拟教室3(主校区)",
+          "sourceReference": "14-17周五-下午课-虚拟教室3(主校区)",
+          "raw": {
+            "listRow": 1,
+            "gridWeekday": null,
+            "knownEndMinute": null,
+            "conflicts": [],
+            "gridWeeks": null,
+            "knownStartMinute": null,
+            "modelWeeks": [
+              14,
+              15,
+              16,
+              17
+            ],
+            "modelWeekday": 5
+          }
+        }
+      ],
+      "pendingReason": "缺少钟点，请核对原课表",
+      "raw": {
+        "sourceLine": null,
+        "titleText": "艺术跨学科理论前沿",
+        "listRows": [
+          "14-17周五-下午课-虚拟教室3(主校区)"
+        ],
+        "recognition": "deepseek",
+        "recognitionWarnings": [],
+        "sectionSource": "field",
+        "sourceKind": "list",
+        "listedMeetingCount": 1,
+        "ignoredPendingListRows": []
+      }
+    },
+    {
+      "stableId": null,
+      "courseCode": "10118s105",
+      "name": "非物质文化遗产概论",
+      "section": "1",
+      "teacher": null,
+      "meetings": [
+        {
+          "weekday": 1,
+          "weeks": [
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13
+          ],
+          "periodIndex": null,
+          "periodCount": null,
+          "startMinute": null,
+          "endMinute": null,
+          "location": "6607(主校区)",
+          "sourceReference": "6-13周一-上午课-6607(主校区)",
+          "raw": {
+            "listRow": 1,
+            "gridWeekday": null,
+            "knownEndMinute": null,
+            "conflicts": [],
+            "gridWeeks": null,
+            "knownStartMinute": null,
+            "modelWeeks": [
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13
+            ],
+            "modelWeekday": 1
+          }
+        }
+      ],
+      "pendingReason": "缺少钟点，请核对原课表",
+      "raw": {
+        "sourceLine": null,
+        "titleText": "非物质文化遗产概论",
+        "listRows": [
+          "6-13周一-上午课-6607(主校区)"
+        ],
+        "recognition": "deepseek",
+        "recognitionWarnings": [],
+        "sectionSource": "field",
+        "sourceKind": "list",
+        "listedMeetingCount": 1,
+        "ignoredPendingListRows": []
+      }
+    },
+    {
+      "stableId": null,
+      "courseCode": "10118s106",
+      "name": "非物质文化遗产保护理论与实践专题",
+      "section": "1",
+      "teacher": null,
+      "meetings": [
+        {
+          "weekday": 3,
+          "weeks": [
+            9,
+            10,
+            11,
+            12
+          ],
+          "periodIndex": null,
+          "periodCount": null,
+          "startMinute": null,
+          "endMinute": null,
+          "location": "6408(主校区)",
+          "sourceReference": "9-12周三-下午课-6408(主校区)",
+          "raw": {
+            "listRow": 1,
+            "gridWeekday": null,
+            "knownEndMinute": null,
+            "conflicts": [],
+            "gridWeeks": null,
+            "knownStartMinute": null,
+            "modelWeeks": [
+              9,
+              10,
+              11,
+              12
+            ],
+            "modelWeekday": 3
+          }
+        }
+      ],
+      "pendingReason": "缺少钟点，请核对原课表",
+      "raw": {
+        "sourceLine": null,
+        "titleText": "非物质文化遗产保护理论与实践专题",
+        "listRows": [
+          "9-12周三-下午课-6408(主校区)"
+        ],
+        "recognition": "deepseek",
+        "recognitionWarnings": [],
+        "sectionSource": "field",
+        "sourceKind": "list",
+        "listedMeetingCount": 1,
+        "ignoredPendingListRows": []
+      }
+    },
+    {
+      "stableId": null,
+      "courseCode": "90001020",
+      "name": "思政大讲堂：形势与政策",
+      "section": "1",
+      "teacher": null,
+      "meetings": [],
+      "pendingReason": "无具体上课周次、时间、地点安排，仅注明教师联系上课时间和地点",
+      "raw": {
+        "sourceLine": null,
+        "titleText": "思政大讲堂：形势与政策",
+        "listRows": [],
+        "recognition": "deepseek",
+        "recognitionWarnings": [],
+        "sectionSource": "field",
+        "sourceKind": "list",
+        "listedMeetingCount": 0,
+        "ignoredPendingListRows": []
+      }
+    }
+  ]
+}

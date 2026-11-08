@@ -12,6 +12,9 @@ class ScheduleImportMeetingDraft {
   final int? periodCount;
   final int? startMinute;
   final int? endMinute;
+
+  /// A source-provided time band or named session, never an inferred clock.
+  final String? periodLabel;
   final String? location;
   final String? sourceReference;
   final Map<String, dynamic> raw;
@@ -23,6 +26,7 @@ class ScheduleImportMeetingDraft {
     this.periodCount,
     this.startMinute,
     this.endMinute,
+    this.periodLabel,
     this.location,
     this.sourceReference,
     Map<String, dynamic>? raw,
@@ -32,7 +36,25 @@ class ScheduleImportMeetingDraft {
   bool get isPending =>
       weekday == null ||
       (weeks == null || weeks!.isEmpty) ||
-      (periodIndex == null && (startMinute == null || endMinute == null));
+      (periodIndex == null &&
+          (periodLabel ?? '').trim().isEmpty &&
+          (startMinute == null || endMinute == null));
+
+  bool get hasClock => startMinute != null && endMinute != null;
+
+  String get timeDescription {
+    String clock(int m) =>
+        '${m ~/ 60}'.padLeft(2, '0') + ':' + '${m % 60}'.padLeft(2, '0');
+    if (hasClock) return '${clock(startMinute!)}–${clock(endMinute!)}';
+    if ((periodLabel ?? '').trim().isNotEmpty) {
+      return '${periodLabel!.trim()}（具体时间待确认）';
+    }
+    if (periodIndex != null) {
+      final end = periodIndex! + (periodCount ?? 0);
+      return '第 $periodIndex${end == periodIndex ? '' : '–$end'} 节（具体时间待确认）';
+    }
+    return '时间待定';
+  }
 
   List<String> validate([String path = 'meeting']) {
     final errors = <String>[];
@@ -53,6 +75,15 @@ class ScheduleImportMeetingDraft {
     }
     if (periodCount != null && periodCount! < 0) {
       errors.add('$path.periodCount must be non-negative');
+    }
+    if (periodIndex != null && periodIndex! + (periodCount ?? 0) > 200) {
+      errors.add('$path period range must not exceed 200');
+    }
+    if (periodLabel != null &&
+        (periodLabel!.trim().isEmpty ||
+            periodLabel!.length > 80 ||
+            periodLabel!.contains('\n'))) {
+      errors.add('$path.periodLabel must be a short non-empty label');
     }
     if (startMinute != null && (startMinute! < 0 || startMinute! >= 24 * 60)) {
       errors.add('$path.startMinute must be between 0 and 1439');
@@ -81,6 +112,14 @@ class ScheduleImportMeetingDraft {
     startMinute,
     endMinute,
     _normalise(location),
+    // Keep existing complete-clock keys stable. A label distinguishes coarse
+    // sessions; a quotation distinguishes unresolved arrangements, not times.
+    if (!hasClock &&
+        periodIndex == null &&
+        (periodLabel ?? '').trim().isNotEmpty)
+      {'periodLabel': _normalise(periodLabel)},
+    if (isPending && (sourceReference ?? '').trim().isNotEmpty)
+      {'sourceReference': _normalise(sourceReference)},
   ]);
 
   Map<String, dynamic> toJson() => {
@@ -90,6 +129,7 @@ class ScheduleImportMeetingDraft {
     'periodCount': periodCount,
     'startMinute': startMinute,
     'endMinute': endMinute,
+    'periodLabel': periodLabel,
     'location': location,
     'sourceReference': sourceReference,
     'raw': raw,
@@ -103,6 +143,9 @@ class ScheduleImportMeetingDraft {
         periodCount: _asInt(json['periodCount']),
         startMinute: _asInt(json['startMinute']),
         endMinute: _asInt(json['endMinute']),
+        periodLabel: json.containsKey('periodLabel')
+            ? _periodLabel(_asString(json['periodLabel']))
+            : _sourcePeriodLabel(_asString(json['sourceReference'])),
         location: _firstNonEmpty(
           _asString(json['location']),
           _plainText(json['room']),
@@ -113,6 +156,33 @@ class ScheduleImportMeetingDraft {
         sourceReference: _asString(json['sourceReference']),
         raw: _asMap(json['raw']),
       );
+}
+
+String? _periodLabel(String? value) {
+  final label = value?.trim();
+  if (label == null ||
+      const ['', '待定', '未知', '待通知', '时间待定', '待安排'].contains(label)) {
+    return null;
+  }
+  return label;
+}
+
+/// Only extract explicit time text from this meeting's own quotation. Never
+/// use a school, course name, room, or a default timetable to guess a clock.
+String? _sourcePeriodLabel(String? source) {
+  if (source == null) return null;
+  final labels = RegExp(
+    r'(?:^|周[一二三四五六日天]|星期[一二三四五六日天]|[\s\-—:：,，;；])'
+    r'(上午|下午|早上|早晨|中午|午间|晚上|晚间|全天|早自习|晚自习)(?:课|时段)?'
+    r'(?=$|[\s\-—:：,，;；（(\d])',
+  ).allMatches(source).map((m) => m.group(1)!).toSet();
+  if (labels.length == 1) return labels.single;
+  if (labels.length > 1) return null;
+  final sections = RegExp(r'第\s*(\d{1,3})\s*(?:[-–—~～至]\s*(\d{1,3}))?\s*节')
+      .allMatches(source)
+      .map((m) => m.group(0)!.replaceAll(RegExp(r'\s+'), ''))
+      .toSet();
+  return sections.length == 1 ? sections.single : null;
 }
 
 class ScheduleImportCourseDraft {
@@ -208,6 +278,7 @@ class ScheduleImportCourseDraft {
                       periodCount: meeting.periodCount,
                       startMinute: meeting.startMinute,
                       endMinute: meeting.endMinute,
+                      periodLabel: meeting.periodLabel,
                       location: courseRoom,
                       sourceReference: meeting.sourceReference,
                       raw: meeting.raw,
@@ -463,7 +534,9 @@ ScheduleRecognitionPreparation prepareScheduleRecognition(
     final batchMessages = course.raw['batchRecognitionWarnings'];
     if (batchMessages is List) {
       evidenceWarnings.addAll(
-        batchMessages.whereType<String>().where((message) => message.trim().isNotEmpty),
+        batchMessages.whereType<String>().where(
+          (message) => message.trim().isNotEmpty,
+        ),
       );
     }
     final messages = course.raw['recognitionWarnings'];
@@ -476,6 +549,7 @@ ScheduleRecognitionPreparation prepareScheduleRecognition(
     }
     if (!course.isPending &&
         (course.pendingReason ?? '').trim().isNotEmpty &&
+        course.pendingReason != '缺少钟点，请核对原课表' &&
         (messages is! List || messages.isEmpty)) {
       evidenceWarnings.add('“${course.name}”：${course.pendingReason!.trim()}');
     }
@@ -536,6 +610,16 @@ ScheduleRecognitionPreparation prepareScheduleRecognition(
   }
   if (extra.isNotEmpty) {
     warnings.add('以下课程未出现在来源候选中：${extra.join('、')}。候选可能不完整，请核对是否为额外课程。');
+  }
+  final coarse = canonical
+      .where(
+        (course) => course.meetings.any(
+          (meeting) => !meeting.isPending && !meeting.hasClock,
+        ),
+      )
+      .length;
+  if (coarse > 0) {
+    warnings.add('有 $coarse 门课程已保留时段或节次，具体钟点待确认；不会据此生成定时提醒。');
   }
   final pending = canonical.where((course) => course.isPending).length;
   if (pending > 0) {
@@ -648,6 +732,7 @@ ScheduleImportCourseDraft _mergeRecognitionCourses(
             periodCount: old.periodCount,
             startMinute: old.startMinute,
             endMinute: old.endMinute,
+            periodLabel: old.periodLabel,
             location: old.location,
             sourceReference: old.sourceReference ?? meeting.sourceReference,
             raw: _mergeRaw(old.raw, {
@@ -691,6 +776,7 @@ List<String> scheduleRecognitionReplacementWarnings(
             meeting.periodCount,
             meeting.startMinute,
             meeting.endMinute,
+            meeting.periodLabel,
             _normalise(meeting.location),
           ]),
   };
@@ -793,6 +879,7 @@ ScheduleImportMeetingDraft _keepReviewedRoom(
     periodCount: meeting.periodCount,
     startMinute: meeting.startMinute,
     endMinute: meeting.endMinute,
+    periodLabel: meeting.periodLabel,
     location: rooms.single,
     sourceReference: meeting.sourceReference,
     raw: meeting.raw,
@@ -884,44 +971,7 @@ ScheduleImportCourseDraft _mergeCourse(
   ScheduleImportCourseDraft first,
   ScheduleImportCourseDraft second,
 ) {
-  final meetings = <String, ScheduleImportMeetingDraft>{};
-  for (final meeting in [...first.meetings, ...second.meetings]) {
-    final old = meetings[meeting.meetingKey];
-    if (old == null) {
-      meetings[meeting.meetingKey] = meeting;
-    } else {
-      final weeks = <int>{
-        ...(old.weeks ?? const []),
-        ...(meeting.weeks ?? const []),
-      };
-      meetings[meeting.meetingKey] = ScheduleImportMeetingDraft(
-        weekday: old.weekday ?? meeting.weekday,
-        weeks: old.weeks == null && meeting.weeks == null
-            ? null
-            : (weeks.toList()..sort()),
-        periodIndex: old.periodIndex ?? meeting.periodIndex,
-        periodCount: old.periodCount ?? meeting.periodCount,
-        startMinute: old.startMinute ?? meeting.startMinute,
-        endMinute: old.endMinute ?? meeting.endMinute,
-        location: _firstNonEmpty(old.location, meeting.location),
-        sourceReference: _firstNonEmpty(
-          old.sourceReference,
-          meeting.sourceReference,
-        ),
-        raw: _mergeRaw(old.raw, meeting.raw),
-      );
-    }
-  }
-  return ScheduleImportCourseDraft(
-    stableId: _firstNonEmpty(first.stableId, second.stableId),
-    courseCode: _firstNonEmpty(first.courseCode, second.courseCode),
-    name: first.name.trim().isEmpty ? second.name : first.name,
-    section: _firstNonEmpty(first.section, second.section),
-    teacher: _firstNonEmpty(first.teacher, second.teacher),
-    meetings: meetings.values.toList(),
-    pendingReason: _firstNonEmpty(first.pendingReason, second.pendingReason),
-    raw: _mergeRaw(first.raw, second.raw),
-  );
+  return _mergeRecognitionCourses(first, second);
 }
 
 String? _firstNonEmpty(

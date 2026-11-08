@@ -621,8 +621,13 @@ void main() {
             ),
           )
           .map((text) => text.data);
-      expect(counters, hasLength(4));
-      expect(counters, everyElement(matches(r'^(新增|变更|移除|待定) \d+$')));
+      expect(counters, contains('2 门课程 · 2 条上课安排'));
+      expect(
+        counters.where(
+          (text) => RegExp(r'^(新增|变更|移除|待定) \d+$').hasMatch(text ?? ''),
+        ),
+        hasLength(4),
+      );
       expect(
         find.descendant(
           of: find.byType(AlertDialog),
@@ -1145,7 +1150,7 @@ void main() {
       await tester.tap(find.text('完成核对'));
       await tester.pumpAndSettle();
       expect(find.byType(ImportReviewView), findsOneWidget);
-      expect(find.textContaining('待定–待定'), findsOneWidget);
+      expect(find.textContaining('时间待定'), findsOneWidget);
       expect(find.textContaining('09:00'), findsNothing);
       expect(await db.query('Course'), isEmpty);
       expect(tester.takeException(), isNull);
